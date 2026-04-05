@@ -1,0 +1,7 @@
+{
+  "action": "generate_image",
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "prompt": "A colorful birthday party invitation with balloons, confetti, and the text 'You are invited!' in a fun font. Bright and festive.",
+  "phone": "+15551234567"
+}

@@ -1,0 +1,1 @@
+MessageSid=SMc3d4e5f6a7b8c9d0e1f2a3b4&AccountSid=ACtest000000000000000000000000&From=%2B15551234567&To=%2B15559876543&Body=Show+my+gigs&NumMedia=0&FromCity=Austin&FromState=TX&FromZip=78701&FromCountry=US&ToCity=&ToState=&ToZip=&ToCountry=US&SmsMessageSid=SMc3d4e5f6a7b8c9d0e1f2a3b4&SmsSid=SMc3d4e5f6a7b8c9d0e1f2a3b4&SmsStatus=received&ApiVersion=2010-04-01

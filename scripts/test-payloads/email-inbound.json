@@ -1,0 +1,24 @@
+{
+  "Records": [
+    {
+      "ses": {
+        "mail": {
+          "source": "john@example.com",
+          "destination": ["gig@gigler.ai"],
+          "commonHeaders": {
+            "from": ["John Smith <john@example.com>"],
+            "to": ["gig@gigler.ai"],
+            "subject": "Hotel Confirmation - Hilton Austin for June 13-15"
+          }
+        },
+        "receipt": {
+          "action": {
+            "type": "S3",
+            "bucketName": "gigler-ses-inbox",
+            "objectKey": "emails/test-hotel-confirmation-001"
+          }
+        }
+      }
+    }
+  ]
+}

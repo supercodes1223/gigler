@@ -1,0 +1,24 @@
+{
+  "Records": [
+    {
+      "ses": {
+        "mail": {
+          "source": "sabrina@example.com",
+          "destination": ["abc123@gigler.ai"],
+          "commonHeaders": {
+            "from": ["Sabrina Lee <sabrina@example.com>"],
+            "to": ["abc123@gigler.ai"],
+            "subject": "Fwd: Catering Menu Options from Franklin BBQ"
+          }
+        },
+        "receipt": {
+          "action": {
+            "type": "S3",
+            "bucketName": "gigler-ses-inbox",
+            "objectKey": "emails/test-catering-menu-fwd-002"
+          }
+        }
+      }
+    }
+  ]
+}

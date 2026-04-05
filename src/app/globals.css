@@ -30,3 +30,41 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* ── Rolodex / split-flap animation for hero gig types ───────────────────── */
+.rolodex-container {
+  display: inline-block;
+  position: relative;
+  height: 1.15em;
+  overflow: hidden;
+  vertical-align: bottom;
+  min-width: 4ch;
+}
+
+.rolodex-word {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transform: translateY(100%);
+  animation: rolodex-cycle 18s infinite;
+}
+
+@keyframes rolodex-cycle {
+  0%, 2%     { opacity: 0; transform: translateY(80%) rotateX(-40deg); }
+  3%, 10%    { opacity: 1; transform: translateY(0) rotateX(0); }
+  11%, 12%   { opacity: 0; transform: translateY(-80%) rotateX(40deg); }
+  13%, 100%  { opacity: 0; transform: translateY(80%) rotateX(-40deg); }
+}
+
+/* 9 words, each visible for ~2s of the 18s cycle */
+.rolodex-word:nth-child(1)  { animation-delay: 0s; }
+.rolodex-word:nth-child(2)  { animation-delay: 2s; }
+.rolodex-word:nth-child(3)  { animation-delay: 4s; }
+.rolodex-word:nth-child(4)  { animation-delay: 6s; }
+.rolodex-word:nth-child(5)  { animation-delay: 8s; }
+.rolodex-word:nth-child(6)  { animation-delay: 10s; }
+.rolodex-word:nth-child(7)  { animation-delay: 12s; }
+.rolodex-word:nth-child(8)  { animation-delay: 14s; }
+.rolodex-word:nth-child(9)  { animation-delay: 16s; }
