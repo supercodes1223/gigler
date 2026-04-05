@@ -373,6 +373,217 @@ async function callGemini(
   }
 }
 
+// ── Intent Detection ─────────────────────────────────────────────────────────
+
+type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations";
+
+interface Intent {
+  type: "create_gig" | "list_gigs" | "resume_gig" | "general";
+  gigType?: GigType;
+  title?: string;
+}
+
+async function detectIntent(message: string): Promise<Intent> {
+  const lower = message.toLowerCase().trim();
+
+  if (/^(list|my gigs|show gigs|gigs|what.*gigs)/i.test(lower)) {
+    return { type: "list_gigs" };
+  }
+
+  if (!GEMINI_API_KEY) {
+    return isLikelyGigRequest(lower)
+      ? { type: "create_gig", gigType: classifyGigType(lower) }
+      : { type: "general" };
+  }
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: `You classify user messages for Gigler, an SMS-based AI assistant. Respond with ONLY a JSON object, no markdown.
+
+If the user is asking to DO something (plan, build, create, organize, schedule, book, form, etc.), classify as create_gig.
+If they're asking about their gigs or listing them, classify as list_gigs.
+Otherwise, classify as general.
+
+Gig types: coding, planning, creative, professional, lifestyle, scheduling, education, business_formation, reservations
+
+JSON format: {"type": "create_gig"|"list_gigs"|"general", "gigType": "...", "title": "short title"}`,
+            }],
+          },
+          contents: [{ role: "user", parts: [{ text: message }] }],
+          generationConfig: { maxOutputTokens: 100, temperature: 0 },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const jsonMatch = text.match(/\{[^}]+\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        type: parsed.type || "general",
+        gigType: parsed.gigType,
+        title: parsed.title,
+      };
+    }
+  } catch (err) {
+    console.error("[Gigler] Intent detection error:", err);
+  }
+
+  return isLikelyGigRequest(lower)
+    ? { type: "create_gig", gigType: classifyGigType(lower) }
+    : { type: "general" };
+}
+
+function isLikelyGigRequest(msg: string): boolean {
+  const actionWords = ["plan", "build", "create", "organize", "schedule", "book", "form", "make", "set up", "design", "draft", "prepare", "arrange", "coordinate", "remind", "help me", "deploy", "scaffold", "generate"];
+  return actionWords.some((w) => msg.includes(w));
+}
+
+function classifyGigType(msg: string): GigType {
+  if (/code|website|app|deploy|github|debug|api|database/i.test(msg)) return "coding";
+  if (/llc|business|ein|operating agreement|tax id|bank account/i.test(msg)) return "business_formation";
+  if (/party|wedding|reunion|trip|event|birthday|graduation/i.test(msg)) return "planning";
+  if (/image|photo|video|collage|flyer|design|graphic/i.test(msg)) return "creative";
+  if (/legal|contract|resume|consult|mediat/i.test(msg)) return "professional";
+  if (/remind|wake|schedule|calendar|habit|meeting/i.test(msg)) return "scheduling";
+  if (/meal|move|home|pet|gift|grocery/i.test(msg)) return "lifestyle";
+  if (/study|learn|tutor|research|college|exam|language/i.test(msg)) return "education";
+  if (/reserv|book|restaurant|hotel|flight|evite|resy|opentable/i.test(msg)) return "reservations";
+  return "planning";
+}
+
+// ── Gig CRUD ─────────────────────────────────────────────────────────────────
+
+async function createGig(
+  user: User,
+  title: string,
+  gigType: GigType,
+  description?: string
+): Promise<{ id: string; title: string }> {
+  const now = new Date().toISOString();
+  const id = `gig_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+  await ddb.send(
+    new PutCommand({
+      TableName: GIG_TABLE_NAME,
+      Item: {
+        id,
+        ownerId: user.id,
+        title,
+        description: description || title,
+        type: gigType,
+        status: "active",
+        metadata: JSON.stringify({}),
+        createdAt: now,
+        updatedAt: now,
+      },
+    })
+  );
+
+  await ddb.send(
+    new PutCommand({
+      TableName: GIG_PARTICIPANT_TABLE_NAME,
+      Item: {
+        gigId: id,
+        phone: user.phone,
+        userId: user.id,
+        role: "owner",
+        name: user.name,
+        isGuest: false,
+        joinedAt: now,
+      },
+    })
+  );
+
+  console.log(`[Gigler] Created gig ${id}: "${title}" (${gigType}) for user ${user.id}`);
+  return { id, title };
+}
+
+async function handleCreateGig(user: User, message: string, gigType: GigType): Promise<string> {
+  const title = await generateGigTitle(message);
+  const gig = await createGig(user, title, gigType, message);
+
+  await logMessage(gig.id, user.id, user.name || user.phone, message, "inbound");
+
+  const systemPrompt = `You are Gigler. A user just created a new gig called "${gig.title}" (type: ${gigType}). Their original request was: "${message}".
+
+Respond with:
+1. Confirm the gig was created with the title
+2. Ask 2-3 clarifying questions to get started
+3. Keep it concise and SMS-friendly
+
+Don't use bullet points with dashes. Use simple numbered lists or line breaks.`;
+
+  const aiResponse = await callGemini(systemPrompt, message);
+  await logMessage(gig.id, "gigler", "Gigler", aiResponse, "outbound", "ai");
+
+  return aiResponse;
+}
+
+async function generateGigTitle(message: string): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    return message.substring(0, 50).replace(/[^\w\s]/g, "").trim() || "New Gig";
+  }
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "Generate a short, clear title (3-6 words max) for this gig request. Return ONLY the title text, nothing else.",
+            }],
+          },
+          contents: [{ role: "user", parts: [{ text: message }] }],
+          generationConfig: { maxOutputTokens: 30, temperature: 0.3 },
+        }),
+      }
+    );
+    const data = await response.json();
+    const title = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    return title || message.substring(0, 50).trim();
+  } catch {
+    return message.substring(0, 50).trim();
+  }
+}
+
+async function handleListGigs(user: User): Promise<string> {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: GIG_TABLE_NAME,
+      IndexName: "byOwner",
+      KeyConditionExpression: "ownerId = :uid",
+      ExpressionAttributeValues: { ":uid": user.id },
+    })
+  );
+
+  const gigs = (result.Items || []).filter((g) => g.status === "active");
+
+  if (gigs.length === 0) {
+    return `You don't have any active gigs yet, ${user.name || "there"}!\n\nJust tell me what you need and I'll create one. Anything goes.`;
+  }
+
+  let response = `Your active gigs:\n`;
+  gigs.forEach((g, i) => {
+    response += `\n${i + 1}. ${g.title}`;
+    if (g.type) response += ` (${(g.type as string).replace("_", " ")})`;
+  });
+  response += `\n\nText a gig number to resume it, or tell me something new to create a fresh gig.`;
+
+  return response;
+}
+
 // ── Onboarding Handlers ─────────────────────────────────────────────────────
 
 async function handleBrandNewUser(
@@ -440,29 +651,36 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return twimlResponse(response);
     }
 
-    // Step 4: Fully onboarded user -- log inbound message
-    await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
-
-    // Step 5: Check for guest participation and handle viral conversion path
+    // Step 4: Check for guest participation and handle viral conversion
     const guestParticipations = await lookupGuestParticipation(fromPhone);
     const isKnownGuest = guestParticipations.some((p) => p.isGuest === true);
-
-    // Path 3 viral conversion: if user was a guest and just completed onboarding,
-    // link their existing guest GigParticipant records to their new userId
     if (isKnownGuest) {
       await linkGuestParticipationsToUser(guestParticipations, user.id);
     }
 
-    // Step 6: Fetch conversation history for AI context
+    // Step 5: Intent detection -- classify message before AI response
+    const intent = await detectIntent(body);
+    console.log(`[Gigler] Intent: ${intent.type}`);
+
+    // Step 6: Route by intent
+    if (intent.type === "list_gigs") {
+      const response = await handleListGigs(user);
+      await sendSms(fromPhone, response);
+      return twimlResponse("");
+    }
+
+    if (intent.type === "create_gig") {
+      const response = await handleCreateGig(user, body, intent.gigType || "planning");
+      await sendSms(fromPhone, response);
+      return twimlResponse("");
+    }
+
+    // Step 7: Default -- general conversation with Gemini
+    await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
     const history = await fetchConversationHistory(GENERAL_THREAD_ID, 20);
-
-    // Step 7: Build system prompt with user context
     const systemPrompt = buildSystemPrompt(user, isKnownGuest);
-
-    // Step 8: Call Gemini for response
     const aiResponse = await callGemini(systemPrompt, body, history);
 
-    // Step 9: Log outbound message and send via SMS
     await logMessage(GENERAL_THREAD_ID, "gigler", "Gigler", aiResponse, "outbound", "ai");
     await sendSms(fromPhone, aiResponse);
 
