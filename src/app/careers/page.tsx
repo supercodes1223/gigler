@@ -33,18 +33,12 @@ export default function CareersPage() {
   return (
     <main className="flex-1 bg-background">
       {/* Nav */}
-      <nav className="fixed top-0 z-50 w-full bg-[#0a0a0b]/80 backdrop-blur-md border-b border-brand-border">
+      <nav className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-brand-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-2xl font-bold text-brand-primary">
             Gigler
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm">
-            <Link
-              href="/#how-it-works"
-              className="text-brand-muted hover:text-foreground transition"
-            >
-              How It Works
-            </Link>
             <Link
               href="/about"
               className="text-brand-muted hover:text-foreground transition"
@@ -62,7 +56,7 @@ export default function CareersPage() {
             </Link>
             <Link
               href="/dashboard"
-              className="rounded-lg bg-brand-primary px-4 py-2 text-white font-medium hover:bg-brand-primary-hover transition"
+              className="rounded-full bg-brand-primary px-4 py-2 text-white font-medium hover:bg-brand-primary-hover transition"
             >
               Dashboard
             </Link>
