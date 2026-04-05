@@ -448,6 +448,32 @@ Pages that need SEO:
 - SES notifications (alert emails --> gig notifications)
 - Unknown SMS handling (`handleUnknownInboundSms()` --> new user onboarding)
 
+## Website Deployment Pipeline (Future)
+
+Currently, the `gigler-deliverable-generator` Lambda creates hosted HTML pages at `gigler.ai/[shortCode]` via S3. For full website creation gigs ("Build me a website for my business"), we need a complete deployment pipeline:
+
+### Current Capabilities
+- Gemini AI generates HTML/CSS/JS content
+- Lambda uploads to S3, served via `gigler.ai/[shortCode]`
+- GitHub helpers (`src/lib/github.ts`) can create repos and push scaffold code
+- Works well for single-page deliverables (event pages, menus, portfolios, invites)
+
+### Planned: Full Website Deployment
+- **GitHub Pages activation**: After pushing generated code to a GitHub repo, enable GitHub Pages so the site is live at `username.github.io/repo-name` -- simplest path to "text Gigler, get a live website"
+- **Vercel/Netlify deploy API**: Push to GitHub → trigger deployment via Vercel API → return live URL with custom domain support
+- **Amplify Hosting for user sites**: Use the Amplify API to create a new Amplify app from the user's GitHub repo for full SSR/SSG support
+- **Multi-page sites**: Gemini generates multiple pages/routes, Lambda pushes full project structure to GitHub
+- **Iterative editing**: "Change the header color" → fetch existing content from S3/GitHub → modify → re-deploy → confirm in text thread
+- **Custom domains**: Guide users through connecting their own domain to the deployed site
+- **Database-backed sites**: For more complex projects, scaffold with a backend (Amplify Gen 2 template or Supabase) and deploy
+
+### Implementation Approach
+1. Extend `src/lib/github.ts` with `enableGitHubPages()` and `triggerVercelDeploy()` functions
+2. Extend `gigler-deliverable-generator` to call GitHub API for repo creation + Pages activation
+3. Add deploy status tracking to `Deliverable` table (`deployStatus`, `deployUrl`, `deployProvider`)
+4. Gig-processor AI learns to suggest deployment when code gigs are ready
+5. SMS confirmation loop: "Your site is live at https://username.github.io/my-business -- want to connect a custom domain?"
+
 ## MVP Build Order
 
 1. **Project scaffold**: Amplify Gen 2 + Next.js repo, DynamoDB schema, Twilio number
@@ -462,4 +488,5 @@ Pages that need SEO:
 10. **Web dashboard**: Gig list, conversation view, deliverable viewer, settings
 11. **Technical gigs**: GitHub/Vercel integration for code projects
 12. **Landing page**: Product marketing with brand voice
+13. **Website deployment pipeline**: GitHub Pages activation, Vercel/Netlify deploy API, iterative editing, custom domains
 
