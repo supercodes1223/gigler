@@ -1,0 +1,14 @@
+{
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "platform": "opentable",
+  "actionType": "search",
+  "params": {
+    "restaurant": "Uchi Austin",
+    "date": "2026-06-14",
+    "time": "7:00 PM",
+    "partySize": 8,
+    "location": "Austin, TX"
+  },
+  "phone": "+15551234567"
+}

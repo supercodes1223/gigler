@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Gigler - AI That Lives in Your Texts | All Over Text. Simple. Just Done.",
+  title: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
   alternates: { canonical: "/" },
 };
 
@@ -277,15 +277,27 @@ export default function HomePage() {
       {/* Hero */}
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-4xl text-center">
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight mb-6">
-            All over text.{" "}
-            <span className="text-brand-primary">Simple.</span>{" "}
-            <span className="text-brand-secondary">Just done.</span>
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
+            <span className="text-brand-primary">Gigler.</span>{" "}
+            <span className="whitespace-nowrap">
+              Gig +{" "}
+              <span className="rolodex-container text-brand-secondary">
+                <span className="rolodex-word">economy</span>
+                <span className="rolodex-word">coding</span>
+                <span className="rolodex-word">planning</span>
+                <span className="rolodex-word">creative</span>
+                <span className="rolodex-word">scheduling</span>
+                <span className="rolodex-word">lifestyle</span>
+                <span className="rolodex-word">education</span>
+                <span className="rolodex-word">business</span>
+                <span className="rolodex-word">reservations</span>
+              </span>
+            </span>
           </h1>
-          <p className="text-xl text-brand-muted max-w-2xl mx-auto mb-10">
-            Gigler is an AI that lives in your text messages. Create{" "}
-            <strong>Gigs</strong> — projects, tasks, anything you need done —
-            by texting. No app. No dashboard. Just text it, it gets done.
+          <p className="text-xl md:text-2xl text-brand-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+            No downloads. No dashboards. No learning new workflows.
+            <br className="hidden sm:block" />
+            <strong className="text-foreground">Just text, and it gets done.</strong>
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -301,8 +313,8 @@ export default function HomePage() {
               See Examples
             </Link>
           </div>
-          <p className="mt-6 text-sm text-brand-muted">
-            The anti-app. No downloads required.
+          <p className="mt-8 text-sm text-brand-muted">
+            AI that lives in your text messages. Text it. It gets done.
           </p>
         </div>
       </section>
@@ -424,7 +436,7 @@ export default function HomePage() {
             Ready to get things done?
           </h2>
           <p className="text-lg opacity-90 mb-10">
-            Text Gigler. Create a Gig. Watch it happen.
+            No downloads. No dashboards. Just text Gigler.
           </p>
           <Link
             href="/dashboard"

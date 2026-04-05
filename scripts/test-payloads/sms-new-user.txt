@@ -1,0 +1,1 @@
+MessageSid=SM9f8e7d6c5b4a3f2e1d0c9b8a&AccountSid=ACtest000000000000000000000000&From=%2B15551234567&To=%2B15559876543&Body=Hi&NumMedia=0&FromCity=Austin&FromState=TX&FromZip=78701&FromCountry=US&ToCity=&ToState=&ToZip=&ToCountry=US&SmsMessageSid=SM9f8e7d6c5b4a3f2e1d0c9b8a&SmsSid=SM9f8e7d6c5b4a3f2e1d0c9b8a&SmsStatus=received&ApiVersion=2010-04-01

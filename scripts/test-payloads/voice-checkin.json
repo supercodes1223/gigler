@@ -1,0 +1,7 @@
+{
+  "type": "check_in",
+  "userId": "TEST_USER_ID",
+  "gigId": "TEST_GIG_ID",
+  "phone": "+15551234567",
+  "context": "the birthday party planning at Zilker Park"
+}

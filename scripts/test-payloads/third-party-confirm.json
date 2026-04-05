@@ -1,0 +1,9 @@
+{
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "platform": "opentable",
+  "actionType": "confirm",
+  "params": {},
+  "phone": "+15551234567",
+  "actionId": "tpa_test_placeholder"
+}

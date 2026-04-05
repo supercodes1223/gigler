@@ -23,11 +23,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Gigler - AI That Lives in Your Texts | All Over Text. Simple. Just Done.",
+    default: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
     template: "%s | Gigler",
   },
   description:
-    "Gigler is an AI assistant that lives in your text messages. Create Gigs — projects, tasks, anything you need done — by texting. No app. No dashboard. Just text it, it gets done.",
+    "Gigler is an AI that lives in your text messages. Create Gigs — coding, planning, business, creative work, reservations — by texting. No downloads. No dashboards. No learning new workflows. Just text, and it gets done.",
   keywords: [
     "AI assistant",
     "SMS assistant",
@@ -58,23 +58,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "Gigler",
-    title: "Gigler - AI That Lives in Your Texts",
+    title: "Gigler — Just Text, and It Gets Done",
     description:
-      "Create Gigs by texting. Plan events, build websites, form an LLC, make reservations — all over text. Simple. Just done.",
+      "Gig + coding. Gig + planning. Gig + anything. No downloads, no dashboards. Just text Gigler and it gets done.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Gigler - All over text. Simple. Just done.",
+        alt: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gigler - AI That Lives in Your Texts",
+    title: "Gigler — Just Text, and It Gets Done",
     description:
-      "Create Gigs by texting. Plan events, build websites, form an LLC, make reservations — all over text.",
+      "Gig + coding. Gig + planning. Gig + anything. No downloads, no dashboards. Just text it, it gets done.",
     images: ["/og-image.png"],
   },
   alternates: {

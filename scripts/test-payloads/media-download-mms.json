@@ -1,0 +1,9 @@
+{
+  "action": "download_mms",
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "mediaUrls": [
+    "https://api.twilio.com/2010-04-01/Accounts/ACtest000000000000000000000000/Messages/SMd4e5f6a7b8c9d0e1f2a3b4c5/Media/ME00000000000000000000000000000000"
+  ],
+  "phone": "+15551234567"
+}

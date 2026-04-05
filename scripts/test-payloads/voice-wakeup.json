@@ -1,0 +1,5 @@
+{
+  "type": "wake_up",
+  "userId": "TEST_USER_ID",
+  "phone": "+15551234567"
+}
