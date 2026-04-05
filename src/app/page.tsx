@@ -1,94 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GigShowcase from "@/components/GigShowcase";
 
 export const metadata: Metadata = {
   title: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
   alternates: { canonical: "/" },
 };
-
-const GIG_CATEGORIES = [
-  {
-    title: "Coding & Tech",
-    icon: "💻",
-    examples: [
-      "Build me a landing page and deploy it",
-      "Set up a database, API, and hosting",
-      "Debug this error — paste it, get a fix",
-    ],
-  },
-  {
-    title: "Business Formation",
-    icon: "🏢",
-    examples: [
-      "Form an LLC step-by-step",
-      "Set up business email and domain",
-      "Draft an operating agreement",
-    ],
-  },
-  {
-    title: "Event Planning",
-    icon: "🎉",
-    examples: [
-      "Organize a graduation party",
-      "Plan a wedding with group coordination",
-      "Coordinate a birthday party with invites and reminders",
-    ],
-  },
-  {
-    title: "Creative & AI Media",
-    icon: "🎨",
-    examples: [
-      "Generate an AI invite graphic for the party",
-      "Create a photo collage from event photos",
-      "Design a PDF flyer",
-    ],
-  },
-  {
-    title: "Professional & Advisory",
-    icon: "📋",
-    examples: [
-      "Legal document review",
-      "Business consulting and strategy",
-      "Resume and cover letter writing",
-    ],
-  },
-  {
-    title: "Scheduling & Productivity",
-    icon: "⏰",
-    examples: [
-      "Daily reminders and to-do nudges",
-      "Morning wake-up calls with your day's briefing",
-      "Habit tracking over text",
-    ],
-  },
-  {
-    title: "Lifestyle & Personal",
-    icon: "🏠",
-    examples: [
-      "Meal planning and grocery lists",
-      "Moving-to-a-new-city checklist",
-      "Gift shopping recommendations",
-    ],
-  },
-  {
-    title: "Education & Learning",
-    icon: "📚",
-    examples: [
-      "Study plan for an exam with reminders",
-      "Daily language practice over text",
-      "Research assistant — find info, compile notes",
-    ],
-  },
-  {
-    title: "Reservations & Bookings",
-    icon: "🍽️",
-    examples: [
-      "Make a restaurant reservation on OpenTable",
-      "Create an Evite event and send invites",
-      "Book hotels, flights, or rentals",
-    ],
-  },
-] as const;
 
 const PRICING_TIERS = [
   {
@@ -147,122 +64,59 @@ const PRICING_TIERS = [
     cta: "Contact Us",
     highlight: false,
   },
-] as const;
+];
 
-function HowItWorks() {
-  const steps = [
-    {
-      step: "1",
-      title: "Text Gigler",
-      description: "Tell Gigler what you need done. \"Plan a birthday party\" or \"Build me a website.\"",
-    },
-    {
-      step: "2",
-      title: "Gigler Gets to Work",
-      description: "AI manages your gig — coordinates, creates, reminds, and executes. No app needed.",
-    },
-    {
-      step: "3",
-      title: "Done. Delivered.",
-      description: "Get results: live websites, PDFs, reservations, photo collages — all from a text thread.",
-    },
-  ];
-  return (
-    <section id="how-it-works" className="py-24 bg-brand-surface">
-      <div className="mx-auto max-w-5xl px-6">
-        <h2 className="text-3xl font-bold text-center mb-16">
-          How It Works
-        </h2>
-        <div className="grid md:grid-cols-3 gap-12">
-          {steps.map((s) => (
-            <div key={s.step} className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white text-xl font-bold">
-                {s.step}
-              </div>
-              <h3 className="text-xl font-semibold mb-2">{s.title}</h3>
-              <p className="text-brand-muted">{s.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DemoConversation() {
-  const messages = [
-    { from: "user", text: "Plan Austin's graduation party for June 14" },
-    {
-      from: "gigler",
-      text: "On it! I created a gig: \"Austin's Graduation Party\"\n\nHere's what I'll need:\n- Venue (backyard, restaurant, hall?)\n- Guest count estimate\n- Budget range\n\nLet's start with the venue — any ideas?",
-    },
-    { from: "user", text: "Backyard, about 40 people, $2000 budget" },
-    {
-      from: "gigler",
-      text: "Great setup! Here's your plan:\n✅ Venue: Your backyard\n📋 Catering for 40 ($800-1000)\n🎵 Speaker/playlist setup\n📸 Photo area + collage page\n🎂 Cake ($80-150)\n\nWant me to start on the Evite invitations? I can create a page and send them out.",
-    },
-    { from: "user", text: "Yes! Add Sabrina 555-123-4567 to help coordinate" },
-    {
-      from: "gigler",
-      text: "Done! Sabrina's been added to the gig thread. She'll get a welcome message.\n\nI'm creating the Evite now — I'll share a preview in a minute.",
-    },
-  ];
-
-  return (
-    <section className="py-24">
-      <div className="mx-auto max-w-2xl px-6">
-        <h2 className="text-3xl font-bold text-center mb-4">
-          See It in Action
-        </h2>
-        <p className="text-center text-brand-muted mb-12">
-          A real conversation with Gigler — event planning over text.
-        </p>
-        <div className="space-y-4">
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm whitespace-pre-line ${
-                  m.from === "user"
-                    ? "bg-brand-primary text-white rounded-br-sm"
-                    : "bg-brand-surface text-foreground border border-brand-border rounded-bl-sm"
-                }`}
-              >
-                {m.from === "gigler" && (
-                  <span className="block text-xs font-medium text-brand-primary mb-1">
-                    Gigler
-                  </span>
-                )}
-                {m.text}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+const OPEN_ROLES = [
+  {
+    title: "AI / ML Engineer",
+    description:
+      "Build the Gemini-powered brain that understands natural language and executes gigs.",
+  },
+  {
+    title: "Full-Stack Engineer",
+    description:
+      "Lambda, DynamoDB, Next.js — ship the infrastructure that powers millions of texts.",
+  },
+  {
+    title: "Product Designer",
+    description:
+      "Design the simplest AI experience ever: no UI, just text.",
+  },
+];
 
 export default function HomePage() {
   return (
-    <main className="flex-1">
-      {/* Nav */}
-      <nav className="fixed top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-brand-border">
+    <main className="flex-1 bg-background text-foreground">
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <nav className="fixed top-0 z-50 w-full bg-[#0a0a0b]/80 backdrop-blur-md border-b border-brand-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-2xl font-bold text-brand-primary">
             Gigler
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm">
-            <Link href="#how-it-works" className="text-brand-muted hover:text-foreground transition">
+            <Link
+              href="#how-it-works"
+              className="text-brand-muted hover:text-foreground transition"
+            >
               How It Works
             </Link>
-            <Link href="/examples" className="text-brand-muted hover:text-foreground transition">
-              Examples
+            <Link
+              href="#about"
+              className="text-brand-muted hover:text-foreground transition"
+            >
+              About
             </Link>
-            <Link href="/pricing" className="text-brand-muted hover:text-foreground transition">
+            <Link
+              href="#pricing"
+              className="text-brand-muted hover:text-foreground transition"
+            >
               Pricing
+            </Link>
+            <Link
+              href="#careers"
+              className="text-brand-muted hover:text-foreground transition"
+            >
+              Careers
             </Link>
             <Link
               href="/dashboard"
@@ -274,8 +128,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-24 px-6">
+      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      <section className="pt-32 pb-24 px-6 bg-background">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
             <span className="text-brand-primary">Gigler.</span>{" "}
@@ -297,7 +151,9 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-brand-muted max-w-2xl mx-auto mb-10 leading-relaxed">
             No downloads. No dashboards. No learning new workflows.
             <br className="hidden sm:block" />
-            <strong className="text-foreground">Just text, and it gets done.</strong>
+            <strong className="text-foreground">
+              Just text, and it gets done.
+            </strong>
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -307,68 +163,91 @@ export default function HomePage() {
               Get Started Free
             </Link>
             <Link
-              href="/examples"
+              href="#how-it-works"
               className="rounded-lg border border-brand-border px-8 py-3 text-lg font-semibold text-foreground hover:bg-brand-surface transition"
             >
-              See Examples
+              See How It Works
             </Link>
           </div>
           <p className="mt-8 text-sm text-brand-muted">
-            AI that lives in your text messages. Text it. It gets done.
+            AI that lives in your text messages.
           </p>
         </div>
       </section>
 
-      <HowItWorks />
-      <DemoConversation />
-
-      {/* Gig Categories */}
-      <section className="py-24 bg-brand-surface">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-3xl font-bold text-center mb-4">
-            9 Categories. 46+ Gig Types.
+      {/* ── How It Works ────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="py-24 bg-brand-surface">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            How It Works
           </h2>
-          <p className="text-center text-brand-muted mb-16 max-w-2xl mx-auto">
-            From coding projects to wedding planning, Gigler handles it all
-            over text.
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {GIG_CATEGORIES.map((cat) => (
-              <div
-                key={cat.title}
-                className="rounded-xl border border-brand-border bg-white p-6 hover:shadow-lg transition"
-              >
-                <div className="text-3xl mb-3">{cat.icon}</div>
-                <h3 className="text-lg font-semibold mb-3">{cat.title}</h3>
-                <ul className="space-y-2">
-                  {cat.examples.map((ex, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-brand-muted flex items-start gap-2"
-                    >
-                      <span className="text-brand-primary mt-0.5">→</span>
-                      {ex}
-                    </li>
-                  ))}
-                </ul>
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white text-xl font-bold">
+                1
               </div>
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link
-              href="/examples"
-              className="text-brand-primary font-medium hover:underline"
-            >
-              See all examples →
-            </Link>
+              <h3 className="text-xl font-semibold mb-2">Text Gigler</h3>
+              <p className="text-brand-muted">
+                Tell Gigler what you need. &ldquo;Plan a birthday party&rdquo;
+                or &ldquo;Build me a website.&rdquo;
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white text-xl font-bold">
+                2
+              </div>
+              <h3 className="text-xl font-semibold mb-2">
+                Gigler Gets to Work
+              </h3>
+              <p className="text-brand-muted">
+                AI manages your gig&mdash;coordinates, creates, reminds,
+                executes. No app needed.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-primary text-white text-xl font-bold">
+                3
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Done. Delivered.</h3>
+              <p className="text-brand-muted">
+                Get results: live websites, PDFs, reservations, photo
+                collages&mdash;all from a text thread.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-24">
+      {/* ── Gig Categories (Rivian-style tabs + cards) ──────────────────── */}
+      <GigShowcase />
+
+      {/* ── About ───────────────────────────────────────────────────────── */}
+      <section id="about" className="py-24 bg-brand-surface">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            Smartify Your Texts
+          </h2>
+          <p className="text-lg text-brand-muted leading-relaxed mb-8">
+            Gigler turns your text messages into a command center. Get real stuff
+            done&mdash;plan events, build websites, form an LLC, make
+            reservations&mdash;all while you&rsquo;re on the beach, on vacation,
+            or anywhere you want to be.
+          </p>
+          <p className="text-brand-muted leading-relaxed">
+            Gigler is an AI that lives in your text messages. You create
+            Gigs&mdash;projects, tasks, anything you need done&mdash;by texting.
+            The AI manages, coordinates, and actually executes the work. Gigs
+            can be collaborative (true group threads). Gigler can also call you
+            (wake-up calls, check-ins, voice consultations) and generates
+            deliverables with shareable URLs.
+          </p>
+        </div>
+      </section>
+
+      {/* ── Pricing ─────────────────────────────────────────────────────── */}
+      <section id="pricing" className="py-24 bg-background">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-3xl font-bold text-center mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
             Simple Pricing
           </h2>
           <p className="text-center text-brand-muted mb-16">
@@ -378,9 +257,9 @@ export default function HomePage() {
             {PRICING_TIERS.map((tier) => (
               <div
                 key={tier.name}
-                className={`rounded-xl border p-6 flex flex-col ${
+                className={`rounded-xl border p-6 flex flex-col bg-brand-surface ${
                   tier.highlight
-                    ? "border-brand-primary shadow-lg shadow-brand-primary/10 ring-2 ring-brand-primary"
+                    ? "border-brand-primary ring-2 ring-brand-primary shadow-lg shadow-brand-primary/10"
                     : "border-brand-border"
                 }`}
               >
@@ -415,10 +294,10 @@ export default function HomePage() {
                   ))}
                 </ul>
                 <button
-                  className={`w-full rounded-lg py-2.5 font-medium transition ${
+                  className={`w-full rounded-lg py-2.5 font-medium transition cursor-pointer ${
                     tier.highlight
                       ? "bg-brand-primary text-white hover:bg-brand-primary-hover"
-                      : "border border-brand-border hover:bg-brand-surface"
+                      : "border border-brand-border text-foreground hover:bg-brand-surface-hover"
                   }`}
                 >
                   {tier.cta}
@@ -429,8 +308,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 bg-brand-primary text-white">
+      {/* ── Careers ─────────────────────────────────────────────────────── */}
+      <section id="careers" className="py-24 bg-brand-surface">
+        <div className="mx-auto max-w-4xl px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-6">
+            Build the Future of AI, Over Text
+          </h2>
+          <p className="text-center text-brand-muted max-w-2xl mx-auto mb-4 leading-relaxed">
+            The hardest problems in AI are solved by people who ship. At Gigler,
+            we&rsquo;re building an AI that doesn&rsquo;t live in an
+            app&mdash;it lives in your text messages. Every engineer, researcher,
+            and designer has massive impact.
+          </p>
+          <p className="text-center text-brand-muted max-w-2xl mx-auto mb-4 leading-relaxed">
+            If you&rsquo;ve solved a hard problem lately, we want to hear about
+            it. Send us a note even if you don&rsquo;t see a perfect role
+            listed.
+          </p>
+          <p className="text-center mb-12">
+            <a
+              href="mailto:careers@gigler.ai"
+              className="text-brand-primary hover:text-brand-primary-hover transition font-medium"
+            >
+              careers@gigler.ai
+            </a>
+          </p>
+
+          <h3 className="text-xl font-bold text-center mb-8">Open Roles</h3>
+          <div className="grid md:grid-cols-3 gap-6">
+            {OPEN_ROLES.map((role) => (
+              <div
+                key={role.title}
+                className="rounded-xl border border-brand-border bg-brand-surface p-6 flex flex-col"
+              >
+                <h4 className="text-lg font-bold mb-3">{role.title}</h4>
+                <p className="text-sm text-brand-muted flex-1 mb-6">
+                  {role.description}
+                </p>
+                <a
+                  href={`mailto:careers@gigler.ai?subject=Application: ${role.title}`}
+                  className="inline-block text-center rounded-lg border border-brand-border px-4 py-2 text-sm font-medium text-foreground hover:bg-brand-surface-hover transition"
+                >
+                  Apply
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-gradient-to-br from-brand-primary to-indigo-800 text-white">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to get things done?
@@ -447,23 +375,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-brand-border">
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="py-12 border-t border-brand-border bg-background">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-brand-muted">
             &copy; {new Date().getFullYear()} Gigler. All rights reserved.
           </div>
           <div className="flex gap-6 text-sm text-brand-muted">
-            <Link href="/examples" className="hover:text-foreground transition">
-              Examples
+            <Link
+              href="#about"
+              className="hover:text-foreground transition"
+            >
+              About
             </Link>
-            <Link href="/pricing" className="hover:text-foreground transition">
+            <Link
+              href="#pricing"
+              className="hover:text-foreground transition"
+            >
               Pricing
             </Link>
-            <Link href="/dashboard" className="hover:text-foreground transition">
+            <Link
+              href="#careers"
+              className="hover:text-foreground transition"
+            >
+              Careers
+            </Link>
+            <Link
+              href="/dashboard"
+              className="hover:text-foreground transition"
+            >
               Dashboard
             </Link>
           </div>
+          <div className="text-sm text-brand-muted">gigler.ai</div>
         </div>
       </footer>
     </main>
