@@ -83,23 +83,67 @@ const TIERS = [
 
 export default function PricingPage() {
   return (
-    <main className="flex-1 pt-24">
-      <div className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4">Simple Pricing</h1>
+    <main className="flex-1 bg-background">
+      {/* Nav */}
+      <nav className="fixed top-0 z-50 w-full bg-[#0a0a0b]/80 backdrop-blur-md border-b border-brand-border">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="text-2xl font-bold text-brand-primary">
+            Gigler
+          </Link>
+          <div className="hidden md:flex items-center gap-8 text-sm">
+            <Link
+              href="/#how-it-works"
+              className="text-brand-muted hover:text-foreground transition"
+            >
+              How It Works
+            </Link>
+            <Link
+              href="/about"
+              className="text-brand-muted hover:text-foreground transition"
+            >
+              About
+            </Link>
+            <Link href="/pricing" className="text-foreground font-medium">
+              Pricing
+            </Link>
+            <Link
+              href="/careers"
+              className="text-brand-muted hover:text-foreground transition"
+            >
+              Careers
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-brand-primary px-4 py-2 text-white font-medium hover:bg-brand-primary-hover transition"
+            >
+              Dashboard
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-6">
+        <div className="text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Simple Pricing
+          </h1>
           <p className="text-lg text-brand-muted max-w-xl mx-auto">
             Start free. Upgrade when you need more power, voice calls, or group
             coordination.
           </p>
         </div>
+      </section>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Pricing Cards */}
+      <section className="pb-24 px-6">
+        <div className="mx-auto max-w-6xl grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {TIERS.map((tier) => (
             <div
               key={tier.name}
-              className={`rounded-xl border p-6 flex flex-col ${
+              className={`rounded-xl border p-6 flex flex-col bg-brand-surface ${
                 tier.highlight
-                  ? "border-brand-primary shadow-lg shadow-brand-primary/10 ring-2 ring-brand-primary"
+                  ? "border-brand-primary ring-2 ring-brand-primary shadow-lg shadow-brand-primary/10"
                   : "border-brand-border"
               }`}
             >
@@ -108,12 +152,16 @@ export default function PricingPage() {
                   Most Popular
                 </span>
               )}
-              <h2 className="text-lg font-semibold">{tier.name}</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                {tier.name}
+              </h2>
               <p className="text-sm text-brand-muted mt-1 mb-4">
                 {tier.description}
               </p>
               <div className="mb-6">
-                <span className="text-4xl font-bold">{tier.price}</span>
+                <span className="text-4xl font-bold text-foreground">
+                  {tier.price}
+                </span>
                 <span className="text-brand-muted">{tier.period}</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
@@ -132,16 +180,20 @@ export default function PricingPage() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    {f}
+                    <span className="text-brand-muted">{f}</span>
                   </li>
                 ))}
               </ul>
               <Link
-                href="/dashboard"
+                href={
+                  tier.name === "Enterprise"
+                    ? "mailto:sales@gigler.ai"
+                    : "/dashboard"
+                }
                 className={`block w-full rounded-lg py-2.5 text-center font-medium transition ${
                   tier.highlight
                     ? "bg-brand-primary text-white hover:bg-brand-primary-hover"
-                    : "border border-brand-border hover:bg-brand-surface"
+                    : "border border-brand-border text-foreground hover:bg-background"
                 }`}
               >
                 {tier.cta}
@@ -149,7 +201,43 @@ export default function PricingPage() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 border-t border-brand-border">
+        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-brand-muted">
+            © {new Date().getFullYear()} Gigler. All rights reserved.
+          </div>
+          <div className="flex gap-6 text-sm text-brand-muted">
+            <Link
+              href="/about"
+              className="hover:text-foreground transition"
+            >
+              About
+            </Link>
+            <Link
+              href="/pricing"
+              className="hover:text-foreground transition"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/careers"
+              className="hover:text-foreground transition"
+            >
+              Careers
+            </Link>
+            <Link
+              href="/dashboard"
+              className="hover:text-foreground transition"
+            >
+              Dashboard
+            </Link>
+          </div>
+          <div className="text-sm text-brand-muted">gigler.ai</div>
+        </div>
+      </footer>
     </main>
   );
 }
