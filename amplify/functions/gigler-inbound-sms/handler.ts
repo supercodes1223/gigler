@@ -281,6 +281,32 @@ async function lookupGuestParticipation(phone: string): Promise<Array<Record<str
   return (result.Items as Record<string, unknown>[]) || [];
 }
 
+async function linkGuestParticipationsToUser(
+  participations: Array<Record<string, unknown>>,
+  userId: string
+): Promise<void> {
+  for (const p of participations) {
+    if (p.isGuest && !p.userId && p.gigId && p.phone) {
+      try {
+        await ddb.send(
+          new UpdateCommand({
+            TableName: GIG_PARTICIPANT_TABLE_NAME,
+            Key: { gigId: p.gigId as string, phone: p.phone as string },
+            UpdateExpression: "SET userId = :uid, isGuest = :guest",
+            ExpressionAttributeValues: {
+              ":uid": userId,
+              ":guest": false,
+            },
+          })
+        );
+        console.log(`[Gigler] Linked guest ${p.phone} -> user ${userId} in gig ${p.gigId}`);
+      } catch (err) {
+        console.error(`[Gigler] Failed to link guest participation:`, err);
+      }
+    }
+  }
+}
+
 // ── Timezone Guessing ────────────────────────────────────────────────────────
 
 function guessTimezone(state?: string): string {
@@ -417,9 +443,15 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     // Step 4: Fully onboarded user -- log inbound message
     await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
 
-    // Step 5: Check for guest trying to text the main Gigler number
+    // Step 5: Check for guest participation and handle viral conversion path
     const guestParticipations = await lookupGuestParticipation(fromPhone);
     const isKnownGuest = guestParticipations.some((p) => p.isGuest === true);
+
+    // Path 3 viral conversion: if user was a guest and just completed onboarding,
+    // link their existing guest GigParticipant records to their new userId
+    if (isKnownGuest) {
+      await linkGuestParticipationsToUser(guestParticipations, user.id);
+    }
 
     // Step 6: Fetch conversation history for AI context
     const history = await fetchConversationHistory(GENERAL_THREAD_ID, 20);
