@@ -1,43 +1,45 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --background: #0a0a0b;
-  --foreground: #fafafa;
-  --brand-primary: #6366f1;
-  --brand-primary-hover: #818cf8;
-  --brand-secondary: #06b6d4;
-  --brand-accent: #f59e0b;
-  --brand-surface: #141417;
-  --brand-surface-hover: #1c1c21;
-  --brand-muted: #a1a1aa;
-  --brand-border: #27272a;
+  --background: #1a1816;
+  --background-alt: #141210;
+  --foreground: #f5f0e8;
+  --brand-primary: #06b6d4;
+  --brand-primary-hover: #22d3ee;
+  --brand-secondary: #f59e0b;
+  --brand-surface: #242120;
+  --brand-surface-hover: #2e2a28;
+  --brand-muted: #9c9590;
+  --brand-border: #3a3634;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
   --color-foreground: var(--foreground);
   --color-brand-primary: var(--brand-primary);
   --color-brand-primary-hover: var(--brand-primary-hover);
   --color-brand-secondary: var(--brand-secondary);
-  --color-brand-accent: var(--brand-accent);
   --color-brand-surface: var(--brand-surface);
   --color-brand-surface-hover: var(--brand-surface-hover);
   --color-brand-muted: var(--brand-muted);
   --color-brand-border: var(--brand-border);
-  --font-sans: var(--font-nunito), "Nunito", sans-serif;
+  --font-sans: 'Nunito', var(--font-nunito), sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: 'Nunito', var(--font-nunito), sans-serif;
 }
 
 /* ── Rolodex / split-flap animation for hero gig types ───────────────────── */
 .rolodex-container {
   display: inline-block;
   position: relative;
-  height: 1.15em;
+  height: 1.35em;
   overflow: hidden;
   vertical-align: bottom;
   min-width: 4ch;
@@ -54,12 +56,13 @@ body {
 }
 
 @keyframes rolodex-cycle {
-  0%, 2%     { opacity: 0; transform: translateY(80%) rotateX(-40deg); }
-  3%, 10%    { opacity: 1; transform: translateY(0) rotateX(0); }
-  11%, 12%   { opacity: 0; transform: translateY(-80%) rotateX(40deg); }
-  13%, 100%  { opacity: 0; transform: translateY(80%) rotateX(-40deg); }
+  0%, 2%     { opacity: 0; transform: translateY(80%); }
+  3%, 10%    { opacity: 1; transform: translateY(0); }
+  11%, 12%   { opacity: 0; transform: translateY(-80%); }
+  13%, 100%  { opacity: 0; transform: translateY(80%); }
 }
 
+/* 9 words, each visible for ~2s of the 18s cycle */
 .rolodex-word:nth-child(1)  { animation-delay: 0s; }
 .rolodex-word:nth-child(2)  { animation-delay: 2s; }
 .rolodex-word:nth-child(3)  { animation-delay: 4s; }
@@ -70,40 +73,31 @@ body {
 .rolodex-word:nth-child(8)  { animation-delay: 14s; }
 .rolodex-word:nth-child(9)  { animation-delay: 16s; }
 
-/* ── Tab pills for Gig Categories ────────────────────────────────────────── */
-.tab-pill {
-  padding: 0.5rem 1.25rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--brand-muted);
-  background: var(--brand-surface-hover);
-  border: 1px solid var(--brand-border);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+/* ── SMS Demo typing animation ───────────────────────────────────────────── */
+@keyframes typing-dots {
+  0%, 20%   { opacity: 0.3; }
+  50%       { opacity: 1; }
+  80%, 100% { opacity: 0.3; }
 }
 
-.tab-pill:hover {
-  color: var(--foreground);
-  border-color: var(--brand-muted);
+.typing-dot {
+  animation: typing-dots 1.4s infinite;
 }
 
-.tab-pill.active {
-  color: var(--background);
-  background: var(--foreground);
-  border-color: var(--foreground);
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Gradient gig cards (Rivian style) ───────────────────────────────────── */
-.gig-card {
-  border-radius: 1rem;
-  border: 1px solid var(--brand-border);
-  padding: 2rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.sms-message {
+  animation: fade-in-up 0.4s ease-out forwards;
+  opacity: 0;
 }
 
-.gig-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+/* Smooth section transitions */
+section {
+  scroll-margin-top: 5rem;
 }

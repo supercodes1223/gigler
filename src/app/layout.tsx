@@ -19,7 +19,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gigler.ai";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#6366f1",
+  themeColor: "#06b6d4",
 };
 
 export const metadata: Metadata = {
