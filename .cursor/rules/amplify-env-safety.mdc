@@ -1,0 +1,33 @@
+---
+description: Amplify environment variable safety rules
+globs: ["scripts/**", "amplify/**", "*.sh"]
+---
+
+# Amplify Environment Variable Safety
+
+CRITICAL: `aws amplify update-app --environment-variables` **REPLACES ALL vars** — it does NOT merge.
+
+## Rules
+
+1. **Always backup first**: Before any env var update, run `scripts/backup-amplify-env.sh`
+2. **Always include ALL existing vars**: Fetch current vars, merge new ones in, then push the full set
+3. **Always verify count after**: After pushing, verify the var count matches or exceeds the previous count
+4. **Never run raw update-app**: Always use `scripts/set-amplify-env.sh` which handles backup + merge + verify
+
+## Safe workflow
+
+```bash
+# SAFE: Uses the merge script
+./scripts/set-amplify-env.sh $AMPLIFY_APP_ID
+
+# DANGEROUS: Replaces all vars — NEVER do this directly
+# aws amplify update-app --app-id $APP_ID --environment-variables '{...}'
+```
+
+## If something goes wrong
+
+Backups are stored in `.amplify-env-backups/` with timestamps.
+Restore with:
+```bash
+aws amplify update-app --app-id $APP_ID --environment-variables "$(cat .amplify-env-backups/env-backup-TIMESTAMP.json)"
+```
