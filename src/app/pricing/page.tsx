@@ -87,7 +87,7 @@ export default function PricingPage() {
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-brand-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-bold text-brand-primary">
+          <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm">
@@ -105,12 +105,6 @@ export default function PricingPage() {
               className="text-brand-muted hover:text-foreground transition"
             >
               Careers
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-brand-primary px-4 py-2 text-white font-medium hover:bg-brand-primary-hover transition"
-            >
-              Dashboard
             </Link>
           </div>
         </div>
@@ -137,7 +131,7 @@ export default function PricingPage() {
               key={tier.name}
               className={`rounded-xl border p-6 flex flex-col bg-brand-surface ${
                 tier.highlight
-                  ? "border-brand-primary ring-2 ring-brand-primary shadow-lg shadow-brand-primary/10"
+                  ? "border-foreground ring-2 ring-foreground shadow-lg shadow-brand-primary/10"
                   : "border-brand-border"
               }`}
             >
@@ -162,7 +156,7 @@ export default function PricingPage() {
                 {tier.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <svg
-                      className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary"
+                      className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -186,7 +180,7 @@ export default function PricingPage() {
                 }
                 className={`block w-full rounded-full py-2.5 text-center font-medium transition ${
                   tier.highlight
-                    ? "bg-brand-primary text-white hover:bg-brand-primary-hover"
+                    ? "bg-foreground text-background hover:bg-white"
                     : "border border-brand-border text-foreground hover:bg-background"
                 }`}
               >

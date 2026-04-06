@@ -35,7 +35,7 @@ export default function CareersPage() {
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-brand-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-bold text-brand-primary">
+          <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm">
@@ -53,12 +53,6 @@ export default function CareersPage() {
             </Link>
             <Link href="/careers" className="text-foreground font-medium">
               Careers
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-brand-primary px-4 py-2 text-white font-medium hover:bg-brand-primary-hover transition"
-            >
-              Dashboard
             </Link>
           </div>
         </div>
@@ -100,13 +94,13 @@ export default function CareersPage() {
               work in messy, complex, real-world environments.
             </p>
           </div>
-          <p className="text-brand-muted leading-relaxed border-l-2 border-brand-primary pl-6 italic">
+          <p className="text-brand-muted leading-relaxed border-l-2 border-brand-accent pl-6 italic">
             If you&apos;ve solved a hard problem lately, we want to hear about
             it. Send us a note even if you don&apos;t see a perfect role listed.
           </p>
           <a
             href="mailto:careers@gigler.ai"
-            className="inline-block text-brand-primary font-medium hover:text-brand-primary-hover transition"
+            className="inline-block text-brand-accent font-medium hover:text-foreground transition"
           >
             careers@gigler.ai →
           </a>
@@ -139,7 +133,7 @@ export default function CareersPage() {
                 </div>
                 <a
                   href={`mailto:careers@gigler.ai?subject=Application: ${role.title}`}
-                  className="text-brand-primary font-medium hover:text-brand-primary-hover transition"
+                  className="text-brand-accent font-medium hover:text-foreground transition"
                 >
                   Apply →
                 </a>
