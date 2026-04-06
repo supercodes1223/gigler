@@ -86,16 +86,14 @@ export default function HomePage() {
           <div>
             <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 whitespace-nowrap">
               <span>Gig</span>
-              <span className="rolodex-container" style={{ marginLeft: "0.25em" }}>
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>economy</span>
+              <span className="rolodex-container" style={{ marginLeft: "0.15em" }}>
+                <span className="invisible">collaborating</span>
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>conomy</span>
                 <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
-                <span className="rolodex-word" style={{ color: "#EA4335" }}>planning</span>
-                <span className="rolodex-word" style={{ color: "#F25022" }}>creative</span>
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>scheduling</span>
-                <span className="rolodex-word" style={{ color: "#34A853" }}>lifestyle</span>
-                <span className="rolodex-word" style={{ color: "#EA4335" }}>education</span>
-                <span className="rolodex-word" style={{ color: "#F25022" }}>business</span>
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>reservations</span>
+                <span className="rolodex-word" style={{ color: "#EA4335" }}>organizing</span>
+                <span className="rolodex-word" style={{ color: "#F25022" }}>planning</span>
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>collaborating</span>
+                <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
@@ -171,7 +169,7 @@ export default function HomePage() {
       <section className="py-24 px-6">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            9 categories. Dozens of gig types.
+            6 categories. Dozens of gig types.
           </h2>
           <p className="text-lg text-brand-muted mb-12">
             Everything starts with a text.
@@ -179,14 +177,11 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center gap-3">
             {[
               "💻 Coding & Tech",
-              "🏢 Business Formation",
-              "🎉 Event Planning",
-              "🎨 Creative & AI Media",
-              "📋 Professional",
-              "⏰ Scheduling",
-              "🏠 Lifestyle",
-              "📚 Education",
-              "🍽️ Reservations",
+              "📋 Organizing",
+              "🎯 Planning",
+              "🤝 Collaborating",
+              "⚡ Facilitating",
+              "🚀 Get It Done",
             ].map((cat) => (
               <span
                 key={cat}
