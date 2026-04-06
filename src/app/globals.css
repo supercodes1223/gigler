@@ -5,13 +5,14 @@
   --background: #1a1816;
   --background-alt: #141210;
   --foreground: #f5f0e8;
-  --brand-primary: #06b6d4;
-  --brand-primary-hover: #22d3ee;
+  --brand-primary: #f5f0e8;
+  --brand-primary-hover: #ffffff;
   --brand-secondary: #f59e0b;
   --brand-surface: #242120;
   --brand-surface-hover: #2e2a28;
   --brand-muted: #9c9590;
   --brand-border: #3a3634;
+  --brand-accent: #06b6d4;
 }
 
 @theme inline {
@@ -25,6 +26,7 @@
   --color-brand-surface-hover: var(--brand-surface-hover);
   --color-brand-muted: var(--brand-muted);
   --color-brand-border: var(--brand-border);
+  --color-brand-accent: var(--brand-accent);
   --font-sans: 'Nunito', var(--font-nunito), sans-serif;
   --font-mono: var(--font-geist-mono);
 }
@@ -39,10 +41,10 @@ body {
 .rolodex-container {
   display: inline-block;
   position: relative;
-  height: 1.35em;
+  height: 1.4em;
   overflow: hidden;
   vertical-align: bottom;
-  min-width: 4ch;
+  min-width: 12ch;
 }
 
 .rolodex-word {

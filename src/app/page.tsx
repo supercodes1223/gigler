@@ -62,7 +62,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-brand-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-bold text-brand-primary">
+          <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
           </Link>
           <div className="hidden md:flex items-center gap-8 text-sm">
@@ -75,12 +75,6 @@ export default function HomePage() {
             <Link href="/careers" className="text-brand-muted hover:text-foreground transition">
               Careers
             </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-full bg-brand-primary px-5 py-2 text-sm font-semibold text-white hover:bg-brand-primary-hover transition"
-            >
-              Dashboard
-            </Link>
           </div>
         </div>
       </nav>
@@ -90,22 +84,18 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl w-full grid lg:grid-cols-2 gap-16 items-center">
           {/* Left: text */}
           <div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight tracking-tight mb-6">
-              <span className="text-brand-primary">Gigler.</span>
-              <br />
-              <span>
-                Gig +{" "}
-                <span className="rolodex-container text-brand-primary">
-                  <span className="rolodex-word">economy</span>
-                  <span className="rolodex-word">coding</span>
-                  <span className="rolodex-word">planning</span>
-                  <span className="rolodex-word">creative</span>
-                  <span className="rolodex-word">scheduling</span>
-                  <span className="rolodex-word">lifestyle</span>
-                  <span className="rolodex-word">education</span>
-                  <span className="rolodex-word">business</span>
-                  <span className="rolodex-word">reservations</span>
-                </span>
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
+              <span>Gig</span>
+              <span className="rolodex-container text-brand-accent">
+                <span className="rolodex-word">economy</span>
+                <span className="rolodex-word">coding</span>
+                <span className="rolodex-word">planning</span>
+                <span className="rolodex-word">creative</span>
+                <span className="rolodex-word">scheduling</span>
+                <span className="rolodex-word">lifestyle</span>
+                <span className="rolodex-word">education</span>
+                <span className="rolodex-word">business</span>
+                <span className="rolodex-word">reservations</span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
@@ -118,7 +108,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/dashboard"
-                className="rounded-full bg-brand-primary px-8 py-3 text-base font-semibold text-white hover:bg-brand-primary-hover transition text-center"
+                className="rounded-full bg-foreground px-8 py-3 text-base font-semibold text-background hover:bg-white transition text-center"
               >
                 Get Started Free
               </Link>
@@ -232,7 +222,7 @@ export default function HomePage() {
                 key={tier.name}
                 className={`rounded-2xl border p-8 flex flex-col ${
                   tier.highlight
-                    ? "border-brand-primary ring-1 ring-brand-primary bg-background"
+                    ? "border-foreground ring-1 ring-foreground bg-background"
                     : "border-brand-border bg-background"
                 }`}
               >
@@ -245,7 +235,7 @@ export default function HomePage() {
                 <button
                   className={`w-full rounded-full py-3 font-semibold transition mb-8 ${
                     tier.highlight
-                      ? "bg-brand-primary text-white hover:bg-brand-primary-hover"
+                      ? "bg-foreground text-background hover:bg-white"
                       : "border border-brand-border text-foreground hover:bg-brand-surface-hover"
                   }`}
                 >
@@ -255,7 +245,7 @@ export default function HomePage() {
                   {tier.features.map((f, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm">
                       <svg
-                        className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-brand-accent"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -272,7 +262,7 @@ export default function HomePage() {
           </div>
           <p className="text-center text-sm text-brand-muted mt-8">
             Need more?{" "}
-            <a href="mailto:sales@gigler.ai" className="text-brand-primary hover:text-brand-primary-hover transition">
+            <a href="mailto:sales@gigler.ai" className="text-brand-accent hover:text-foreground transition">
               Contact us for Enterprise pricing
             </a>
           </p>
@@ -290,7 +280,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/dashboard"
-            className="inline-block rounded-full bg-brand-primary px-10 py-4 text-lg font-semibold text-white hover:bg-brand-primary-hover transition"
+            className="inline-block rounded-full bg-foreground px-10 py-4 text-lg font-semibold text-background hover:bg-white transition"
           >
             Get Started Free
           </Link>
