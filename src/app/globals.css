@@ -39,19 +39,14 @@ body {
 
 /* ── Rolodex / split-flap animation for hero gig types ───────────────────── */
 .rolodex-container {
-  display: inline-block;
-  position: relative;
-  height: 1em;
-  overflow-x: visible;
+  display: inline-grid;
   overflow-y: clip;
-  vertical-align: baseline;
+  height: 1.2em;
+  vertical-align: bottom;
 }
 
 .rolodex-word {
-  display: block;
-  position: absolute;
-  left: 0;
-  bottom: 0;
+  grid-area: 1 / 1;
   opacity: 0;
   transform: translateY(100%);
   animation: rolodex-cycle 12s infinite;
@@ -87,7 +82,7 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -3px -1px;
+  inset: -2px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
@@ -99,7 +94,7 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(8px);
+  filter: blur(10px);
   opacity: 0.35;
   z-index: -1;
 }
@@ -107,7 +102,7 @@ body {
 .ai-glow::after {
   content: '';
   position: absolute;
-  inset: -1px 0px;
+  inset: -1px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
