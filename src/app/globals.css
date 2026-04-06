@@ -49,18 +49,30 @@ body {
   grid-area: 1 / 1;
   opacity: 0;
   transform: translateY(100%);
-  animation: rolodex-cycle 14s infinite;
+  animation: rolodex-cycle 16s infinite;
   white-space: nowrap;
 }
 
-@keyframes rolodex-cycle {
-  0%, 1%     { opacity: 0; transform: translateY(100%); }
-  2.5%, 12%  { opacity: 1; transform: translateY(0); }
-  13.5%, 14% { opacity: 1; transform: translateY(-100%); }
-  15%, 100%  { opacity: 0; transform: translateY(-100%); }
+/* "ler" gets a longer visible window (3.5s vs 1.3s for normal words) */
+.rolodex-word:nth-child(7) {
+  animation-name: rolodex-cycle-ler;
 }
 
-/* 7 words, each visible for ~2s of the 14s cycle */
+@keyframes rolodex-cycle {
+  0%, 0.5%   { opacity: 0; transform: translateY(100%); }
+  2%, 10%    { opacity: 1; transform: translateY(0); }
+  11.5%, 12% { opacity: 1; transform: translateY(-100%); }
+  13%, 100%  { opacity: 0; transform: translateY(-100%); }
+}
+
+@keyframes rolodex-cycle-ler {
+  0%, 0.5%   { opacity: 0; transform: translateY(100%); }
+  2%, 23%    { opacity: 1; transform: translateY(0); }
+  24%, 24.5% { opacity: 1; transform: translateY(-100%); }
+  25.5%, 100%{ opacity: 0; transform: translateY(-100%); }
+}
+
+/* 6 normal words (2s each) + "ler" (3.5s) in a 16s cycle */
 .rolodex-word:nth-child(1)  { animation-delay: 0s; }
 .rolodex-word:nth-child(2)  { animation-delay: 2s; }
 .rolodex-word:nth-child(3)  { animation-delay: 4s; }
@@ -80,31 +92,46 @@ body {
     #f5f0e8 65%,
     #f5f0e8 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: gigler-text-sweep 14s infinite;
+  animation: gigler-text-sweep 16s infinite;
 }
 
 @keyframes gigler-text-sweep {
-  0%, 85% {
+  /* Normal text for words 1-6 */
+  0%, 75% {
     -webkit-text-fill-color: currentcolor;
-    background-position: 200% center;
+    background-position: 100% center;
     filter: none;
   }
-  86% {
+  /* "ler" appears at 12s = 75% — show white Gigler, hold 1.5s */
+  76% {
     -webkit-text-fill-color: transparent;
-    background-position: 150% center;
+    background-position: 100% center;
+    filter: none;
+  }
+  /* Hold white Gigler until ~84% (13.5s) */
+  84% {
+    -webkit-text-fill-color: transparent;
+    background-position: 100% center;
+    filter: none;
+  }
+  /* Blue sweep starts — slides left to right over ~2s */
+  85% {
+    -webkit-text-fill-color: transparent;
+    background-position: 80% center;
     filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
   }
-  95% {
+  96% {
     -webkit-text-fill-color: transparent;
-    background-position: -50% center;
+    background-position: 0% center;
     filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
   }
-  97%, 100% {
+  /* Back to normal */
+  98%, 100% {
     -webkit-text-fill-color: currentcolor;
-    background-position: -100% center;
+    background-position: 0% center;
     filter: none;
   }
 }
@@ -135,7 +162,7 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(12px);
+  filter: blur(8px);
   opacity: 0.35;
   z-index: -1;
 }
