@@ -35,15 +35,17 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl w-full grid lg:grid-cols-2 gap-16 items-center">
           {/* Left: text */}
           <div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 whitespace-nowrap">
-              Gig{" "}
-              <span className="rolodex-container">
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>conomy</span>
-                <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
-                <span className="rolodex-word" style={{ color: "#F25022" }}>organizing</span>
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
-                <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
-                <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
+              <span className="inline-flex items-baseline" style={{ gap: "0.2em" }}>
+                <span>Gig</span>
+                <span className="rolodex-container">
+                  <span className="rolodex-word" style={{ color: "#4285F4" }}>economy</span>
+                  <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
+                  <span className="rolodex-word" style={{ color: "#F25022" }}>organizing</span>
+                  <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
+                  <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
+                  <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
+                </span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
@@ -69,9 +71,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right: SMS demo product window */}
+          {/* Right: SMS demo product window with AI glow */}
           <div className="hidden lg:block">
-            <SmsDemo />
+            <div className="ai-glow relative">
+              <SmsDemo />
+            </div>
           </div>
         </div>
       </section>
