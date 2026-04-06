@@ -69,37 +69,44 @@ body {
 .rolodex-word:nth-child(6)  { animation-delay: 10s; }
 .rolodex-word:nth-child(7)  { animation-delay: 12s; }
 
-/* ── "Gigler" blue glow sweep (fires when "ler" is visible) ──────────────── */
+/* ── "Gigler" text-gradient sweep (fires when "ler" is visible) ──────────── */
 .gigler-sweep {
   position: relative;
-}
-
-.gigler-sweep::after {
-  content: '';
-  position: absolute;
-  inset: -4px -8px;
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    rgba(66, 133, 244, 0.5) 40%,
-    rgba(66, 133, 244, 0.6) 50%,
-    rgba(66, 133, 244, 0.5) 60%,
-    transparent 100%
+    #f5f0e8 0%,
+    #f5f0e8 35%,
+    #4285F4 50%,
+    #f5f0e8 65%,
+    #f5f0e8 100%
   );
-  filter: blur(8px);
-  border-radius: 8px;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(-120%);
-  animation: gigler-glow-sweep 14s infinite;
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gigler-text-sweep 14s infinite;
 }
 
-@keyframes gigler-glow-sweep {
-  0%, 85%    { opacity: 0; transform: translateX(-120%); }
-  86%        { opacity: 0.8; transform: translateX(-120%); }
-  93%        { opacity: 1; transform: translateX(120%); }
-  96%        { opacity: 0; transform: translateX(120%); }
-  100%       { opacity: 0; transform: translateX(120%); }
+@keyframes gigler-text-sweep {
+  0%, 85% {
+    -webkit-text-fill-color: currentcolor;
+    background-position: 200% center;
+    filter: none;
+  }
+  86% {
+    -webkit-text-fill-color: transparent;
+    background-position: 150% center;
+    filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
+  }
+  95% {
+    -webkit-text-fill-color: transparent;
+    background-position: -50% center;
+    filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
+  }
+  97%, 100% {
+    -webkit-text-fill-color: currentcolor;
+    background-position: -100% center;
+    filter: none;
+  }
 }
 
 /* ── AI Glow effect (Google AI-style rainbow border) ─────────────────────── */
@@ -116,7 +123,7 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -2px;
+  inset: -3px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
@@ -128,8 +135,8 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(6px);
-  opacity: 0.25;
+  filter: blur(12px);
+  opacity: 0.35;
   z-index: -1;
 }
 
@@ -148,8 +155,8 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(2px);
-  opacity: 0.2;
+  filter: blur(4px);
+  opacity: 0.25;
   z-index: -1;
 }
 
