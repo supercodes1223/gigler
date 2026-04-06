@@ -36,7 +36,7 @@ export default function HomePage() {
           {/* Left: text */}
           <div>
             <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
-              <span className="inline-flex items-baseline" style={{ gap: "0.2em" }}>
+              <span className="inline-flex items-baseline" style={{ gap: "0.08em" }}>
                 <span>Gig</span>
                 <span className="rolodex-container">
                   <span className="rolodex-word" style={{ color: "#4285F4" }}>economy</span>
