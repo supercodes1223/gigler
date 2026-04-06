@@ -80,10 +80,10 @@ export default function SmsDemo() {
 
   return (
     <div className="relative w-full max-w-md mx-auto">
-      {/* Phone frame */}
-      <div className="rounded-3xl bg-[#faf8f5] border border-[#e8e4de] shadow-2xl shadow-black/30 overflow-hidden">
+      {/* Phone frame — fixed height, flexbox layout */}
+      <div className="rounded-3xl bg-[#faf8f5] border border-[#e8e4de] shadow-2xl shadow-black/30 overflow-hidden flex flex-col h-[540px]">
         {/* Status bar */}
-        <div className="flex items-center justify-between px-6 pt-4 pb-2">
+        <div className="flex items-center justify-between px-6 pt-4 pb-2 shrink-0">
           <span className="text-xs text-[#9c9590] font-medium">9:41 AM</span>
           <span className="text-sm font-bold text-[#1a1816]">Gigler</span>
           <div className="flex gap-1">
@@ -91,10 +91,10 @@ export default function SmsDemo() {
           </div>
         </div>
 
-        {/* Messages area - scrollable */}
+        {/* Messages area — fills remaining space, scrolls */}
         <div
           ref={scrollContainerRef}
-          className="px-4 pb-4 pt-2 min-h-[380px] max-h-[420px] overflow-y-auto scroll-smooth"
+          className="px-4 pb-4 pt-2 flex-1 min-h-0 overflow-y-auto scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
@@ -133,8 +133,8 @@ export default function SmsDemo() {
           </div>
         </div>
 
-        {/* Input bar */}
-        <div className="px-4 pb-4">
+        {/* Input bar — pinned to bottom */}
+        <div className="px-4 pb-4 shrink-0">
           <div className="flex items-center gap-2 bg-white rounded-full border border-[#e8e4de] px-4 py-2.5">
             <span className="text-[#9c9590] text-sm flex-1">Text Gigler anything...</span>
             <div className="w-7 h-7 rounded-full bg-[#4285F4] flex items-center justify-center">

@@ -41,17 +41,17 @@ body {
 .rolodex-container {
   display: inline-block;
   position: relative;
-  height: 1.2em;
+  height: 1em;
   overflow-x: visible;
   overflow-y: clip;
-  vertical-align: bottom;
+  vertical-align: baseline;
 }
 
 .rolodex-word {
   display: block;
   position: absolute;
   left: 0;
-  top: 0;
+  bottom: 0;
   opacity: 0;
   transform: translateY(100%);
   animation: rolodex-cycle 12s infinite;
@@ -87,7 +87,7 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -3px;
+  inset: -3px -1px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
@@ -99,7 +99,7 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(12px);
+  filter: blur(8px);
   opacity: 0.35;
   z-index: -1;
 }
@@ -107,7 +107,7 @@ body {
 .ai-glow::after {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: -1px 0px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
@@ -119,7 +119,7 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(4px);
+  filter: blur(3px);
   opacity: 0.25;
   z-index: -1;
 }

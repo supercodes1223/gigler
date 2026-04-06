@@ -435,6 +435,113 @@ Pages that need SEO:
 - Pricing page (gigler.ai/pricing)
 - Gig review pages (gigler.ai/[shortCode]) -- each gets unique title/description/OG image based on gig content
 
+## Homepage / Landing Page Design
+
+The landing page at `gigler.ai` (route `/`, file `src/app/page.tsx`) is the primary marketing surface. Design philosophy: dark, warm, minimal -- inspired by Claude.ai's hero layout and Google AI's glow aesthetic.
+
+### Layout Structure
+
+```
+┌──────────────────────────────────────────────────────┐
+│  Nav (fixed, backdrop-blur)                          │
+│  Logo left ─────────────── About / Pricing / Careers │
+├──────────────────────────────────────────────────────┤
+│  Hero (90vh, centered)                               │
+│  ┌──────────────────┬───────────────────┐            │
+│  │ H1: "Gig [word]" │  Phone mockup     │            │
+│  │ Subtitle          │  (SMS demo)       │            │
+│  │ CTA buttons       │  AI glow border   │            │
+│  └──────────────────┴───────────────────┘            │
+├──────────────────────────────────────────────────────┤
+│  Showcase ("AI that actually does things")           │
+│  3-column: Text it / It gets done / Real output      │
+├──────────────────────────────────────────────────────┤
+│  CTA ("Ready to get things done?")                   │
+├──────────────────────────────────────────────────────┤
+│  Footer (links, copyright, gigler.ai)                │
+└──────────────────────────────────────────────────────┘
+```
+
+### Design Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--background` | `#1a1816` | Page background (warm dark) |
+| `--foreground` | `#f5f0e8` | Primary text (warm white) |
+| `--brand-surface` | `#242120` | Card/section backgrounds |
+| `--brand-muted` | `#9c9590` | Secondary text |
+| `--brand-border` | `#3a3634` | Dividers, borders |
+| `--brand-accent` | `#4285F4` | Google-blue accent (links, buttons, user bubbles) |
+| Font | Nunito 400-900 | All text (Google Fonts import) |
+
+### Hero Section
+
+- **Grid**: 2-column on `lg+` (`grid lg:grid-cols-2 gap-16 items-center`), single-column stacked on mobile
+- **Left column**: H1 heading with rolodex animation, subtitle paragraph, two CTA buttons (primary filled, secondary outlined, both `rounded-full`)
+- **Right column**: SMS Demo phone mockup wrapped in `.ai-glow` container. Hidden on mobile (`hidden lg:block`)
+
+### Rolodex Animation
+
+The H1 reads `"Gig [word]"` where `[word]` cycles through: economy, coding, organizing, planning, collaborating, facilitating. Each word has a distinct color (Google blue, green, red).
+
+- Container: `inline-block`, `position: relative`, `height: 1em`, `overflow-y: clip`, `vertical-align: baseline`
+- Words: absolutely positioned at `bottom: 0`, animated with `rolodex-cycle` keyframes (slide up from below, hold, slide up and out)
+- 12-second total cycle, 6 words, each visible ~2s, staggered via `animation-delay` (0s, 2s, 4s, 6s, 8s, 10s)
+
+### SMS Demo Phone Mockup (`src/components/SmsDemo.tsx`)
+
+A client component that simulates an iMessage-style conversation in a phone frame:
+
+- **Phone frame**: Fixed height (`h-[540px]`), flexbox column layout. Rounded corners, warm off-white background (`#faf8f5`), subtle border and shadow
+- **Status bar**: "9:41 AM" left, "Gigler" center, blue indicator right (shrink-0, pinned to top)
+- **Messages area**: `flex-1 min-h-0 overflow-y-auto` -- fills remaining space, scrolls when content overflows. Auto-scrolls to newest message via `scrollIntoView`
+- **Input bar**: Fake text input "Text Gigler anything..." with blue send button (shrink-0, pinned to bottom)
+- **Conversations**: Two scripted conversation arrays cycle automatically. Messages appear with timed delays, Gigler messages preceded by a typing indicator (3 bouncing dots). After the last message, 5-second pause, then next conversation starts
+- **Message styles**: User bubbles = blue (`#4285F4`) right-aligned, Gigler bubbles = warm gray (`#e8e4de`) left-aligned. Both use `rounded-2xl` with flattened corner on the tail side
+
+### AI Glow Effect
+
+The phone mockup is wrapped in a `.ai-glow` div that produces a rotating rainbow border glow (Google AI style):
+
+- Two pseudo-elements (`::before`, `::after`) with `conic-gradient` backgrounds rotating via `@property --glow-angle`
+- `::before`: outer glow -- `inset: -3px -1px`, `blur(8px)`, `opacity: 0.35` (softer, wider spread vertically, tighter horizontally)
+- `::after`: inner glow -- `inset: -1px 0px`, `blur(3px)`, `opacity: 0.25` (tighter, sharper edge)
+- Colors cycle through Google brand colors: `#4285F4` (blue), `#34A853` (green), `#FBBC05` (yellow), `#EA4335` (red), `#9b59b6` (purple)
+- 4-second rotation cycle, linear infinite
+
+### Showcase Section
+
+- Background: `bg-brand-surface` (`#242120`)
+- Centered heading + subtitle, then 3-column grid on `md+`
+- Each card: emoji icon (4xl), bold title, muted description
+- Cards: "Text it" (conversational input), "It gets done" (AI execution), "Real output" (tangible deliverables)
+
+### CTA Section
+
+- Centered heading "Ready to get things done?", subtitle, single large `rounded-full` button linking to `/dashboard`
+
+### Footer
+
+- 3-column flex layout: copyright left, nav links center, "gigler.ai" right
+- Border-top separator, muted text
+
+### Responsive Behavior
+
+| Breakpoint | Behavior |
+|------------|----------|
+| Mobile (< `lg`) | Single column hero, phone mockup hidden, stacked CTA buttons |
+| Desktop (`lg+`) | 2-column hero grid, phone mockup visible with glow, side-by-side CTA buttons |
+| `md+` | Showcase cards switch from stacked to 3-column grid |
+
+### Future Enhancements
+
+- Add more conversation scripts to the SMS demo rotation (LLC formation, event planning with photos, scheduling)
+- Animated entrance for hero text (staggered fade-in)
+- Testimonials / social proof section
+- Gig category showcase with example deliverable screenshots
+- Video demo of a real Gigler SMS conversation
+- Mobile-optimized phone mockup (smaller frame, visible on all breakpoints)
+
 ## What Carries Over from Carmen AI
 
 - Inbound SMS processing pattern (`sales-onboarding-sms/handler.ts` --> `gigler-inbound-sms`)
