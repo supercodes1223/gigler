@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
 
 :root {
   --background: #1a1816;
@@ -49,89 +49,127 @@ body {
   grid-area: 1 / 1;
   opacity: 0;
   transform: translateY(100%);
-  animation: rolodex-cycle 16s infinite;
   white-space: nowrap;
+  animation-duration: 16s;
+  animation-timing-function: ease;
+  animation-iteration-count: infinite;
 }
 
-/* "ler" gets a longer visible window (3.5s vs 1.3s for normal words) */
-.rolodex-word:nth-child(7) {
-  animation-name: rolodex-cycle-ler;
+.rolodex-word:nth-child(-n+6) {
+  margin-left: 0.03em;
 }
 
-@keyframes rolodex-cycle {
-  0%, 0.5%   { opacity: 0; transform: translateY(100%); }
-  2%, 10%    { opacity: 1; transform: translateY(0); }
-  11.5%, 12% { opacity: 1; transform: translateY(-100%); }
-  13%, 100%  { opacity: 0; transform: translateY(-100%); }
+/*
+  16s cycle — each word gets its own keyframes with exact time slots:
+  Word 1 "economy":       0.0s – 1.8s   (0% – 11.25%)
+  Word 2 "coding":        2.0s – 3.8s   (12.5% – 23.75%)
+  Word 3 "organizing":    4.0s – 5.8s   (25% – 36.25%)
+  Word 4 "planning":      6.0s – 7.8s   (37.5% – 48.75%)
+  Word 5 "collaborating": 8.0s – 9.8s   (50% – 61.25%)
+  Word 6 "facilitating":  10.0s – 11.8s (62.5% – 73.75%)
+  Word 7 "ler":           12.0s – 15.6s (75% – 97.5%)  ← longer hold + glow
+*/
+
+.rolodex-word:nth-child(1) { animation-name: rolodex-w1; }
+.rolodex-word:nth-child(2) { animation-name: rolodex-w2; }
+.rolodex-word:nth-child(3) { animation-name: rolodex-w3; }
+.rolodex-word:nth-child(4) { animation-name: rolodex-w4; }
+.rolodex-word:nth-child(5) { animation-name: rolodex-w5; }
+.rolodex-word:nth-child(6) { animation-name: rolodex-w6; }
+.rolodex-word:nth-child(7) { animation-name: rolodex-w7; }
+
+@keyframes rolodex-w1 {
+  0%      { opacity: 1; transform: translateY(0); }
+  10%     { opacity: 1; transform: translateY(0); }
+  11.5%   { opacity: 0; transform: translateY(-100%); }
+  98.5%   { opacity: 0; transform: translateY(100%); }
+  100%    { opacity: 1; transform: translateY(0); }
+}
+@keyframes rolodex-w2 {
+  0%, 12% { opacity: 0; transform: translateY(100%); }
+  13.5%   { opacity: 1; transform: translateY(0); }
+  22.5%   { opacity: 1; transform: translateY(0); }
+  24%     { opacity: 0; transform: translateY(-100%); }
+  100%    { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes rolodex-w3 {
+  0%, 24.5% { opacity: 0; transform: translateY(100%); }
+  26%       { opacity: 1; transform: translateY(0); }
+  35%       { opacity: 1; transform: translateY(0); }
+  36.5%     { opacity: 0; transform: translateY(-100%); }
+  100%      { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes rolodex-w4 {
+  0%, 37%   { opacity: 0; transform: translateY(100%); }
+  38.5%     { opacity: 1; transform: translateY(0); }
+  47.5%     { opacity: 1; transform: translateY(0); }
+  49%       { opacity: 0; transform: translateY(-100%); }
+  100%      { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes rolodex-w5 {
+  0%, 49.5% { opacity: 0; transform: translateY(100%); }
+  51%       { opacity: 1; transform: translateY(0); }
+  60%       { opacity: 1; transform: translateY(0); }
+  61.5%     { opacity: 0; transform: translateY(-100%); }
+  100%      { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes rolodex-w6 {
+  0%, 62%   { opacity: 0; transform: translateY(100%); }
+  63.5%     { opacity: 1; transform: translateY(0); }
+  72.5%     { opacity: 1; transform: translateY(0); }
+  74%       { opacity: 0; transform: translateY(-100%); }
+  100%      { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes rolodex-w7 {
+  0%, 74.5% { opacity: 0; transform: translateY(100%); }
+  76%       { opacity: 1; transform: translateY(0); }
+  98.2%     { opacity: 1; transform: translateY(0); }
+  99.2%     { opacity: 0; transform: translateY(-100%); }
+  100%      { opacity: 0; transform: translateY(-100%); }
 }
 
-@keyframes rolodex-cycle-ler {
-  0%, 0.5%   { opacity: 0; transform: translateY(100%); }
-  2%, 23%    { opacity: 1; transform: translateY(0); }
-  24%, 24.5% { opacity: 1; transform: translateY(-100%); }
-  25.5%, 100%{ opacity: 0; transform: translateY(-100%); }
+/* ── Gigler blue glow pulse (text-shadow on parent when "ler" is visible) ── */
+.gigler-glow {
+  animation: gigler-glow-pulse 16s infinite;
 }
 
-/* 6 normal words (2s each) + "ler" (3.5s) in a 16s cycle */
-.rolodex-word:nth-child(1)  { animation-delay: 0s; }
-.rolodex-word:nth-child(2)  { animation-delay: 2s; }
-.rolodex-word:nth-child(3)  { animation-delay: 4s; }
-.rolodex-word:nth-child(4)  { animation-delay: 6s; }
-.rolodex-word:nth-child(5)  { animation-delay: 8s; }
-.rolodex-word:nth-child(6)  { animation-delay: 10s; }
-.rolodex-word:nth-child(7)  { animation-delay: 12s; }
-
-/* ── "Gigler" text-gradient sweep (fires when "ler" is visible) ──────────── */
-.gigler-sweep {
-  position: relative;
-  background: linear-gradient(
-    90deg,
-    #f5f0e8 0%,
-    #f5f0e8 35%,
-    #4285F4 50%,
-    #f5f0e8 65%,
-    #f5f0e8 100%
-  );
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: gigler-text-sweep 16s infinite;
-}
-
-@keyframes gigler-text-sweep {
-  /* Normal text for words 1-6 */
-  0%, 75% {
-    -webkit-text-fill-color: currentcolor;
-    background-position: 100% center;
+@keyframes gigler-glow-pulse {
+  0%, 77% {
+    text-shadow: none;
     filter: none;
   }
-  /* "ler" appears at 12s = 75% — show white Gigler, hold 1.5s */
-  76% {
-    -webkit-text-fill-color: transparent;
-    background-position: 100% center;
-    filter: none;
+  /* "ler" has settled by 78%. Glow ramps up */
+  81% {
+    text-shadow:
+      0 0 12px rgba(66, 133, 244, 0.5),
+      0 0 30px rgba(66, 133, 244, 0.3),
+      0 0 60px rgba(66, 133, 244, 0.15);
+    filter: brightness(1.1);
   }
-  /* Hold white Gigler until ~84% (13.5s) */
-  84% {
-    -webkit-text-fill-color: transparent;
-    background-position: 100% center;
-    filter: none;
-  }
-  /* Blue sweep starts — slides left to right over ~2s */
+  /* Peak glow — holds during "Gigler" display */
   85% {
-    -webkit-text-fill-color: transparent;
-    background-position: 80% center;
-    filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
+    text-shadow:
+      0 0 18px rgba(66, 133, 244, 0.6),
+      0 0 40px rgba(66, 133, 244, 0.35),
+      0 0 80px rgba(66, 133, 244, 0.2);
+    filter: brightness(1.15);
   }
-  96% {
-    -webkit-text-fill-color: transparent;
-    background-position: 0% center;
-    filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.4));
+  89% {
+    text-shadow:
+      0 0 18px rgba(66, 133, 244, 0.6),
+      0 0 40px rgba(66, 133, 244, 0.35),
+      0 0 80px rgba(66, 133, 244, 0.2);
+    filter: brightness(1.15);
   }
-  /* Back to normal */
-  98%, 100% {
-    -webkit-text-fill-color: currentcolor;
-    background-position: 0% center;
+  /* Glow fades before "ler" exits at 94% */
+  92% {
+    text-shadow:
+      0 0 6px rgba(66, 133, 244, 0.2),
+      0 0 15px rgba(66, 133, 244, 0.1);
+    filter: brightness(1.02);
+  }
+  94%, 100% {
+    text-shadow: none;
     filter: none;
   }
 }
