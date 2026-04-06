@@ -85,14 +85,13 @@ export default function HomePage() {
           {/* Left: text */}
           <div>
             <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 whitespace-nowrap">
-              <span>Gig</span>
-              <span className="rolodex-container" style={{ marginLeft: "0.15em" }}>
-                <span className="invisible">collaborating</span>
+              Gig{" "}
+              <span className="rolodex-container">
                 <span className="rolodex-word" style={{ color: "#4285F4" }}>conomy</span>
                 <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
-                <span className="rolodex-word" style={{ color: "#EA4335" }}>organizing</span>
-                <span className="rolodex-word" style={{ color: "#F25022" }}>planning</span>
-                <span className="rolodex-word" style={{ color: "#4285F4" }}>collaborating</span>
+                <span className="rolodex-word" style={{ color: "#F25022" }}>organizing</span>
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
+                <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
                 <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
               </span>
             </h1>
