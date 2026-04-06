@@ -116,7 +116,7 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -3px;
+  inset: -2px;
   border-radius: 1.75rem;
   background: conic-gradient(
     from var(--glow-angle),
@@ -128,8 +128,8 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(10px);
-  opacity: 0.4;
+  filter: blur(6px);
+  opacity: 0.25;
   z-index: -1;
 }
 
@@ -148,8 +148,8 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(4px);
-  opacity: 0.3;
+  filter: blur(2px);
+  opacity: 0.2;
   z-index: -1;
 }
 
