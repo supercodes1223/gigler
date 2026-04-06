@@ -49,24 +49,58 @@ body {
   grid-area: 1 / 1;
   opacity: 0;
   transform: translateY(100%);
-  animation: rolodex-cycle 12s infinite;
+  animation: rolodex-cycle 14s infinite;
   white-space: nowrap;
 }
 
 @keyframes rolodex-cycle {
   0%, 1%     { opacity: 0; transform: translateY(100%); }
-  3%, 14%    { opacity: 1; transform: translateY(0); }
-  16%, 17%   { opacity: 1; transform: translateY(-100%); }
-  18%, 100%  { opacity: 0; transform: translateY(-100%); }
+  2.5%, 12%  { opacity: 1; transform: translateY(0); }
+  13.5%, 14% { opacity: 1; transform: translateY(-100%); }
+  15%, 100%  { opacity: 0; transform: translateY(-100%); }
 }
 
-/* 6 words, each visible for ~2s of the 12s cycle */
+/* 7 words, each visible for ~2s of the 14s cycle */
 .rolodex-word:nth-child(1)  { animation-delay: 0s; }
 .rolodex-word:nth-child(2)  { animation-delay: 2s; }
 .rolodex-word:nth-child(3)  { animation-delay: 4s; }
 .rolodex-word:nth-child(4)  { animation-delay: 6s; }
 .rolodex-word:nth-child(5)  { animation-delay: 8s; }
 .rolodex-word:nth-child(6)  { animation-delay: 10s; }
+.rolodex-word:nth-child(7)  { animation-delay: 12s; }
+
+/* ── "Gigler" blue glow sweep (fires when "ler" is visible) ──────────────── */
+.gigler-sweep {
+  position: relative;
+}
+
+.gigler-sweep::after {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(66, 133, 244, 0.5) 40%,
+    rgba(66, 133, 244, 0.6) 50%,
+    rgba(66, 133, 244, 0.5) 60%,
+    transparent 100%
+  );
+  filter: blur(8px);
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-120%);
+  animation: gigler-glow-sweep 14s infinite;
+}
+
+@keyframes gigler-glow-sweep {
+  0%, 85%    { opacity: 0; transform: translateX(-120%); }
+  86%        { opacity: 0.8; transform: translateX(-120%); }
+  93%        { opacity: 1; transform: translateX(120%); }
+  96%        { opacity: 0; transform: translateX(120%); }
+  100%       { opacity: 0; transform: translateX(120%); }
+}
 
 /* ── AI Glow effect (Google AI-style rainbow border) ─────────────────────── */
 @property --glow-angle {
