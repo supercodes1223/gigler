@@ -45,7 +45,7 @@ export default function HomePage() {
                   <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
                   <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
                   <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
-                  <span className="rolodex-word" style={{ color: "#4285F4" }}>ler</span>
+                  <span className="rolodex-word">ler</span>
                 </span>
               </span>
             </h1>
