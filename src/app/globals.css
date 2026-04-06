@@ -87,26 +87,6 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -6px;
-  border-radius: 1.75rem;
-  background: conic-gradient(
-    from var(--glow-angle),
-    #4285F4,
-    #34A853,
-    #FBBC05,
-    #EA4335,
-    #9b59b6,
-    #4285F4
-  );
-  animation: glow-rotate 4s linear infinite;
-  filter: blur(20px);
-  opacity: 0.5;
-  z-index: -1;
-}
-
-.ai-glow::after {
-  content: '';
-  position: absolute;
   inset: -3px;
   border-radius: 1.75rem;
   background: conic-gradient(
@@ -119,8 +99,28 @@ body {
     #4285F4
   );
   animation: glow-rotate 4s linear infinite;
-  filter: blur(6px);
-  opacity: 0.3;
+  filter: blur(12px);
+  opacity: 0.35;
+  z-index: -1;
+}
+
+.ai-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.75rem;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #4285F4,
+    #34A853,
+    #FBBC05,
+    #EA4335,
+    #9b59b6,
+    #4285F4
+  );
+  animation: glow-rotate 4s linear infinite;
+  filter: blur(4px);
+  opacity: 0.25;
   z-index: -1;
 }
 
