@@ -87,7 +87,7 @@ export default function SmsDemo() {
           <span className="text-xs text-[#9c9590] font-medium">9:41 AM</span>
           <span className="text-sm font-bold text-[#1a1816]">Gigler</span>
           <div className="flex gap-1">
-            <div className="w-4 h-2 rounded-sm bg-[#8494b7]" />
+            <div className="w-4 h-2 rounded-sm bg-[#4285F4]" />
           </div>
         </div>
 
@@ -108,7 +108,7 @@ export default function SmsDemo() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-relaxed ${
                     msg.from === "user"
-                      ? "bg-[#5a7a9b] text-white rounded-br-md"
+                      ? "bg-[#4285F4] text-white rounded-br-md"
                       : "bg-[#e8e4de] text-[#1a1816] rounded-bl-md"
                   }`}
                 >
@@ -137,7 +137,7 @@ export default function SmsDemo() {
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 bg-white rounded-full border border-[#e8e4de] px-4 py-2.5">
             <span className="text-[#9c9590] text-sm flex-1">Text Gigler anything...</span>
-            <div className="w-7 h-7 rounded-full bg-[#5a7a9b] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-[#4285F4] flex items-center justify-center">
               <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
               </svg>

@@ -86,16 +86,16 @@ export default function HomePage() {
           <div>
             <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 whitespace-nowrap">
               <span>Gig</span>
-              <span className="rolodex-container text-brand-accent">
-                <span className="rolodex-word">economy</span>
-                <span className="rolodex-word">coding</span>
-                <span className="rolodex-word">planning</span>
-                <span className="rolodex-word">creative</span>
-                <span className="rolodex-word">scheduling</span>
-                <span className="rolodex-word">lifestyle</span>
-                <span className="rolodex-word">education</span>
-                <span className="rolodex-word">business</span>
-                <span className="rolodex-word">reservations</span>
+              <span className="rolodex-container">
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>economy</span>
+                <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
+                <span className="rolodex-word" style={{ color: "#EA4335" }}>planning</span>
+                <span className="rolodex-word" style={{ color: "#FBBC05" }}>creative</span>
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>scheduling</span>
+                <span className="rolodex-word" style={{ color: "#34A853" }}>lifestyle</span>
+                <span className="rolodex-word" style={{ color: "#EA4335" }}>education</span>
+                <span className="rolodex-word" style={{ color: "#FBBC05" }}>business</span>
+                <span className="rolodex-word" style={{ color: "#4285F4" }}>reservations</span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
