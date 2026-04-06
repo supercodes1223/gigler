@@ -12,7 +12,7 @@
   --brand-surface-hover: #2e2a28;
   --brand-muted: #9c9590;
   --brand-border: #3a3634;
-  --brand-accent: #06b6d4;
+  --brand-accent: #d4cfc7;
 }
 
 @theme inline {
@@ -39,29 +39,30 @@ body {
 
 /* ── Rolodex / split-flap animation for hero gig types ───────────────────── */
 .rolodex-container {
-  display: inline-block;
+  display: inline-flex;
   position: relative;
-  height: 1.4em;
+  height: 1.2em;
   overflow: hidden;
   vertical-align: bottom;
-  min-width: 12ch;
+  width: 7.5em;
 }
 
 .rolodex-word {
   display: block;
   position: absolute;
   left: 0;
-  right: 0;
+  top: 0;
   opacity: 0;
   transform: translateY(100%);
   animation: rolodex-cycle 18s infinite;
+  white-space: nowrap;
 }
 
 @keyframes rolodex-cycle {
-  0%, 2%     { opacity: 0; transform: translateY(80%); }
-  3%, 10%    { opacity: 1; transform: translateY(0); }
-  11%, 12%   { opacity: 0; transform: translateY(-80%); }
-  13%, 100%  { opacity: 0; transform: translateY(80%); }
+  0%, 1%     { opacity: 0; transform: translateY(100%); }
+  2%, 10%    { opacity: 1; transform: translateY(0); }
+  11%, 12%   { opacity: 1; transform: translateY(-100%); }
+  13%, 100%  { opacity: 0; transform: translateY(-100%); }
 }
 
 /* 9 words, each visible for ~2s of the 18s cycle */

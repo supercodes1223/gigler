@@ -84,7 +84,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl w-full grid lg:grid-cols-2 gap-16 items-center">
           {/* Left: text */}
           <div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 whitespace-nowrap">
               <span>Gig</span>
               <span className="rolodex-container text-brand-accent">
                 <span className="rolodex-word">economy</span>
@@ -190,7 +190,7 @@ export default function HomePage() {
             ].map((cat) => (
               <span
                 key={cat}
-                className="px-5 py-2.5 rounded-full bg-brand-surface border border-brand-border text-sm font-medium text-brand-muted hover:text-foreground hover:border-brand-primary transition cursor-default"
+                className="px-5 py-2.5 rounded-full bg-brand-surface border border-brand-border text-sm font-medium text-brand-muted hover:text-foreground hover:border-foreground transition cursor-default"
               >
                 {cat}
               </span>
@@ -262,7 +262,7 @@ export default function HomePage() {
           </div>
           <p className="text-center text-sm text-brand-muted mt-8">
             Need more?{" "}
-            <a href="mailto:sales@gigler.ai" className="text-brand-accent hover:text-foreground transition">
+            <a href="mailto:sales@gigler.ai" className="text-foreground hover:text-white transition underline">
               Contact us for Enterprise pricing
             </a>
           </p>
