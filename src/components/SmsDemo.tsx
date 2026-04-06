@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface Message {
   from: "user" | "gigler";
@@ -30,12 +30,26 @@ export default function SmsDemo() {
   const [conversationIndex, setConversationIndex] = useState(0);
   const [visibleMessages, setVisibleMessages] = useState<number>(0);
   const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const conversation = CONVERSATIONS[conversationIndex];
+
+  // Auto-scroll to bottom when new messages appear or typing starts
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [visibleMessages, isTyping]);
 
   useEffect(() => {
     setVisibleMessages(0);
     setIsTyping(false);
+
+    // Reset scroll to top when conversation changes
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
 
     const timers: NodeJS.Timeout[] = [];
 
@@ -73,12 +87,17 @@ export default function SmsDemo() {
           <span className="text-xs text-[#9c9590] font-medium">9:41 AM</span>
           <span className="text-sm font-bold text-[#1a1816]">Gigler</span>
           <div className="flex gap-1">
-            <div className="w-4 h-2 rounded-sm bg-[#06b6d4]" />
+            <div className="w-4 h-2 rounded-sm bg-[#8494b7]" />
           </div>
         </div>
 
-        {/* Messages area */}
-        <div className="px-4 pb-6 pt-2 min-h-[380px] max-h-[420px] overflow-hidden">
+        {/* Messages area - scrollable */}
+        <div
+          ref={scrollContainerRef}
+          className="px-4 pb-4 pt-2 min-h-[380px] max-h-[420px] overflow-y-auto scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
           <div className="space-y-3">
             {conversation.slice(0, visibleMessages).map((msg, i) => (
               <div
@@ -89,7 +108,7 @@ export default function SmsDemo() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-relaxed ${
                     msg.from === "user"
-                      ? "bg-[#06b6d4] text-white rounded-br-md"
+                      ? "bg-[#5a7a9b] text-white rounded-br-md"
                       : "bg-[#e8e4de] text-[#1a1816] rounded-bl-md"
                   }`}
                 >
@@ -98,6 +117,7 @@ export default function SmsDemo() {
               </div>
             ))}
 
+            {/* Typing indicator */}
             {isTyping && (
               <div className="flex justify-start sms-message" style={{ animationDelay: "0s" }}>
                 <div className="bg-[#e8e4de] rounded-2xl rounded-bl-md px-4 py-3 flex gap-1.5">
@@ -107,6 +127,9 @@ export default function SmsDemo() {
                 </div>
               </div>
             )}
+
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
@@ -114,7 +137,7 @@ export default function SmsDemo() {
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 bg-white rounded-full border border-[#e8e4de] px-4 py-2.5">
             <span className="text-[#9c9590] text-sm flex-1">Text Gigler anything...</span>
-            <div className="w-7 h-7 rounded-full bg-[#06b6d4] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-[#5a7a9b] flex items-center justify-center">
               <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
               </svg>
