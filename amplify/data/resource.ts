@@ -48,6 +48,8 @@ const schema = a.schema({
         "education",
         "business_formation",
         "reservations",
+        "household",
+        "custom",
       ]),
       status: a.enum(["active", "paused", "completed", "archived"]),
       conversationSid: a.string(),
@@ -133,6 +135,7 @@ const schema = a.schema({
       ]),
       uploadedBy: a.string(),
       caption: a.string(),
+      extractedData: a.string(),
     })
     .identifier(["gigId", "mediaId"])
     .authorization((allow) => [
@@ -144,7 +147,7 @@ const schema = a.schema({
     .model({
       gigId: a.id().required(),
       deliverableId: a.string().required(),
-      type: a.enum(["pdf", "website", "menu", "collage", "code_project"]),
+      type: a.enum(["pdf", "website", "menu", "collage", "code_project", "bills_dashboard"]),
       title: a.string().required(),
       s3Key: a.string(),
       publicUrl: a.string(),
@@ -167,11 +170,13 @@ const schema = a.schema({
       gigId: a.id().required(),
       userId: a.string().required(),
       scheduledAt: a.datetime().required(),
-      type: a.enum(["reminder", "wake_up_call", "check_in", "countdown"]),
+      type: a.enum(["reminder", "wake_up_call", "check_in", "countdown", "nudge"]),
       message: a.string(),
       channel: a.enum(["sms", "voice"]),
       recipients: a.string().array(),
       sent: a.boolean().default(false),
+      recurrence: a.enum(["none", "daily", "weekly", "monthly"]),
+      recurrenceDay: a.integer(),
     })
     .authorization((allow) => [
       allow.publicApiKey(),

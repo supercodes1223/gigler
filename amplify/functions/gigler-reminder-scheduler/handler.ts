@@ -181,6 +181,64 @@ async function recordNudge(gigId: string, userId: string): Promise<void> {
   );
 }
 
+async function createNextRecurrence(
+  reminder: Record<string, unknown>,
+  log: ReturnType<typeof createLogger>
+): Promise<void> {
+  const recurrence = reminder.recurrence as string;
+  const currentScheduled = new Date(reminder.scheduledAt as string);
+  let nextDate: Date;
+
+  switch (recurrence) {
+    case "daily":
+      nextDate = new Date(currentScheduled);
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case "weekly":
+      nextDate = new Date(currentScheduled);
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case "monthly": {
+      const recurrenceDay = (reminder.recurrenceDay as number) || currentScheduled.getDate();
+      nextDate = new Date(currentScheduled);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      const maxDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(recurrenceDay, maxDay));
+      break;
+    }
+    default:
+      return;
+  }
+
+  const nextId = `rem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  await ddb.send(
+    new PutCommand({
+      TableName: REMINDER_TABLE_NAME,
+      Item: {
+        id: nextId,
+        gigId: reminder.gigId,
+        userId: reminder.userId,
+        scheduledAt: nextDate.toISOString(),
+        type: reminder.type,
+        message: reminder.message,
+        channel: reminder.channel || "sms",
+        recipients: reminder.recipients || [],
+        sent: false,
+        recurrence,
+        recurrenceDay: reminder.recurrenceDay,
+        createdAt: new Date().toISOString(),
+      },
+    })
+  );
+
+  log.info("Created next recurring reminder", {
+    nextId,
+    recurrence,
+    nextScheduledAt: nextDate.toISOString(),
+    gigId: reminder.gigId as string,
+  });
+}
+
 async function checkStaleGigs(log: ReturnType<typeof createLogger>): Promise<number> {
   if (!GIG_TABLE_NAME) return 0;
 
@@ -302,6 +360,12 @@ export const handler: Handler = async (_event, context) => {
     }
 
     await markReminderSent(reminderId);
+
+    const recurrence = reminder.recurrence as string | undefined;
+    if (recurrence && recurrence !== "none") {
+      await createNextRecurrence(reminder, log);
+    }
+
     sent++;
   }
 

@@ -79,7 +79,8 @@ export default async function ShortCodePage({ params }: PageProps) {
   if (deliverable.publicUrl && (
     deliverable.type === "website" ||
     deliverable.type === "menu" ||
-    deliverable.type === "code_project"
+    deliverable.type === "code_project" ||
+    deliverable.type === "bills_dashboard"
   )) {
     redirect(deliverable.publicUrl);
   }

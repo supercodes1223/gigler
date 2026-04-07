@@ -12,6 +12,7 @@ export const giglerMediaProcessor = defineFunction({
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
     TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
     CLOUDFRONT_DOMAIN: process.env.CLOUDFRONT_DOMAIN || "",
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "",
   },
   resourceGroupName: "data",
 });
