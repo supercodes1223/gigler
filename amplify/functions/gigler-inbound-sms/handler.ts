@@ -191,6 +191,36 @@ async function sendSms(
   }
 }
 
+const VCARD_URL = "https://gigler.ai/gigler.vcf";
+
+async function sendVcardToNewUser(phone: string): Promise<void> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
+  const params: Record<string, string> = {
+    To: phone,
+    From: GIGLER_NUMBER,
+    Body: "Save my contact so you always know it's me! \u2193\ngigler.ai/contact",
+    MediaUrl: VCARD_URL,
+  };
+  if (TWILIO_MESSAGING_SERVICE_SID) {
+    params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+  }
+  try {
+    await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(params).toString(),
+      }
+    );
+  } catch (error) {
+    console.error("[Gigler] Failed to send vCard MMS:", error);
+  }
+}
+
 // ── DynamoDB Operations ──────────────────────────────────────────────────────
 
 async function lookupUserByPhone(phone: string): Promise<User | null> {
@@ -957,6 +987,9 @@ async function handleBrandNewUser(
 ): Promise<string> {
   const user = await createUser(phone, fromCity, fromState);
   await logMessage(GENERAL_THREAD_ID, user.id, "Gigler", "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?", "outbound", "system");
+
+  sendVcardToNewUser(phone).catch(() => {});
+
   return "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?";
 }
 
