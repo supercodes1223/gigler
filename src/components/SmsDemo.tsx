@@ -30,15 +30,17 @@ export default function SmsDemo() {
   const [conversationIndex, setConversationIndex] = useState(0);
   const [visibleMessages, setVisibleMessages] = useState<number>(0);
   const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const conversation = CONVERSATIONS[conversationIndex];
 
   // Auto-scroll to bottom when new messages appear or typing starts
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [visibleMessages, isTyping]);
 
@@ -128,8 +130,6 @@ export default function SmsDemo() {
               </div>
             )}
 
-            {/* Scroll anchor */}
-            <div ref={messagesEndRef} />
           </div>
         </div>
 
