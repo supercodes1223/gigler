@@ -36,6 +36,9 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+const TWILIO_CONVERSATIONS_SERVICE_SID = process.env.TWILIO_CONVERSATIONS_SERVICE_SID || "";
+const USER_TABLE_NAME = process.env.USER_TABLE_NAME || "";
+const GIG_PARTICIPANT_TABLE_NAME = process.env.GIG_PARTICIPANT_TABLE_NAME || "";
 const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
 const DELIVERABLE_GENERATOR_FUNCTION_NAME = process.env.DELIVERABLE_GENERATOR_FUNCTION_NAME || "";
 const THIRD_PARTY_ACTIONS_FUNCTION_NAME = process.env.THIRD_PARTY_ACTIONS_FUNCTION_NAME || "";
@@ -99,7 +102,7 @@ interface Gig {
 }
 
 interface GigAction {
-  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation";
+  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation" | "add_participant";
   prompt?: string;
   deliverableType?: string;
   title?: string;
@@ -109,6 +112,8 @@ interface GigAction {
   channel?: string;
   platform?: string;
   params?: Record<string, unknown>;
+  name?: string;
+  phone?: string;
 }
 
 // ── Lambda Invocation ────────────────────────────────────────────────────────
@@ -211,7 +216,202 @@ async function executeActions(
           phone: ctx.phone, _trace: trace,
         });
         break;
+
+      case "add_participant":
+        if (action.phone && action.name) {
+          await handleAddParticipant(
+            ctx.gigId, ctx.userId, ctx.phone,
+            action.name, action.phone, trace
+          );
+        }
+        break;
     }
+  }
+}
+
+// ── Add Participant ──────────────────────────────────────────────────────────
+
+function twilioConversationsConfig() {
+  return {
+    accountSid: TWILIO_ACCOUNT_SID,
+    authToken: TWILIO_AUTH_TOKEN,
+    serviceSid: TWILIO_CONVERSATIONS_SERVICE_SID || undefined,
+  };
+}
+
+function conversationsAuthHeaders() {
+  return {
+    Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+}
+
+async function lookupUserByPhone(phone: string): Promise<Record<string, unknown> | null> {
+  if (!USER_TABLE_NAME) return null;
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: USER_TABLE_NAME,
+      IndexName: "byPhone",
+      KeyConditionExpression: "phone = :phone",
+      ExpressionAttributeValues: { ":phone": phone },
+    })
+  );
+  return (result.Items?.[0] as Record<string, unknown>) || null;
+}
+
+async function getOrCreateConversation(
+  gigId: string,
+  gigTitle: string,
+  metadata: Record<string, unknown>
+): Promise<string> {
+  if (metadata.conversationSid) return metadata.conversationSid as string;
+
+  const base = TWILIO_CONVERSATIONS_SERVICE_SID
+    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations`
+    : "https://conversations.twilio.com/v1/Conversations";
+
+  const response = await fetch(base, {
+    method: "POST",
+    headers: conversationsAuthHeaders(),
+    body: new URLSearchParams({
+      FriendlyName: gigTitle,
+      UniqueName: `gig-${gigId}`,
+    }).toString(),
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Failed to create conversation: ${data.message || response.statusText}`);
+  }
+
+  const conversationSid = data.sid as string;
+  console.log(`[GigProcessor] Created Conversation ${conversationSid} for gig ${gigId}`);
+
+  await updateGigMetadata(gigId, { ...metadata, conversationSid });
+  return conversationSid;
+}
+
+async function addSmsParticipantToConversation(
+  conversationSid: string,
+  phone: string
+): Promise<void> {
+  const base = TWILIO_CONVERSATIONS_SERVICE_SID
+    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations/${conversationSid}/Participants`
+    : `https://conversations.twilio.com/v1/Conversations/${conversationSid}/Participants`;
+
+  const response = await fetch(base, {
+    method: "POST",
+    headers: conversationsAuthHeaders(),
+    body: new URLSearchParams({
+      "MessagingBinding.Address": phone,
+      "MessagingBinding.ProxyAddress": GIGLER_NUMBER,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    if (data.code === 50433) {
+      console.log(`[GigProcessor] Participant ${phone} already in conversation`);
+      return;
+    }
+    throw new Error(`Failed to add participant: ${data.message || response.statusText}`);
+  }
+  console.log(`[GigProcessor] Added ${phone} to conversation ${conversationSid}`);
+}
+
+async function sendConversationMessage(
+  conversationSid: string,
+  body: string
+): Promise<void> {
+  const base = TWILIO_CONVERSATIONS_SERVICE_SID
+    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations/${conversationSid}/Messages`
+    : `https://conversations.twilio.com/v1/Conversations/${conversationSid}/Messages`;
+
+  const response = await fetch(base, {
+    method: "POST",
+    headers: conversationsAuthHeaders(),
+    body: new URLSearchParams({ Author: "Gigler", Body: body }).toString(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(`Failed to send conversation message: ${data.message || response.statusText}`);
+  }
+}
+
+async function handleAddParticipant(
+  gigId: string,
+  ownerUserId: string,
+  ownerPhone: string,
+  participantName: string,
+  participantPhone: string,
+  trace: TraceContext
+): Promise<void> {
+  console.log(`[GigProcessor] Adding participant: ${participantName} (${participantPhone}) to gig ${gigId}`);
+
+  const gig = await ddb.send(
+    new GetCommand({ TableName: GIG_TABLE_NAME, Key: { id: gigId } })
+  );
+  const gigItem = gig.Item as Record<string, unknown> | undefined;
+  if (!gigItem) {
+    console.error(`[GigProcessor] Gig ${gigId} not found`);
+    return;
+  }
+
+  const metadata: Record<string, unknown> = typeof gigItem.metadata === "string"
+    ? JSON.parse(gigItem.metadata)
+    : (gigItem.metadata as Record<string, unknown>) || {};
+
+  const existingUser = await lookupUserByPhone(participantPhone);
+  const isNewToGigler = !existingUser;
+
+  const now = new Date().toISOString();
+  await ddb.send(
+    new PutCommand({
+      TableName: GIG_PARTICIPANT_TABLE_NAME,
+      Item: {
+        gigId,
+        phone: participantPhone,
+        userId: existingUser?.id as string || undefined,
+        role: "collaborator",
+        name: participantName,
+        isGuest: isNewToGigler,
+        invitedBy: ownerUserId,
+        joinedAt: now,
+      },
+    })
+  );
+  console.log(`[GigProcessor] Created GigParticipant record for ${participantPhone} (isGuest: ${isNewToGigler})`);
+
+  const ownerUser = await ddb.send(
+    new GetCommand({ TableName: USER_TABLE_NAME, Key: { id: ownerUserId } })
+  );
+  const ownerName = (ownerUser.Item?.name as string) || "Someone";
+  const gigTitle = gigItem.title as string || "a gig";
+
+  try {
+    const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
+    await addSmsParticipantToConversation(conversationSid, ownerPhone);
+    await addSmsParticipantToConversation(conversationSid, participantPhone);
+
+    const groupIntro = isNewToGigler
+      ? `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Welcome to Gigler — I'm your AI assistant and I'll help coordinate everything here. Reply in this thread to collaborate!`
+      : `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Reply in this thread to collaborate!`;
+
+    await sendConversationMessage(conversationSid, groupIntro);
+    console.log(`[GigProcessor] Sent group intro to conversation ${conversationSid}`);
+  } catch (err) {
+    console.error("[GigProcessor] Conversation setup failed, falling back to direct SMS:", err);
+    const fallbackMsg = isNewToGigler
+      ? `Hi ${participantName}! ${ownerName} has added you to their Gigler gig: "${gigTitle}". I'm Gigler, your AI assistant — I'll help coordinate everything.`
+      : `Hi ${participantName}! ${ownerName} has added you to their gig: "${gigTitle}".`;
+    await sendSms(participantPhone, fallbackMsg);
+  }
+
+  if (isNewToGigler) {
+    const welcomeMsg = `Welcome to Gigler! 🎉\n\n${ownerName} just added you to their gig "${gigTitle}".\n\nGigler is your AI-powered assistant that helps you plan, organize, and execute anything via text.\n\nYou can create your own gigs anytime — just text this number with what you need!\n\nLearn more at gigler.ai`;
+    await sendSms(participantPhone, welcomeMsg);
+    console.log(`[GigProcessor] Sent 1-on-1 welcome SMS to new user ${participantPhone}`);
   }
 }
 
@@ -529,7 +729,7 @@ ${typePrompt}
 Current gig metadata: ${JSON.stringify(metadata)}
 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-If the user wants to add someone to the gig, tell them to text: "Add [name] [phone]"
+When the user says to add someone (e.g. "Add Sarah 555-123-4567"), use the add_participant action. Convert the phone to E.164 format (+15551234567).
 If the gig seems complete, suggest marking it done.
 
 IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
@@ -539,6 +739,7 @@ Available actions:
 - {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable
 - {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
 - {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
+- {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
 
 Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
 
