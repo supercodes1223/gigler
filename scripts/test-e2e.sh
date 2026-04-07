@@ -288,7 +288,9 @@ invoke_lambda() {
   log_info "Invoking $function_name: $description"
 
   local outfile
-  outfile=$(mktemp /tmp/gigler-test-XXXXXX.json)
+  outfile=$(mktemp /tmp/gigler-test-XXXXXXXX)
+  mv "$outfile" "${outfile}.json"
+  outfile="${outfile}.json"
 
   local payload
   payload=$(cat "$payload_file")
@@ -302,12 +304,14 @@ invoke_lambda() {
   fi
   payload=$(echo "$payload" | sed "s/+15551234567/$TEST_PHONE/g")
 
+  echo "$payload" > "${outfile}.payload"
   aws lambda invoke \
     --region "$AWS_REGION" \
     --function-name "$function_name" \
-    --payload "$(echo "$payload" | base64)" \
+    --payload "file://${outfile}.payload" \
     --cli-binary-format raw-in-base64-out \
-    "$outfile" > /dev/null 2>&1
+    "$outfile" 2>&1
+  rm -f "${outfile}.payload"
 
   local exit_code=$?
   local result
