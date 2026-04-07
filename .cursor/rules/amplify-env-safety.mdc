@@ -1,33 +1,57 @@
 ---
-description: Amplify environment variable safety rules
-globs: ["scripts/**", "amplify/**", "*.sh"]
+description: Amplify environment variable safety rules — ALWAYS follow when touching env vars
+globs: ["**/*"]
 ---
 
 # Amplify Environment Variable Safety
 
-CRITICAL: `aws amplify update-app --environment-variables` **REPLACES ALL vars** — it does NOT merge.
+**APP_ID: `d1p01xz65d2ex4`** | **REGION: `us-east-2`**
 
-## Rules
+## CRITICAL — `aws amplify update-app --environment-variables` REPLACES ALL vars. It does NOT merge.
 
-1. **Always backup first**: Before any env var update, run `scripts/backup-amplify-env.sh`
-2. **Always include ALL existing vars**: Fetch current vars, merge new ones in, then push the full set
-3. **Always verify count after**: After pushing, verify the var count matches or exceeds the previous count
-4. **Never run raw update-app**: Always use `scripts/set-amplify-env.sh` which handles backup + merge + verify
+This mistake has wiped env vars TWICE (once in Carmen, once in Gigler). NEVER let it happen again.
 
-## Safe workflow
+## Mandatory Workflow — Every Single Time
 
+### 1. BACKUP FIRST
 ```bash
-# SAFE: Uses the merge script
-./scripts/set-amplify-env.sh $AMPLIFY_APP_ID
-
-# DANGEROUS: Replaces all vars — NEVER do this directly
-# aws amplify update-app --app-id $APP_ID --environment-variables '{...}'
+AWS_DEFAULT_REGION=us-east-2 bash scripts/backup-amplify-env.sh d1p01xz65d2ex4
 ```
 
-## If something goes wrong
-
-Backups are stored in `.amplify-env-backups/` with timestamps.
-Restore with:
+### 2. FETCH ALL existing env vars
 ```bash
-aws amplify update-app --app-id $APP_ID --environment-variables "$(cat .amplify-env-backups/env-backup-TIMESTAMP.json)"
+EXISTING=$(aws amplify get-app --app-id d1p01xz65d2ex4 --region us-east-2 --query 'app.environmentVariables' --output json)
+```
+
+### 3. MERGE new var(s) into the full set (Python one-liner)
+```bash
+MERGED=$(echo "$EXISTING" | python3 -c "
+import sys, json
+existing = json.load(sys.stdin)
+existing['NEW_VAR'] = 'new_value'
+print(json.dumps(existing))
+")
+```
+
+### 4. PUSH the COMPLETE merged set
+```bash
+aws amplify update-app --app-id d1p01xz65d2ex4 --region us-east-2 --environment-variables "$MERGED"
+```
+
+### 5. VERIFY the count matches or exceeds the previous count
+```bash
+aws amplify get-app --app-id d1p01xz65d2ex4 --region us-east-2 --query 'app.environmentVariables | keys(@) | length(@)'
+```
+
+## NEVER Do This
+```bash
+# DANGEROUS — wipes all other vars!
+aws amplify update-app --app-id d1p01xz65d2ex4 --environment-variables '{"ONLY_ONE_VAR":"value"}'
+```
+
+## Recovery
+Backups are stored in `.amplify-env-backups/` with timestamps.
+```bash
+aws amplify update-app --app-id d1p01xz65d2ex4 --region us-east-2 \
+  --environment-variables "$(cat .amplify-env-backups/env-backup-TIMESTAMP.json)"
 ```
