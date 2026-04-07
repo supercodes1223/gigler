@@ -17,6 +17,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   QueryCommand,
+  GetCommand,
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
@@ -382,10 +383,16 @@ async function invokeLambdaAsync(
 
 // ── Active Gig Lookup ────────────────────────────────────────────────────────
 
-async function getActiveGigsForUser(
-  userId: string
-): Promise<Array<Record<string, unknown>>> {
-  const result = await ddb.send(
+interface AnnotatedGig extends Record<string, unknown> {
+  userRole: "owner" | "collaborator";
+  invitedByName?: string;
+}
+
+async function getAllActiveGigsForUser(
+  userId: string,
+  phone: string
+): Promise<AnnotatedGig[]> {
+  const ownedResult = await ddb.send(
     new QueryCommand({
       TableName: GIG_TABLE_NAME,
       IndexName: "byOwner",
@@ -393,7 +400,50 @@ async function getActiveGigsForUser(
       ExpressionAttributeValues: { ":uid": userId },
     })
   );
-  return (result.Items || []).filter((g) => g.status === "active");
+  const ownedGigs: AnnotatedGig[] = (ownedResult.Items || [])
+    .filter((g) => g.status === "active")
+    .map((g) => ({ ...g, userRole: "owner" as const }));
+
+  const participantResult = await ddb.send(
+    new QueryCommand({
+      TableName: GIG_PARTICIPANT_TABLE_NAME,
+      IndexName: "byPhone",
+      KeyConditionExpression: "phone = :ph",
+      ExpressionAttributeValues: { ":ph": phone },
+    })
+  );
+  const participations = (participantResult.Items || []).filter(
+    (p) => p.role === "collaborator" || p.role === "viewer"
+  );
+
+  const ownedGigIds = new Set(ownedGigs.map((g) => g.id as string));
+
+  const participatedGigs: AnnotatedGig[] = [];
+  for (const p of participations) {
+    const gigId = p.gigId as string;
+    if (ownedGigIds.has(gigId)) continue;
+
+    const gigResult = await ddb.send(
+      new GetCommand({ TableName: GIG_TABLE_NAME, Key: { id: gigId } })
+    );
+    const gig = gigResult.Item;
+    if (gig && gig.status === "active") {
+      let inviterName: string | undefined;
+      if (p.invitedBy) {
+        const inviterResult = await ddb.send(
+          new GetCommand({ TableName: USER_TABLE_NAME, Key: { id: p.invitedBy as string } })
+        );
+        inviterName = inviterResult.Item?.name as string | undefined;
+      }
+      participatedGigs.push({
+        ...gig,
+        userRole: "collaborator" as const,
+        invitedByName: inviterName,
+      });
+    }
+  }
+
+  return [...ownedGigs, ...participatedGigs];
 }
 
 // ── Timezone Guessing ────────────────────────────────────────────────────────
@@ -413,6 +463,68 @@ function guessTimezone(state?: string): string {
   if (alaska.includes(st)) return "America/Anchorage";
   if (hawaii.includes(st)) return "Pacific/Honolulu";
   return "America/Chicago";
+}
+
+// ── Smart Gig Selection ──────────────────────────────────────────────────────
+
+async function selectGigByContext(
+  message: string,
+  gigs: AnnotatedGig[]
+): Promise<{ gig: AnnotatedGig } | { ambiguous: true; prompt: string }> {
+  const gigDescriptions = gigs.map((g, i) => {
+    const meta = typeof g.metadata === "string" ? JSON.parse(g.metadata) : (g.metadata || {});
+    const lastActive = (meta.lastInteraction as string) || (g.updatedAt as string) || "";
+    const role = g.userRole === "owner" ? "owner" : `collaborator${g.invitedByName ? `, invited by ${g.invitedByName}` : ""}`;
+    return `${i + 1}. "${g.title}" (${role}) - ${g.type || "general"}, last active: ${lastActive || "unknown"}`;
+  }).join("\n");
+
+  const prompt = `Given the user's message and their active gigs, which gig is this message most likely about?
+If the message clearly relates to one gig, respond with ONLY the gig number.
+If you cannot determine which gig, respond with ONLY the word "ambiguous".
+
+User message: "${message}"
+
+Active gigs:
+${gigDescriptions}
+
+Respond with ONLY a single number (1, 2, etc.) or "ambiguous".`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: prompt }] },
+          contents: [{ role: "user", parts: [{ text: message }] }],
+          generationConfig: { maxOutputTokens: 10, temperature: 0 },
+        }),
+      }
+    );
+    const data = await response.json();
+    const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+
+    const numMatch = text.match(/^(\d+)/);
+    if (numMatch) {
+      const idx = parseInt(numMatch[1], 10) - 1;
+      if (idx >= 0 && idx < gigs.length) {
+        return { gig: gigs[idx] };
+      }
+    }
+  } catch (err) {
+    console.error("[Gigler] Smart gig selection failed, falling back to disambiguation:", err);
+  }
+
+  const disambiguationList = gigs.map((g, i) => {
+    const roleLabel = g.userRole === "owner" ? "" : ` (with ${g.invitedByName || "others"})`;
+    return `${i + 1}. ${g.title}${roleLabel}`;
+  }).join("\n");
+
+  return {
+    ambiguous: true,
+    prompt: `Which gig is this for?\n\n${disambiguationList}\n\nReply with the number, or tell me something new to create a fresh gig.`,
+  };
 }
 
 // ── Gemini AI ────────────────────────────────────────────────────────────────
@@ -696,16 +808,7 @@ async function generateGigTitle(message: string): Promise<string> {
 }
 
 async function handleListGigs(user: User): Promise<string> {
-  const result = await ddb.send(
-    new QueryCommand({
-      TableName: GIG_TABLE_NAME,
-      IndexName: "byOwner",
-      KeyConditionExpression: "ownerId = :uid",
-      ExpressionAttributeValues: { ":uid": user.id },
-    })
-  );
-
-  const gigs = (result.Items || []).filter((g) => g.status === "active");
+  const gigs = await getAllActiveGigsForUser(user.id, user.phone);
 
   if (gigs.length === 0) {
     return `You don't have any active gigs yet, ${user.name || "there"}!\n\nJust tell me what you need and I'll create one. Anything goes.`;
@@ -713,8 +816,10 @@ async function handleListGigs(user: User): Promise<string> {
 
   let response = `Your active gigs:\n`;
   gigs.forEach((g, i) => {
-    response += `\n${i + 1}. ${g.title}`;
-    if (g.type) response += ` (${(g.type as string).replace("_", " ")})`;
+    const roleLabel = g.userRole === "owner"
+      ? ""
+      : g.invitedByName ? ` (with ${g.invitedByName})` : " (collaborator)";
+    response += `\n${i + 1}. ${g.title}${roleLabel}`;
   });
   response += `\n\nText a gig number to resume it, or tell me something new to create a fresh gig.`;
 
@@ -828,8 +933,8 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       return twimlResponse("");
     }
 
-    // Step 6b: Check for resume_gig — route to gig-processor if user has active gig(s)
-    const activeGigs = await getActiveGigsForUser(user.id);
+    // Step 6b: Fetch all gigs (owned + participating)
+    const activeGigs = await getAllActiveGigsForUser(user.id, fromPhone);
 
     // If user texts a single number, treat it as gig selection from list
     const gigSelectionMatch = body.match(/^(\d+)$/);
@@ -852,22 +957,34 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       }
     }
 
-    // If user has active gig(s) and intent is general, route to the most recent gig
+    // Smart gig routing for general messages
     if (activeGigs.length >= 1 && intent.type === "general") {
-      const sorted = activeGigs.sort((a, b) => {
-        const aMeta = typeof a.metadata === "string" ? JSON.parse(a.metadata) : (a.metadata || {});
-        const bMeta = typeof b.metadata === "string" ? JSON.parse(b.metadata) : (b.metadata || {});
-        const aTime = (aMeta.lastInteraction as string) || (a.updatedAt as string) || (a.createdAt as string) || "";
-        const bTime = (bMeta.lastInteraction as string) || (b.updatedAt as string) || (b.createdAt as string) || "";
-        return bTime.localeCompare(aTime);
-      });
-      const activeGig = sorted[0];
-      const glog = ulog.child({ gigId: activeGig.id as string });
-      glog.info("Auto-routing to most recent active gig", {
-        gigTitle: activeGig.title, totalActiveGigs: activeGigs.length,
-      });
+      let targetGig: AnnotatedGig;
+
+      if (activeGigs.length === 1) {
+        targetGig = activeGigs[0];
+        const glog = ulog.child({ gigId: targetGig.id as string });
+        glog.info("Auto-routing to only active gig", {
+          gigTitle: targetGig.title, userRole: targetGig.userRole,
+        });
+      } else {
+        ulog.info("Multiple active gigs, using smart selection", { gigCount: activeGigs.length });
+        const selection = await selectGigByContext(body, activeGigs);
+
+        if ("ambiguous" in selection) {
+          ulog.info("Gig selection ambiguous, asking user to pick");
+          await sendSms(fromPhone, selection.prompt);
+          return twimlResponse("");
+        }
+        targetGig = selection.gig;
+        ulog.info("Smart selection chose gig", {
+          gigId: targetGig.id, gigTitle: targetGig.title, userRole: targetGig.userRole,
+        });
+      }
+
+      const glog = ulog.child({ gigId: targetGig.id as string });
       await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
-        gigId: activeGig.id as string,
+        gigId: targetGig.id as string,
         userId: user.id,
         message: body,
         mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
@@ -880,7 +997,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
         glog.info("Invoking media-processor for MMS download", { urlCount: mediaUrls.length });
         await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
           action: "download_mms",
-          gigId: activeGig.id as string,
+          gigId: targetGig.id as string,
           userId: user.id,
           mediaUrls,
           phone: fromPhone,
