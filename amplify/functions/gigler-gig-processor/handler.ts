@@ -396,7 +396,7 @@ async function callGemini(
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents,
           generationConfig: {
-            maxOutputTokens: 600,
+            maxOutputTokens: 1600,
             temperature: 0.7,
           },
         }),

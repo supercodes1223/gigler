@@ -9,6 +9,7 @@
 set -euo pipefail
 
 APP_ID="${1:-$AMPLIFY_APP_ID}"
+REGION="${AWS_DEFAULT_REGION:-us-east-2}"
 
 if [ -z "$APP_ID" ]; then
   echo "ERROR: No Amplify App ID provided."
@@ -23,7 +24,7 @@ BACKUP_FILE="$BACKUP_DIR/env-backup-$TIMESTAMP.json"
 mkdir -p "$BACKUP_DIR"
 
 echo "Fetching current environment variables for app $APP_ID..."
-CURRENT_VARS=$(aws amplify get-app --app-id "$APP_ID" --query 'app.environmentVariables' --output json 2>/dev/null || echo "{}")
+CURRENT_VARS=$(aws amplify get-app --app-id "$APP_ID" --region "$REGION" --query 'app.environmentVariables' --output json 2>/dev/null || echo "{}")
 
 echo "$CURRENT_VARS" > "$BACKUP_FILE"
 
