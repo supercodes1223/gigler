@@ -573,6 +573,8 @@ async function handleAddParticipant(
     const welcomeMsg = `Welcome to Gigler! 🎉\n\n${ownerName} just added you to their gig "${gigTitle}".\n\nGigler is your AI-powered assistant that helps you plan, organize, and execute anything via text.\n\nYou can create your own gigs anytime — just text this number with what you need!\n\nLearn more at gigler.ai`;
     await sendSms(participantPhone, welcomeMsg);
     console.log(`[GigProcessor] Sent 1-on-1 welcome SMS to new user ${participantPhone}`);
+
+    sendVcardToNewUser(participantPhone).catch(() => {});
   }
 }
 
@@ -842,6 +844,36 @@ async function sendSms(to: string, message: string): Promise<void> {
       body: new URLSearchParams(params).toString(),
     }
   );
+}
+
+const VCARD_URL = "https://gigler.ai/gigler.vcf";
+
+async function sendVcardToNewUser(phone: string): Promise<void> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
+  const params: Record<string, string> = {
+    To: phone,
+    From: GIGLER_NUMBER,
+    Body: "Save my contact so you always know it's me! \u2193\ngigler.ai/contact",
+    MediaUrl: VCARD_URL,
+  };
+  if (TWILIO_MESSAGING_SERVICE_SID) {
+    params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+  }
+  try {
+    await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(params).toString(),
+      }
+    );
+  } catch (error) {
+    console.error("[GigProcessor] Failed to send vCard MMS:", error);
+  }
 }
 
 // ── Gemini AI ────────────────────────────────────────────────────────────────
