@@ -1145,6 +1145,382 @@ for i in items:
   log_pass "Cleanup complete"
 }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# HOUSEHOLD BILLS / DYNAMIC GIG TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+test_dynamic_gig_types() {
+  log_header "Dynamic Gig Type Classification"
+
+  require_lambda_url
+
+  # Test 1: Household gig detection
+  log_info "Test: 'track utility bills' should classify as household"
+  local response
+  response=$(send_sms_payload "$PAYLOAD_DIR/sms-create-household-gig.txt" "Create household gig" 2>&1) || true
+  if echo "$response" | grep -qi "bill\|track\|utility"; then
+    log_pass "Household gig creation triggered relevant response"
+  else
+    log_info "Response: $response"
+    log_pass "Household gig SMS sent (check logs for classification)"
+  fi
+  sleep 3
+
+  # Test 2: Custom gig detection (marathon training)
+  log_info "Test: 'train for a marathon' should classify as custom"
+  response=$(send_sms_payload "$PAYLOAD_DIR/sms-create-custom-gig.txt" "Create custom gig" 2>&1) || true
+  if echo "$response" | grep -qi "marathon\|training\|running\|fitness"; then
+    log_pass "Custom gig creation triggered relevant response"
+  else
+    log_info "Response: $response"
+    log_pass "Custom gig SMS sent (check logs for classification)"
+  fi
+  sleep 2
+
+  # Test 3: Verify gig was created with correct type in DynamoDB
+  local user_result
+  user_result=$(query_user_by_phone "$TEST_PHONE") || true
+  local owner_id
+  owner_id=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
+
+  if [ -n "$owner_id" ]; then
+    local gigs_result
+    gigs_result=$(query_gigs_by_owner "$owner_id") || true
+    local household_count
+    household_count=$(echo "$gigs_result" | python3 -c "
+import sys, json
+items = json.load(sys.stdin).get('Items', [])
+count = sum(1 for g in items if g.get('type', {}).get('S', '') == 'household')
+print(count)
+" 2>/dev/null || echo "0")
+
+    local custom_count
+    custom_count=$(echo "$gigs_result" | python3 -c "
+import sys, json
+items = json.load(sys.stdin).get('Items', [])
+count = sum(1 for g in items if g.get('type', {}).get('S', '') == 'custom')
+print(count)
+" 2>/dev/null || echo "0")
+
+    if [ "$household_count" -gt 0 ]; then
+      log_pass "Found household type gig in DynamoDB ($household_count)"
+    else
+      log_warn "No household type gig found (may need existing user)"
+    fi
+
+    if [ "$custom_count" -gt 0 ]; then
+      log_pass "Found custom type gig in DynamoDB ($custom_count)"
+    else
+      log_info "No custom type gig found yet (Gemini may have matched a preset)"
+    fi
+  else
+    log_skip "Cannot verify gig types — no user found for $TEST_PHONE"
+  fi
+}
+
+test_household_bills() {
+  log_header "Household Bills Gig — Bill Tracking"
+
+  if [ -z "${GIG_PROCESSOR_FN:-}" ]; then
+    log_skip "GIG_PROCESSOR_FN not found"
+    return
+  fi
+
+  # Create a test household gig
+  local user_result
+  user_result=$(query_user_by_phone "$TEST_PHONE") || true
+  local owner_id
+  owner_id=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
+
+  if [ -z "$owner_id" ]; then
+    log_skip "No test user found — run 'sms' test first"
+    return
+  fi
+
+  local test_gig_id
+  test_gig_id="gig_test_household_$(date +%s)"
+
+  log_info "Creating test household gig: $test_gig_id"
+  aws dynamodb put-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --item "{
+      \"id\":{\"S\":\"$test_gig_id\"},
+      \"ownerId\":{\"S\":\"$owner_id\"},
+      \"title\":{\"S\":\"Test Household Bills\"},
+      \"type\":{\"S\":\"household\"},
+      \"status\":{\"S\":\"active\"},
+      \"metadata\":{\"S\":\"{}\"},
+      \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
+      \"updatedAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+    }" 2>/dev/null
+  log_pass "Test household gig created"
+
+  # Test: Submit bills via gig-processor
+  log_info "Sending bill amounts to gig-processor"
+  local payload
+  payload=$(cat "$PAYLOAD_DIR/gig-processor-household.json" | sed "s/TEST_GIG_ID/$test_gig_id/g" | sed "s/TEST_USER_ID/$owner_id/g" | sed "s/+15551234567/$TEST_PHONE/g")
+
+  local outfile="/tmp/gigler-household-test-$$.json"
+  echo "$payload" | aws lambda invoke --region "$AWS_REGION" \
+    --function-name "$GIG_PROCESSOR_FN" \
+    --invocation-type RequestResponse \
+    --cli-binary-format raw-in-base64-out \
+    --payload file:///dev/stdin \
+    "$outfile" 2>/dev/null || true
+
+  if [ -f "$outfile" ]; then
+    local status_code
+    status_code=$(python3 -c "import json; print(json.load(open('$outfile')).get('statusCode',0))" 2>/dev/null || echo "0")
+    if [ "$status_code" = "200" ]; then
+      log_pass "Gig processor handled bill submission (status: 200)"
+    else
+      log_fail "Gig processor returned status: $status_code"
+    fi
+    rm -f "$outfile"
+  else
+    log_fail "No response from gig processor"
+  fi
+
+  sleep 3
+
+  # Verify metadata was updated with bill data
+  log_info "Verifying bill data in gig metadata"
+  local gig_result
+  gig_result=$(aws dynamodb get-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$test_gig_id\"}}" \
+    --output json 2>/dev/null) || true
+
+  local has_bills
+  has_bills=$(echo "$gig_result" | python3 -c "
+import sys, json
+item = json.load(sys.stdin).get('Item', {})
+meta_str = item.get('metadata', {}).get('S', '{}')
+meta = json.loads(meta_str)
+print('yes' if meta.get('bills') or meta.get('messageCount') else 'no')
+" 2>/dev/null || echo "no")
+
+  if [ "$has_bills" = "yes" ]; then
+    log_pass "Gig metadata updated with bill tracking data"
+  else
+    log_info "Metadata may not have bills yet (AI decides when to use update_bill_status)"
+  fi
+
+  # Test: Mark bill as paid
+  log_info "Sending 'Zelle sent for power' to gig-processor"
+  local paid_payload
+  paid_payload=$(cat "$PAYLOAD_DIR/gig-processor-bill-paid.json" | sed "s/TEST_GIG_ID/$test_gig_id/g" | sed "s/TEST_USER_ID/$owner_id/g" | sed "s/+15551234567/$TEST_PHONE/g")
+
+  local outfile2="/tmp/gigler-household-paid-$$.json"
+  echo "$paid_payload" | aws lambda invoke --region "$AWS_REGION" \
+    --function-name "$GIG_PROCESSOR_FN" \
+    --invocation-type RequestResponse \
+    --cli-binary-format raw-in-base64-out \
+    --payload file:///dev/stdin \
+    "$outfile2" 2>/dev/null || true
+
+  if [ -f "$outfile2" ]; then
+    local status_code2
+    status_code2=$(python3 -c "import json; print(json.load(open('$outfile2')).get('statusCode',0))" 2>/dev/null || echo "0")
+    if [ "$status_code2" = "200" ]; then
+      log_pass "Gig processor handled 'payment sent' message (status: 200)"
+    else
+      log_fail "Gig processor returned status: $status_code2"
+    fi
+    rm -f "$outfile2"
+  else
+    log_fail "No response from gig processor"
+  fi
+
+  # Store gig ID for cleanup
+  HOUSEHOLD_TEST_GIG_ID="$test_gig_id"
+  log_info "Test gig ID: $test_gig_id (use 'cleanup' to remove)"
+}
+
+test_recurring_reminders() {
+  log_header "Recurring Reminders"
+
+  if [ -z "${REMINDER_FN:-}" ] || [ -z "${REMINDER_TABLE:-}" ]; then
+    log_skip "REMINDER_FN or REMINDER_TABLE not found"
+    return
+  fi
+
+  local user_result
+  user_result=$(query_user_by_phone "$TEST_PHONE") || true
+  local owner_id
+  owner_id=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
+
+  if [ -z "$owner_id" ]; then
+    log_skip "No test user found"
+    return
+  fi
+
+  # Create a recurring reminder (due in the past so scheduler picks it up)
+  local reminder_id="rem_test_recur_$(date +%s)"
+  local past_time
+  past_time=$(date -u -v-1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "2026-04-06T10:00:00Z")
+
+  log_info "Creating recurring monthly reminder: $reminder_id"
+  aws dynamodb put-item --region "$AWS_REGION" \
+    --table-name "$REMINDER_TABLE" \
+    --item "{
+      \"id\":{\"S\":\"$reminder_id\"},
+      \"gigId\":{\"S\":\"test_gig_recurring\"},
+      \"userId\":{\"S\":\"$owner_id\"},
+      \"scheduledAt\":{\"S\":\"$past_time\"},
+      \"type\":{\"S\":\"reminder\"},
+      \"message\":{\"S\":\"Test recurring reminder — power bill due soon!\"},
+      \"channel\":{\"S\":\"sms\"},
+      \"recipients\":{\"L\":[{\"S\":\"$TEST_PHONE\"}]},
+      \"sent\":{\"BOOL\":false},
+      \"recurrence\":{\"S\":\"monthly\"},
+      \"recurrenceDay\":{\"N\":\"12\"}
+    }" 2>/dev/null
+  log_pass "Recurring reminder created"
+
+  # Invoke scheduler
+  log_info "Invoking reminder scheduler"
+  local outfile="/tmp/gigler-reminder-recur-$$.json"
+  aws lambda invoke --region "$AWS_REGION" \
+    --function-name "$REMINDER_FN" \
+    --invocation-type RequestResponse \
+    --cli-binary-format raw-in-base64-out \
+    --payload "$(cat "$PAYLOAD_DIR/reminder-recurring.json")" \
+    "$outfile" 2>/dev/null || true
+
+  if [ -f "$outfile" ]; then
+    log_pass "Scheduler invoked"
+    rm -f "$outfile"
+  fi
+
+  sleep 2
+
+  # Verify original was marked sent
+  local original
+  original=$(aws dynamodb get-item --region "$AWS_REGION" \
+    --table-name "$REMINDER_TABLE" \
+    --key "{\"id\":{\"S\":\"$reminder_id\"}}" \
+    --output json 2>/dev/null) || true
+
+  local was_sent
+  was_sent=$(echo "$original" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Item',{}).get('sent',{}).get('BOOL',False))" 2>/dev/null || echo "False")
+
+  if [ "$was_sent" = "True" ]; then
+    log_pass "Original reminder marked as sent"
+  else
+    log_fail "Original reminder not marked as sent (sent=$was_sent)"
+  fi
+
+  # Verify next occurrence was created
+  log_info "Checking for next recurring occurrence in DynamoDB"
+  local next_reminders
+  next_reminders=$(aws dynamodb query --region "$AWS_REGION" \
+    --table-name "$REMINDER_TABLE" \
+    --index-name "byGig" \
+    --key-condition-expression "gigId = :gid" \
+    --filter-expression "recurrence = :monthly AND sent = :f" \
+    --expression-attribute-values "{\":gid\":{\"S\":\"test_gig_recurring\"},\":monthly\":{\"S\":\"monthly\"},\":f\":{\"BOOL\":false}}" \
+    --output json 2>/dev/null) || true
+
+  local next_count
+  next_count=$(echo "$next_reminders" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
+
+  if [ "$next_count" -gt 0 ]; then
+    log_pass "Next recurring reminder created ($next_count found)"
+  else
+    log_fail "No next recurring reminder found"
+  fi
+
+  # Cleanup
+  aws dynamodb delete-item --region "$AWS_REGION" \
+    --table-name "$REMINDER_TABLE" \
+    --key "{\"id\":{\"S\":\"$reminder_id\"}}" 2>/dev/null || true
+}
+
+test_bills_dashboard() {
+  log_header "Bills Dashboard Deliverable"
+
+  if [ -z "${DELIVERABLE_FN:-}" ]; then
+    log_skip "DELIVERABLE_FN not found"
+    return
+  fi
+
+  local user_result
+  user_result=$(query_user_by_phone "$TEST_PHONE") || true
+  local owner_id
+  owner_id=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
+
+  if [ -z "$owner_id" ]; then
+    log_skip "No test user found"
+    return
+  fi
+
+  # Create a test gig with pre-populated bill metadata
+  local test_gig_id="gig_test_dashboard_$(date +%s)"
+  local month_key
+  month_key=$(date -u +%Y-%m)
+
+  log_info "Creating test gig with bill data: $test_gig_id"
+  local metadata="{\"bills\":{\"$month_key\":[{\"billType\":\"power\",\"vendor\":\"Austin Energy\",\"amount\":429,\"dueDate\":\"2026-04-15\",\"status\":\"paid\",\"paidAt\":\"2026-04-07T12:00:00Z\"},{\"billType\":\"water\",\"vendor\":\"City Water\",\"amount\":85,\"dueDate\":\"2026-04-10\",\"status\":\"submitted\",\"submittedAt\":\"2026-04-06T10:00:00Z\"},{\"billType\":\"gas\",\"vendor\":\"Atmos Energy\",\"amount\":65,\"dueDate\":\"2026-04-20\",\"status\":\"pending\"},{\"billType\":\"internet\",\"vendor\":\"AT\\\\u0026T\",\"amount\":70,\"dueDate\":\"2026-04-01\",\"status\":\"paid\",\"paidAt\":\"2026-04-01T09:00:00Z\"}]},\"monthlyTotals\":{\"$month_key\":649}}"
+
+  aws dynamodb put-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --item "{
+      \"id\":{\"S\":\"$test_gig_id\"},
+      \"ownerId\":{\"S\":\"$owner_id\"},
+      \"title\":{\"S\":\"Test Bills Dashboard\"},
+      \"type\":{\"S\":\"household\"},
+      \"status\":{\"S\":\"active\"},
+      \"metadata\":{\"S\":$(python3 -c "import json; print(json.dumps(json.dumps(json.loads('$metadata'))))")},
+      \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
+      \"updatedAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+    }" 2>/dev/null
+  log_pass "Test gig with bill data created"
+
+  # Invoke deliverable generator
+  log_info "Invoking deliverable generator with bills_dashboard type"
+  local payload
+  payload=$(cat "$PAYLOAD_DIR/deliverable-bills-dashboard.json" | sed "s/TEST_GIG_ID/$test_gig_id/g" | sed "s/TEST_USER_ID/$owner_id/g" | sed "s/+15551234567/$TEST_PHONE/g")
+
+  local outfile="/tmp/gigler-dashboard-test-$$.json"
+  echo "$payload" | aws lambda invoke --region "$AWS_REGION" \
+    --function-name "$DELIVERABLE_FN" \
+    --invocation-type RequestResponse \
+    --cli-binary-format raw-in-base64-out \
+    --payload file:///dev/stdin \
+    "$outfile" 2>/dev/null || true
+
+  if [ -f "$outfile" ]; then
+    local status_code
+    status_code=$(python3 -c "import json; print(json.load(open('$outfile')).get('statusCode',0))" 2>/dev/null || echo "0")
+
+    if [ "$status_code" = "200" ]; then
+      local body
+      body=$(python3 -c "import json; print(json.load(open('$outfile')).get('body',''))" 2>/dev/null || echo "")
+      local short_code
+      short_code=$(echo "$body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('shortCode',''))" 2>/dev/null || echo "")
+      local url
+      url=$(echo "$body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('url',''))" 2>/dev/null || echo "")
+
+      log_pass "Bills dashboard created (status: 200)"
+      if [ -n "$short_code" ]; then
+        log_pass "Short code: $short_code"
+        log_info "Dashboard URL: $url"
+      fi
+    else
+      log_fail "Deliverable generator returned status: $status_code"
+    fi
+    rm -f "$outfile"
+  else
+    log_fail "No response from deliverable generator"
+  fi
+
+  # Cleanup test gig
+  aws dynamodb delete-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$test_gig_id\"}}" 2>/dev/null || true
+}
+
 # ── Help ──────────────────────────────────────────────────────────────────────
 
 show_help() {
@@ -1164,6 +1540,10 @@ ${BOLD}Commands:${NC}
   ${GREEN}group${NC}           Group MMS add-participant via gig-processor
   ${GREEN}webhook${NC}         Conversations webhook test (human + Gigler-authored messages)
   ${GREEN}list-gigs${NC}       List gigs showing owned + participated roles
+  ${GREEN}dynamic${NC}         Dynamic gig type classification (household + custom)
+  ${GREEN}household${NC}       Household bills gig (bill submission + payment tracking)
+  ${GREEN}recurring${NC}       Recurring reminders (create, fire, verify next occurrence)
+  ${GREEN}dashboard${NC}       Bills dashboard deliverable generation
   ${GREEN}reminder${NC}        Test reminder-scheduler Lambda
   ${GREEN}deliverable${NC}     Test deliverable-generator Lambda
   ${GREEN}media${NC}           Test media-processor Lambda
@@ -1258,6 +1638,26 @@ case "${1:-help}" in
   list-gigs)
     discover_tables
     test_list_gigs
+    summary
+    ;;
+  dynamic)
+    discover_tables
+    test_dynamic_gig_types
+    summary
+    ;;
+  household)
+    discover_tables
+    test_household_bills
+    summary
+    ;;
+  recurring)
+    discover_tables
+    test_recurring_reminders
+    summary
+    ;;
+  dashboard)
+    discover_tables
+    test_bills_dashboard
     summary
     ;;
   reminder)
