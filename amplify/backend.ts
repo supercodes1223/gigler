@@ -84,12 +84,14 @@ const inboundSmsUrl = inboundSmsFn.addFunctionUrl({
 });
 console.log("gigler-inbound-sms Function URL (for Twilio webhook):", inboundSmsUrl.url);
 
-// ── gigler-gig-processor: needs Gig, Message, Deliverable, Reminder ──────
+// ── gigler-gig-processor: needs Gig, Message, Deliverable, Reminder, User, GigParticipant
 const gigProcessorLambda = backend.giglerGigProcessor;
 grantTableAccess("Gig", gigProcessorLambda, "GIG_TABLE_NAME");
 grantTableAccess("Message", gigProcessorLambda, "MESSAGE_TABLE_NAME");
 grantTableAccess("Deliverable", gigProcessorLambda, "DELIVERABLE_TABLE_NAME");
 grantTableAccess("Reminder", gigProcessorLambda, "REMINDER_TABLE_NAME");
+grantTableAccess("User", gigProcessorLambda, "USER_TABLE_NAME");
+grantTableAccess("GigParticipant", gigProcessorLambda, "GIG_PARTICIPANT_TABLE_NAME");
 
 // ── gigler-reminder-scheduler: needs Reminder, User, Gig ─────────────────
 const reminderLambda = backend.giglerReminderScheduler;
