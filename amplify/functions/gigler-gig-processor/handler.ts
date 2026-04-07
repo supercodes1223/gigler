@@ -349,11 +349,9 @@ async function sendSms(to: string, message: string): Promise<void> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
   if (!TWILIO_MESSAGING_SERVICE_SID && !GIGLER_NUMBER) return;
 
-  const params: Record<string, string> = { To: to, Body: message };
+  const params: Record<string, string> = { To: to, Body: message, From: GIGLER_NUMBER };
   if (TWILIO_MESSAGING_SERVICE_SID) {
     params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
-  } else {
-    params.From = GIGLER_NUMBER;
   }
 
   await fetch(
