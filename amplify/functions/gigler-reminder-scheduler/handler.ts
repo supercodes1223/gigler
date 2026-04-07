@@ -108,11 +108,9 @@ async function fetchDueReminders(): Promise<Array<Record<string, unknown>>> {
   const now = new Date().toISOString();
 
   const result = await ddb.send(
-    new QueryCommand({
+    new ScanCommand({
       TableName: REMINDER_TABLE_NAME,
-      IndexName: "byScheduledAt",
-      KeyConditionExpression: "scheduledAt <= :now",
-      FilterExpression: "sent = :false",
+      FilterExpression: "scheduledAt <= :now AND sent = :false",
       ExpressionAttributeValues: {
         ":now": now,
         ":false": false,
