@@ -1,0 +1,1 @@
+EventType=onMessageAdded&ConversationSid=TEST_CONVERSATION_SID&Author=%2B16508351235&Body=Great+question!+Here+are+some+suggestions...&ParticipantSid=MBtest002&AccountSid=ACtest000000000000000000000000&ChatServiceSid=ISa0adeb5a89ec4845995ada16d44a99a6&MessageSid=IMtest002

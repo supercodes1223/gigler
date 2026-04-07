@@ -1,0 +1,1 @@
+EventType=onMessageAdded&ConversationSid=TEST_CONVERSATION_SID&Author=%2B14154049816&Body=What+should+I+bring+to+the+party%3F&ParticipantSid=MBtest001&AccountSid=ACtest000000000000000000000000&ChatServiceSid=ISa0adeb5a89ec4845995ada16d44a99a6&MessageSid=IMtest001

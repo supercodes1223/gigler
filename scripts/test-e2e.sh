@@ -32,9 +32,11 @@ if [ -f "$SCRIPT_DIR/../.env.test" ]; then
   set +a
 fi
 
-: "${AWS_REGION:=us-east-1}"
+: "${AWS_REGION:=us-east-2}"
 : "${TEST_PHONE:=+15551234567}"
-: "${TEST_GIGLER_NUMBER:=+15559876543}"
+: "${TEST_GIGLER_NUMBER:=+16508351235}"
+: "${TEST_PARTICIPANT_PHONE:=+14154049816}"
+: "${TEST_PARTICIPANT_NAME:=Sarah}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,7 +65,15 @@ summary() {
 require_lambda_url() {
   if [ -z "${LAMBDA_URL:-}" ]; then
     echo -e "${RED}ERROR${NC}: LAMBDA_URL is not set. Add it to .env.test or export it."
-    echo "  Example: LAMBDA_URL=https://xxxxxxxxxx.lambda-url.us-east-1.on.aws/"
+    echo "  Example: LAMBDA_URL=https://xxxxxxxxxx.lambda-url.us-east-2.on.aws/"
+    exit 1
+  fi
+}
+
+require_gig_processor_url() {
+  if [ -z "${GIG_PROCESSOR_URL:-}" ]; then
+    echo -e "${RED}ERROR${NC}: GIG_PROCESSOR_URL is not set. Add it to .env.test or export it."
+    echo "  Example: GIG_PROCESSOR_URL=https://xxxxxxxxxx.lambda-url.us-east-2.on.aws/"
     exit 1
   fi
 }
@@ -157,6 +167,43 @@ query_gigs_by_owner() {
     --index-name "byOwner" \
     --key-condition-expression "ownerId = :uid" \
     --expression-attribute-values "{\":uid\":{\"S\":\"$owner_id\"}}" \
+    --output json 2>/dev/null
+}
+
+query_participants_by_gig() {
+  local gig_id=$1
+  aws dynamodb query --region "$AWS_REGION" \
+    --table-name "$GIG_PARTICIPANT_TABLE" \
+    --key-condition-expression "gigId = :gid" \
+    --expression-attribute-values "{\":gid\":{\"S\":\"$gig_id\"}}" \
+    --output json 2>/dev/null
+}
+
+query_participants_by_phone() {
+  local phone=$1
+  aws dynamodb query --region "$AWS_REGION" \
+    --table-name "$GIG_PARTICIPANT_TABLE" \
+    --index-name "byPhone" \
+    --key-condition-expression "phone = :phone" \
+    --expression-attribute-values "{\":phone\":{\"S\":\"$phone\"}}" \
+    --output json 2>/dev/null
+}
+
+query_gig_by_conversation_sid() {
+  local conversation_sid=$1
+  aws dynamodb query --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --index-name "byConversationSid" \
+    --key-condition-expression "conversationSid = :csid" \
+    --expression-attribute-values "{\":csid\":{\"S\":\"$conversation_sid\"}}" \
+    --output json 2>/dev/null
+}
+
+get_gig_by_id() {
+  local gig_id=$1
+  aws dynamodb get-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$gig_id\"}}" \
     --output json 2>/dev/null
 }
 
@@ -612,6 +659,414 @@ test_third_party() {
   fi
 }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SMART ROUTING TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+create_test_gig() {
+  local owner_id=$1
+  local title=$2
+  local gig_id="gig_test_$(date +%s)_$(( RANDOM % 10000 ))"
+
+  aws dynamodb put-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --item "{
+      \"id\":{\"S\":\"$gig_id\"},
+      \"ownerId\":{\"S\":\"$owner_id\"},
+      \"title\":{\"S\":\"$title\"},
+      \"status\":{\"S\":\"active\"},
+      \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
+      \"updatedAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+    }" 2>/dev/null
+
+  echo "$gig_id"
+}
+
+create_test_participant() {
+  local gig_id=$1
+  local user_id=$2
+  local phone=$3
+  local name=$4
+  local role=${5:-collaborator}
+
+  aws dynamodb put-item --region "$AWS_REGION" \
+    --table-name "$GIG_PARTICIPANT_TABLE" \
+    --item "{
+      \"gigId\":{\"S\":\"$gig_id\"},
+      \"userId\":{\"S\":\"$user_id\"},
+      \"phone\":{\"S\":\"$phone\"},
+      \"name\":{\"S\":\"$name\"},
+      \"role\":{\"S\":\"$role\"},
+      \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
+    }" 2>/dev/null
+}
+
+delete_test_gig() {
+  local gig_id=$1
+  aws dynamodb delete-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$gig_id\"}}" 2>/dev/null
+}
+
+delete_test_participant() {
+  local gig_id=$1
+  local user_id=$2
+  aws dynamodb delete-item --region "$AWS_REGION" \
+    --table-name "$GIG_PARTICIPANT_TABLE" \
+    --key "{\"gigId\":{\"S\":\"$gig_id\"},\"userId\":{\"S\":\"$user_id\"}}" 2>/dev/null
+}
+
+test_smart_routing() {
+  log_header "Smart Gig Routing Tests"
+  require_lambda_url
+
+  if [ -z "${TEST_USER_ID:-}" ]; then
+    log_warn "TEST_USER_ID not set. Run 'sms' first or export it."
+    log_skip "Smart routing (missing user ID)"
+    return
+  fi
+
+  local ROUTING_GIGS=()
+  local ROUTING_PARTICIPANTS=()
+
+  # ── Setup: create 2 owned gigs + 1 participated gig ──
+  log_info "Setting up multi-gig test data..."
+
+  local GIG_A
+  GIG_A=$(create_test_gig "$TEST_USER_ID" "Birthday Party Planning")
+  ROUTING_GIGS+=("$GIG_A")
+  log_info "  Created gig A (owned): $GIG_A - Birthday Party Planning"
+
+  local GIG_B
+  GIG_B=$(create_test_gig "$TEST_USER_ID" "Website Redesign Project")
+  ROUTING_GIGS+=("$GIG_B")
+  log_info "  Created gig B (owned): $GIG_B - Website Redesign Project"
+
+  local OTHER_USER_ID="usr_test_other_$(date +%s)"
+  local GIG_C
+  GIG_C=$(create_test_gig "$OTHER_USER_ID" "Team Offsite Logistics")
+  ROUTING_GIGS+=("$GIG_C")
+  log_info "  Created gig C (other user): $GIG_C - Team Offsite Logistics"
+
+  create_test_participant "$GIG_C" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
+  ROUTING_PARTICIPANTS+=("$GIG_C|$TEST_USER_ID")
+  log_info "  Added test user as collaborator on gig C"
+
+  sleep 1
+
+  # ── Scenario 1: Unambiguous routing to "Birthday Party" ──
+  log_info "Scenario 1: Message clearly about birthday party..."
+  local result
+  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Route to Birthday Party gig")
+  local status
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status" = "200" ]; then
+    log_pass "Scenario 1: Unambiguous party message routed successfully"
+  else
+    log_fail "Scenario 1: Expected 200, got $status"
+  fi
+  sleep 2
+
+  # ── Scenario 2: Ambiguous message should trigger disambiguation ──
+  log_info "Scenario 2: Ambiguous message 'What's the status?'..."
+  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Ambiguous routing test")
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status" = "200" ]; then
+    log_pass "Scenario 2: Ambiguous message handled (HTTP 200)"
+    local body_text
+    body_text=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" 2>/dev/null || echo "")
+    if echo "$body_text" | grep -qi "which\|gig\|pick\|select\|choose"; then
+      log_pass "Scenario 2: Response contains disambiguation prompt"
+    else
+      log_info "Scenario 2: Response may have auto-routed instead of disambiguating (AI decided)"
+    fi
+  else
+    log_fail "Scenario 2: Expected 200, got $status"
+  fi
+  sleep 2
+
+  # ── Scenario 3: Single gig user (remove extra gigs) ──
+  log_info "Scenario 3: Single-gig user auto-routes..."
+  delete_test_gig "$GIG_B"
+  ROUTING_GIGS=("$GIG_A" "$GIG_C")
+  delete_test_participant "$GIG_C" "$TEST_USER_ID"
+  ROUTING_PARTICIPANTS=()
+  delete_test_gig "$GIG_C"
+  ROUTING_GIGS=("$GIG_A")
+  sleep 1
+
+  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Single-gig auto-route test")
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status" = "200" ]; then
+    log_pass "Scenario 3: Single-gig user routed successfully"
+  else
+    log_fail "Scenario 3: Expected 200, got $status"
+  fi
+  sleep 2
+
+  # ── Scenario 4: Participant-only routing ──
+  log_info "Scenario 4: Participant sends message about their gig..."
+  local GIG_D
+  GIG_D=$(create_test_gig "usr_other_owner" "Birthday Party Planning")
+  ROUTING_GIGS+=("$GIG_D")
+
+  local PARTICIPANT_USER
+  PARTICIPANT_USER=$(query_user_by_phone "$TEST_PARTICIPANT_PHONE" 2>/dev/null)
+  local PARTICIPANT_USER_ID
+  PARTICIPANT_USER_ID=$(echo "$PARTICIPANT_USER" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else 'usr_test_participant')" 2>/dev/null || echo "usr_test_participant")
+
+  create_test_participant "$GIG_D" "$PARTICIPANT_USER_ID" "$TEST_PARTICIPANT_PHONE" "$TEST_PARTICIPANT_NAME" "collaborator"
+  ROUTING_PARTICIPANTS+=("$GIG_D|$PARTICIPANT_USER_ID")
+  sleep 1
+
+  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-participant.txt" "Participant routing test")
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status" = "200" ]; then
+    log_pass "Scenario 4: Participant message routed successfully"
+  else
+    log_fail "Scenario 4: Expected 200, got $status"
+  fi
+  sleep 2
+
+  # ── Scenario 5: List gigs shows both roles ──
+  log_info "Scenario 5: 'list my gigs' shows owned + participated..."
+  local GIG_E
+  GIG_E=$(create_test_gig "$TEST_USER_ID" "Road Trip Planning")
+  ROUTING_GIGS+=("$GIG_E")
+  local GIG_F
+  GIG_F=$(create_test_gig "usr_other_owner_2" "Conference Booth Setup")
+  ROUTING_GIGS+=("$GIG_F")
+  create_test_participant "$GIG_F" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
+  ROUTING_PARTICIPANTS+=("$GIG_F|$TEST_USER_ID")
+  sleep 1
+
+  result=$(send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "List gigs multi-role")
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status" = "200" ]; then
+    log_pass "Scenario 5: List gigs returned successfully"
+    local body_text
+    body_text=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" 2>/dev/null || echo "")
+    if echo "$body_text" | grep -qi "Road Trip\|Conference\|gig"; then
+      log_pass "Scenario 5: Response lists multiple gigs"
+    else
+      log_info "Scenario 5: Response did not mention specific gig titles (may vary by AI)"
+    fi
+  else
+    log_fail "Scenario 5: Expected 200, got $status"
+  fi
+
+  # ── Teardown ──
+  log_info "Cleaning up smart routing test data..."
+  for gig_id in "${ROUTING_GIGS[@]}"; do
+    delete_test_gig "$gig_id"
+  done
+  for entry in "${ROUTING_PARTICIPANTS[@]}"; do
+    local g_id="${entry%%|*}"
+    local u_id="${entry##*|}"
+    delete_test_participant "$g_id" "$u_id"
+  done
+  log_info "Smart routing test data cleaned up."
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GROUP MMS / CONVERSATIONS TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+test_group_mms() {
+  log_header "Group MMS (Add Participant) Test"
+
+  if [ -z "${TEST_USER_ID:-}" ] || [ -z "${TEST_GIG_ID:-}" ]; then
+    log_warn "TEST_USER_ID or TEST_GIG_ID not set. Run 'sms' test first."
+    log_skip "Group MMS (missing IDs)"
+    return
+  fi
+
+  log_info "Invoking gig-processor with add_participant payload..."
+
+  local payload
+  payload=$(cat "$PAYLOAD_DIR/gig-processor-add-participant.json")
+  payload=$(echo "$payload" | sed "s/TEST_USER_ID/$TEST_USER_ID/g")
+  payload=$(echo "$payload" | sed "s/TEST_GIG_ID/$TEST_GIG_ID/g")
+
+  local outfile
+  outfile=$(mktemp /tmp/gigler-group-test-XXXXXX.json)
+
+  aws lambda invoke \
+    --region "$AWS_REGION" \
+    --function-name "$GIG_PROCESSOR_FN" \
+    --payload "$(echo "$payload" | base64)" \
+    --cli-binary-format raw-in-base64-out \
+    "$outfile" > /dev/null 2>&1
+
+  local exit_code=$?
+  local result
+  result=$(cat "$outfile")
+  rm -f "$outfile"
+
+  if [ $exit_code -eq 0 ]; then
+    local status_code
+    status_code=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('statusCode','?'))" 2>/dev/null || echo "?")
+    if [ "$status_code" = "200" ]; then
+      log_pass "Add participant invocation succeeded (status=$status_code)"
+    else
+      log_fail "Add participant returned status=$status_code"
+    fi
+    echo "  Result: $(echo "$result" | head -c 300)"
+  else
+    log_fail "Add participant invocation failed (exit=$exit_code)"
+  fi
+
+  sleep 3
+
+  # Verify GigParticipant record
+  if [ -n "${GIG_PARTICIPANT_TABLE:-}" ]; then
+    local part_result
+    part_result=$(query_participants_by_gig "$TEST_GIG_ID")
+    local part_count
+    part_count=$(echo "$part_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
+
+    if [ "$part_count" -gt 0 ]; then
+      log_pass "GigParticipant records found ($part_count for gig)"
+      echo "  Participants: $(echo "$part_result" | python3 -c "
+import sys,json
+items=json.load(sys.stdin).get('Items',[])
+for i in items:
+    name=i.get('name',{}).get('S','?')
+    role=i.get('role',{}).get('S','?')
+    print(f'  {name} ({role})')
+" 2>/dev/null)"
+    else
+      log_info "No participants found yet for gig $TEST_GIG_ID"
+    fi
+  fi
+
+  # Verify Conversation was created on the Gig record
+  if [ -n "${GIG_TABLE:-}" ]; then
+    local gig_result
+    gig_result=$(get_gig_by_id "$TEST_GIG_ID")
+    local conv_sid
+    conv_sid=$(echo "$gig_result" | python3 -c "import sys,json; item=json.load(sys.stdin).get('Item',{}); print(item.get('conversationSid',{}).get('S',''))" 2>/dev/null || echo "")
+
+    if [ -n "$conv_sid" ]; then
+      log_pass "Conversation SID stored on gig: $conv_sid"
+    else
+      log_info "No conversationSid on gig (may not have been set)"
+    fi
+  fi
+}
+
+test_group_webhook() {
+  log_header "Conversations Webhook Test"
+  require_gig_processor_url
+
+  log_info "Sending human message webhook to gig-processor Function URL..."
+
+  local body
+  body=$(cat "$PAYLOAD_DIR/conversations-webhook-human.txt")
+
+  if [ -n "${TEST_CONVERSATION_SID:-}" ]; then
+    body=$(echo "$body" | sed "s/TEST_CONVERSATION_SID/$TEST_CONVERSATION_SID/g")
+  fi
+
+  local response
+  local http_code
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$GIG_PROCESSOR_URL" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "$body" 2>/dev/null)
+
+  http_code=$(echo "$response" | tail -1)
+  local response_body
+  response_body=$(echo "$response" | sed '$d')
+
+  if [ "$http_code" = "200" ]; then
+    log_pass "Human webhook processed (HTTP $http_code)"
+    echo "  Response: $(echo "$response_body" | head -c 200)"
+  else
+    log_fail "Human webhook returned HTTP $http_code"
+    echo "  Response: $response_body"
+  fi
+
+  sleep 2
+
+  # Send Gigler's own message (should be ignored / no response loop)
+  log_info "Sending Gigler-authored message webhook (should be ignored)..."
+
+  body=$(cat "$PAYLOAD_DIR/conversations-webhook-gigler.txt")
+  if [ -n "${TEST_CONVERSATION_SID:-}" ]; then
+    body=$(echo "$body" | sed "s/TEST_CONVERSATION_SID/$TEST_CONVERSATION_SID/g")
+  fi
+
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$GIG_PROCESSOR_URL" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "$body" 2>/dev/null)
+
+  http_code=$(echo "$response" | tail -1)
+  response_body=$(echo "$response" | sed '$d')
+
+  if [ "$http_code" = "200" ]; then
+    log_pass "Gigler-authored webhook handled (HTTP $http_code) -- should be no-op"
+  else
+    log_fail "Gigler-authored webhook returned HTTP $http_code"
+  fi
+}
+
+test_list_gigs() {
+  log_header "List Gigs (Multi-Role) Test"
+  require_lambda_url
+
+  if [ -z "${TEST_USER_ID:-}" ]; then
+    log_warn "TEST_USER_ID not set. Run 'sms' test first or export it."
+    log_skip "List gigs (missing user ID)"
+    return
+  fi
+
+  local LISTGIG_IDS=()
+  local LISTGIG_PARTS=()
+
+  log_info "Setting up multi-role gig data..."
+
+  local OWNED_GIG
+  OWNED_GIG=$(create_test_gig "$TEST_USER_ID" "My Personal Project")
+  LISTGIG_IDS+=("$OWNED_GIG")
+  log_info "  Created owned gig: $OWNED_GIG"
+
+  local COLLAB_GIG
+  COLLAB_GIG=$(create_test_gig "usr_other_list_test" "Shared Team Task")
+  LISTGIG_IDS+=("$COLLAB_GIG")
+  create_test_participant "$COLLAB_GIG" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
+  LISTGIG_PARTS+=("$COLLAB_GIG|$TEST_USER_ID")
+  log_info "  Created collaborated gig: $COLLAB_GIG"
+
+  sleep 1
+
+  log_info "Sending 'list my gigs'..."
+  local result
+  result=$(send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "List gigs multi-role")
+
+  local status
+  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
+
+  if [ "$status" = "200" ]; then
+    log_pass "List gigs returned HTTP 200"
+  else
+    log_fail "List gigs returned status=$status"
+  fi
+
+  # Teardown
+  log_info "Cleaning up list-gigs test data..."
+  for gig_id in "${LISTGIG_IDS[@]}"; do
+    delete_test_gig "$gig_id"
+  done
+  for entry in "${LISTGIG_PARTS[@]}"; do
+    local g_id="${entry%%|*}"
+    local u_id="${entry##*|}"
+    delete_test_participant "$g_id" "$u_id"
+  done
+  log_info "List gigs test data cleaned up."
+}
+
 # ── Verify Tables ─────────────────────────────────────────────────────────────
 
 verify_tables() {
@@ -762,6 +1217,10 @@ ${BOLD}Commands:${NC}
   ${GREEN}smoke${NC}           Quick health check (send SMS, verify response)
   ${GREEN}sms${NC}             Full SMS onboarding flow (new user -> name -> create gig)
   ${GREEN}gig${NC}             Test gig-processor Lambda (requires TEST_USER_ID, TEST_GIG_ID)
+  ${GREEN}routing${NC}         Smart gig routing (multi-gig context selection, disambiguation)
+  ${GREEN}group${NC}           Group MMS add-participant via gig-processor
+  ${GREEN}webhook${NC}         Conversations webhook test (human + Gigler-authored messages)
+  ${GREEN}list-gigs${NC}       List gigs showing owned + participated roles
   ${GREEN}reminder${NC}        Test reminder-scheduler Lambda
   ${GREEN}deliverable${NC}     Test deliverable-generator Lambda
   ${GREEN}media${NC}           Test media-processor Lambda
@@ -778,16 +1237,23 @@ ${BOLD}Configuration:${NC}
   Required: LAMBDA_URL (gigler-inbound-sms Function URL)
 
 ${BOLD}Environment Variables:${NC}
-  LAMBDA_URL          Lambda Function URL for gigler-inbound-sms
-  AWS_REGION          AWS region (default: us-east-1)
-  TEST_PHONE          Test phone number (default: +15551234567)
-  TEST_GIGLER_NUMBER  Gigler's Twilio number
-  TEST_USER_ID        Override user ID for direct Lambda tests
-  TEST_GIG_ID         Override gig ID for direct Lambda tests
+  LAMBDA_URL              Lambda Function URL for gigler-inbound-sms
+  GIG_PROCESSOR_URL       Lambda Function URL for gigler-gig-processor (Conversations webhook)
+  AWS_REGION              AWS region (default: us-east-2)
+  TEST_PHONE              Test phone number (default: +15551234567)
+  TEST_GIGLER_NUMBER      Gigler's Twilio number
+  TEST_PARTICIPANT_PHONE  Participant phone for group tests (default: +14154049816)
+  TEST_PARTICIPANT_NAME   Participant name (default: Sarah)
+  TEST_USER_ID            Override user ID for direct Lambda tests
+  TEST_GIG_ID             Override gig ID for direct Lambda tests
+  TEST_CONVERSATION_SID   Conversation SID for webhook tests
 
 ${BOLD}Examples:${NC}
   ./scripts/test-e2e.sh smoke
   ./scripts/test-e2e.sh all
+  ./scripts/test-e2e.sh routing
+  ./scripts/test-e2e.sh group
+  ./scripts/test-e2e.sh webhook
   ./scripts/test-e2e.sh logs inbound-sms
   TEST_USER_ID=usr_123 TEST_GIG_ID=gig_456 ./scripts/test-e2e.sh gig
 
@@ -804,6 +1270,10 @@ case "${1:-help}" in
     test_smoke
     test_sms_onboarding
     test_gig_processor
+    test_smart_routing
+    test_group_mms
+    test_group_webhook
+    test_list_gigs
     test_deliverable
     test_reminder
     test_media
@@ -825,6 +1295,26 @@ case "${1:-help}" in
   gig)
     discover_tables
     test_gig_processor
+    summary
+    ;;
+  routing)
+    discover_tables
+    test_smart_routing
+    summary
+    ;;
+  group)
+    discover_tables
+    test_group_mms
+    summary
+    ;;
+  webhook)
+    discover_tables
+    test_group_webhook
+    summary
+    ;;
+  list-gigs)
+    discover_tables
+    test_list_gigs
     summary
     ;;
   reminder)

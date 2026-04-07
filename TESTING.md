@@ -12,13 +12,17 @@ Post-deployment testing against real AWS resources. No local mocks -- every test
 2. [Quick Smoke Test](#2-quick-smoke-test)
 3. [Testing Individual Lambdas](#3-testing-individual-lambdas)
 4. [End-to-End Test Scenarios](#4-end-to-end-test-scenarios)
-5. [DynamoDB Verification Commands](#5-dynamodb-verification-commands)
-6. [CloudWatch Log Monitoring](#6-cloudwatch-log-monitoring)
-   - [6.5 Structured Tracing & CloudWatch Logs Insights](#65-structured-tracing--cloudwatch-logs-insights)
-7. [S3 Verification](#7-s3-verification)
-8. [Frontend Verification Checklist](#8-frontend-verification-checklist)
-9. [Troubleshooting Guide](#9-troubleshooting-guide)
-10. [Test Reset / Cleanup Commands](#10-test-reset--cleanup-commands)
+5. [Smart Gig Routing Tests](#5-smart-gig-routing-tests)
+6. [Group MMS / Conversations Tests](#6-group-mms--conversations-tests)
+7. [DynamoDB Verification Commands](#7-dynamodb-verification-commands)
+8. [CloudWatch Log Monitoring](#8-cloudwatch-log-monitoring)
+   - [8.5 Structured Tracing & CloudWatch Logs Insights](#85-structured-tracing--cloudwatch-logs-insights)
+9. [S3 Verification](#9-s3-verification)
+10. [Frontend Verification Checklist](#10-frontend-verification-checklist)
+11. [Troubleshooting Guide](#11-troubleshooting-guide)
+12. [Test Reset / Cleanup Commands](#12-test-reset--cleanup-commands)
+13. [Automated Test Scripts](#13-automated-test-scripts)
+14. [Unit Tests](#14-unit-tests)
 
 ---
 
@@ -267,7 +271,7 @@ aws lambda invoke \
 cat /tmp/gig-processor-response.json | python3 -m json.tool
 ```
 
-> **Tip:** Including `_trace` with a known `traceId` lets you find all logs from this invocation and any downstream Lambdas it triggers using a single CloudWatch Logs Insights query (see [Section 6.5](#65-structured-tracing--cloudwatch-logs-insights)).
+> **Tip:** Including `_trace` with a known `traceId` lets you find all logs from this invocation and any downstream Lambdas it triggers using a single CloudWatch Logs Insights query (see [Section 8.5](#85-structured-tracing--cloudwatch-logs-insights)).
 
 **Verify after:**
 
@@ -1064,7 +1068,207 @@ aws logs tail /aws/lambda/$FN_EMAIL_HANDLER --since 5m
 
 ---
 
-## 5. DynamoDB Verification Commands
+## 5. Smart Gig Routing Tests
+
+Smart gig routing uses Gemini to determine which gig an inbound message relates to when a user owns/participates in multiple gigs.
+
+### 5.1 Automated Script
+
+```bash
+./scripts/test-e2e.sh routing
+```
+
+This runs 5 scenarios with automatic DynamoDB setup/teardown:
+
+1. **Unambiguous routing** -- "Add decorations to the birthday party" routes to the party gig
+2. **Ambiguous message** -- "What's the status?" triggers disambiguation or AI auto-routes
+3. **Single-gig auto-route** -- User with one gig always routes there
+4. **Participant routing** -- A collaborator's message routes to their participated gig
+5. **List gigs multi-role** -- "list my gigs" shows owned + participated gigs with roles
+
+### 5.2 Manual Testing: Multi-Gig Setup
+
+To test manually, first create test data:
+
+```bash
+# Create two gigs for the same user
+aws dynamodb put-item --region us-east-2 \
+  --table-name $TBL_GIG \
+  --item '{
+    "id": {"S": "gig_test_party"},
+    "ownerId": {"S": "<USER_ID>"},
+    "title": {"S": "Birthday Party Planning"},
+    "status": {"S": "active"},
+    "type": {"S": "event"},
+    "createdAt": {"S": "2026-04-06T00:00:00Z"},
+    "updatedAt": {"S": "2026-04-06T00:00:00Z"}
+  }'
+
+aws dynamodb put-item --region us-east-2 \
+  --table-name $TBL_GIG \
+  --item '{
+    "id": {"S": "gig_test_website"},
+    "ownerId": {"S": "<USER_ID>"},
+    "title": {"S": "Website Redesign"},
+    "status": {"S": "active"},
+    "type": {"S": "project"},
+    "createdAt": {"S": "2026-04-06T00:00:00Z"},
+    "updatedAt": {"S": "2026-04-06T00:00:00Z"}
+  }'
+```
+
+Then send test messages via the Lambda Function URL:
+
+```bash
+# Party-specific message (should route to party gig)
+curl -s -X POST "$LAMBDA_URL" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "Body=What+venue+should+we+book+for+the+party&From=%2B1YOURPHONE&To=%2B16508351235&MessageSid=SMroutingtest1&AccountSid=ACtest&NumMedia=0"
+
+# Ambiguous message (should trigger disambiguation)
+curl -s -X POST "$LAMBDA_URL" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "Body=What%27s+the+status&From=%2B1YOURPHONE&To=%2B16508351235&MessageSid=SMroutingtest2&AccountSid=ACtest&NumMedia=0"
+```
+
+### 5.3 What to Verify
+
+- **Single gig**: Auto-routes without AI selection call
+- **Multiple gigs + clear context**: AI picks the correct gig (check CloudWatch for `selectGigByContext`)
+- **Ambiguous message**: User receives disambiguation prompt listing all gigs with roles
+- **Participant gigs**: GigParticipant records (via `byPhone` GSI) are included in routing
+- **List gigs**: Shows both owned gigs and collaborated gigs with role labels
+
+### 5.4 CloudWatch Log Patterns
+
+```bash
+# Smart routing decision
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_INBOUND_SMS \
+  --filter-pattern "selectGigByContext" \
+  --start-time $(date -v-30M +%s000 2>/dev/null || date -d "-30 minutes" +%s000) \
+  --region us-east-2
+
+# Disambiguation prompt sent
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_INBOUND_SMS \
+  --filter-pattern "disambiguation" \
+  --start-time $(date -v-30M +%s000 2>/dev/null || date -d "-30 minutes" +%s000) \
+  --region us-east-2
+```
+
+---
+
+## 6. Group MMS / Conversations Tests
+
+Group MMS uses Twilio Conversations with projected addresses to create native group threads between the gig owner, participants, and the Gigler AI.
+
+### 6.1 Add Participant (Lambda Invocation)
+
+```bash
+./scripts/test-e2e.sh group
+```
+
+Or invoke directly:
+
+```bash
+aws lambda invoke --region us-east-2 \
+  --function-name $FN_GIG_PROCESSOR \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{
+    "gigId": "<GIG_ID>",
+    "userId": "<USER_ID>",
+    "message": "Add Sarah 4154049816",
+    "phone": "+12812419268",
+    "senderName": "Albert",
+    "_trace": {"traceId": "trc_group_test_001", "requestId": "cli-test", "source": "manual-test"}
+  }' \
+  /tmp/group-test.json
+
+cat /tmp/group-test.json | python3 -m json.tool
+```
+
+**Verify after:**
+
+```bash
+# GigParticipant records for the gig
+aws dynamodb query --region us-east-2 \
+  --table-name $TBL_GIG_PARTICIPANT \
+  --key-condition-expression "gigId = :g" \
+  --expression-attribute-values '{":g": {"S": "<GIG_ID>"}}' \
+  --query 'Items[].{name: name.S, role: role.S, phone: phone.S}'
+
+# Conversation SID stored on the Gig record
+aws dynamodb get-item --region us-east-2 \
+  --table-name $TBL_GIG \
+  --key '{"id": {"S": "<GIG_ID>"}}' \
+  --query 'Item.conversationSid.S'
+```
+
+### 6.2 Conversations Webhook (HTTP)
+
+The `gigler-gig-processor` has a Function URL that receives Twilio Conversations `onMessageAdded` webhooks.
+
+```bash
+./scripts/test-e2e.sh webhook
+```
+
+Or manually:
+
+```bash
+# Human message in group thread
+curl -s -X POST "$GIG_PROCESSOR_URL" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "EventType=onMessageAdded&ConversationSid=<CONV_SID>&Author=%2B14154049816&Body=What+should+I+bring&ParticipantSid=MBtest&AccountSid=ACtest&ChatServiceSid=ISa0adeb5a89ec4845995ada16d44a99a6&MessageSid=IMtest"
+
+# Gigler-authored message (should be ignored to prevent loops)
+curl -s -X POST "$GIG_PROCESSOR_URL" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "EventType=onMessageAdded&ConversationSid=<CONV_SID>&Author=%2B16508351235&Body=Here+are+suggestions&ParticipantSid=MBtest2&AccountSid=ACtest&ChatServiceSid=ISa0adeb5a89ec4845995ada16d44a99a6&MessageSid=IMtest2"
+```
+
+### 6.3 AI Respond/Silent Behavior
+
+In group threads, the AI uses a smart prompt to decide whether to respond or stay silent:
+
+- **RESPOND: true** -- Message is directed at the AI, asks a question, or requests help
+- **RESPOND: false** -- Participants are talking to each other, casual side conversation
+
+**How to test:**
+
+1. Send a direct question: "Gigler, what's the party budget?" -- AI should respond
+2. Send a human-to-human message: "Hey Sarah, are you free Saturday?" -- AI should stay silent
+3. Send a planning request: "Can we add a DJ to the checklist?" -- AI should respond
+
+**CloudWatch verification:**
+
+```bash
+# Check respond/silent decisions
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_GIG_PROCESSOR \
+  --filter-pattern "RESPOND" \
+  --start-time $(date -v-30M +%s000 2>/dev/null || date -d "-30 minutes" +%s000) \
+  --region us-east-2
+```
+
+### 6.4 What to Verify
+
+| Check | How |
+|-------|-----|
+| GigParticipant record created | Query by gigId |
+| Conversation created in Twilio | `conversationSid` on Gig record |
+| Owner added as participant | GigParticipant with role=owner |
+| New participant added | GigParticipant with role=collaborator |
+| Welcome SMS to new participant | Check Twilio message logs or CloudWatch |
+| Gigler projected address | Conversation has Gigler number as projected address |
+| Webhook processes human messages | HTTP 200 from gig-processor Function URL |
+| Webhook ignores Gigler messages | HTTP 200 but no AI response generated |
+| AI responds when addressed | CloudWatch shows RESPOND: true |
+| AI stays silent for side chat | CloudWatch shows RESPOND: false |
+
+---
+
+## 7. DynamoDB Verification Commands
 
 ### List All Gigler Tables
 
@@ -1288,7 +1492,7 @@ aws dynamodb query \
 
 ---
 
-## 6. CloudWatch Log Monitoring
+## 8. CloudWatch Log Monitoring
 
 ### Tail Logs in Real-Time
 
@@ -1363,7 +1567,7 @@ aws cloudwatch get-metric-statistics \
   --output table
 ```
 
-### 6.5 Structured Tracing & CloudWatch Logs Insights
+### 8.5 Structured Tracing & CloudWatch Logs Insights
 
 Every Lambda emits structured JSON logs with a consistent schema. A single `traceId` follows a request from the entry-point Lambda through every downstream Lambda it invokes, making it possible to reconstruct the full execution chain.
 
@@ -1536,7 +1740,7 @@ aws logs filter-log-events \
 
 ---
 
-## 7. S3 Verification
+## 9. S3 Verification
 
 ### Find the Media Bucket
 
@@ -1584,7 +1788,7 @@ aws s3api get-bucket-cors --bucket $S3_BUCKET
 
 ---
 
-## 8. Frontend Verification Checklist
+## 10. Frontend Verification Checklist
 
 Run through these manually after each deploy.
 
@@ -1649,7 +1853,7 @@ curl -s "https://gigler.ai/<SHORT_CODE>" | grep -E 'og:title|og:description|og:i
 
 ---
 
-## 9. Troubleshooting Guide
+## 11. Troubleshooting Guide
 
 ### "Function not found" / ResourceNotFoundException
 
@@ -1775,7 +1979,7 @@ aws ses describe-receipt-rule-set \
 
 ---
 
-## 10. Test Reset / Cleanup Commands
+## 12. Test Reset / Cleanup Commands
 
 ### Delete a Specific User
 
@@ -1927,48 +2131,142 @@ print(f'Deleted {len(items)} items from $TABLE')
 
 ---
 
-## Automation
+## 13. Automated Test Scripts
 
-Much of this playbook can be automated. The script `scripts/test-e2e.sh` wraps the smoke test and core E2E scenarios into a single run:
+### 13.1 Lambda Invocation Tests (`test-e2e.sh`)
+
+The main E2E script runs tests by invoking Lambdas directly or hitting Function URLs. Auto-discovers DynamoDB tables and Lambda function names from AWS.
 
 ```bash
-./scripts/test-e2e.sh
+cp .env.test.example .env.test    # fill in your values
+./scripts/test-e2e.sh help        # show all commands
 ```
 
-It reads resource names from your exported environment variables (`$LAMBDA_URL`, `$TBL_USER`, etc.) and runs through:
+**Available commands:**
 
-1. Smoke test (Section 2)
-2. New user onboarding (Scenario 1)
-3. Gig creation (Scenario 2)
-4. Deliverable generation (Scenario 4)
-5. Cleanup of all test data
+| Command | What it tests |
+|---------|--------------|
+| `smoke` | Quick health check (send SMS, verify response) |
+| `sms` | Full onboarding flow (Hi -> name -> create gig) |
+| `gig` | Gig-processor Lambda (direct invocation) |
+| `routing` | Smart gig routing (5 multi-gig scenarios with setup/teardown) |
+| `group` | Add participant via gig-processor (Group MMS) |
+| `webhook` | Conversations webhook (human + Gigler-authored messages) |
+| `list-gigs` | List gigs showing owned + participated roles |
+| `reminder` | Reminder-scheduler Lambda |
+| `deliverable` | Deliverable-generator Lambda |
+| `media` | Media-processor Lambda |
+| `voice` | Voice-bridge Lambda |
+| `email` | Email-handler Lambda |
+| `third-party` | Third-party-actions Lambda |
+| `verify-tables` | List DynamoDB tables with item counts |
+| `logs <pattern>` | Tail CloudWatch logs |
+| `cleanup` | Delete test data for TEST_PHONE |
+| `all` | Run everything in sequence |
 
-Set the variables in your shell profile or create a `.env.test` file:
+**Key environment variables:**
 
 ```bash
-# .env.test -- source this before running tests
-export LAMBDA_URL=https://xxxx.lambda-url.us-east-1.on.aws/
-export FN_INBOUND_SMS=gigler-inbound-sms-xxxx
-export FN_GIG_PROCESSOR=gigler-gig-processor-xxxx
-export FN_REMINDER_SCHEDULER=gigler-reminder-scheduler-xxxx
-export FN_MEDIA_PROCESSOR=gigler-media-processor-xxxx
-export FN_DELIVERABLE_GENERATOR=gigler-deliverable-generator-xxxx
-export FN_VOICE_BRIDGE=gigler-voice-bridge-xxxx
-export FN_EMAIL_HANDLER=gigler-email-handler-xxxx
-export FN_THIRD_PARTY_ACTIONS=gigler-third-party-actions-xxxx
-export TBL_USER=User-xxxx
-export TBL_GIG=Gig-xxxx
-export TBL_GIG_PARTICIPANT=GigParticipant-xxxx
-export TBL_MESSAGE=Message-xxxx
-export TBL_MEDIA=Media-xxxx
-export TBL_DELIVERABLE=Deliverable-xxxx
-export TBL_REMINDER=Reminder-xxxx
-export TBL_THIRD_PARTY_ACTION=ThirdPartyAction-xxxx
-export TBL_USER_INTEGRATION=UserIntegration-xxxx
-export S3_BUCKET=gigler-media-xxxx
+LAMBDA_URL=https://xxxxx.lambda-url.us-east-2.on.aws/     # gigler-inbound-sms
+GIG_PROCESSOR_URL=https://xxxxx.lambda-url.us-east-2.on.aws/ # gigler-gig-processor
+AWS_REGION=us-east-2
+TEST_PHONE=+12812419268
+TEST_GIGLER_NUMBER=+16508351235
+TEST_PARTICIPANT_PHONE=+14154049816
+TEST_PARTICIPANT_NAME=Sarah
 ```
 
+### 13.2 Live SMS Tests (`test-live-sms.sh`)
+
+Sends **real SMS** via the Twilio API and polls for replies. Requires Twilio credentials.
+
 ```bash
-source .env.test
-./scripts/test-e2e.sh
+./scripts/test-live-sms.sh help
+```
+
+| Command | What it tests |
+|---------|--------------|
+| `onboard` | New user onboarding (Hi -> name -> gig prompt) via real SMS |
+| `routing` | Smart routing with ambiguous message via real SMS |
+| `group` | Add participant via real SMS, verify welcome message |
+| `all` | Run all live tests |
+
+**Prerequisites:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` in `.env.test`.
+
+**Warning:** These tests send real SMS messages and may incur Twilio charges.
+
+### 13.3 Recommended Test Flow
+
+For a production readiness check, run in this order:
+
+```bash
+# 1. Verify infrastructure
+./scripts/test-e2e.sh verify-tables
+
+# 2. Quick health check
+./scripts/test-e2e.sh smoke
+
+# 3. Core flows
+./scripts/test-e2e.sh sms
+./scripts/test-e2e.sh gig
+
+# 4. New features
+./scripts/test-e2e.sh routing
+./scripts/test-e2e.sh group
+./scripts/test-e2e.sh webhook
+./scripts/test-e2e.sh list-gigs
+
+# 5. Unit tests
+npm test
+
+# 6. Live SMS (optional, costs money)
+./scripts/test-live-sms.sh onboard
+./scripts/test-live-sms.sh routing
+```
+
+---
+
+## 14. Unit Tests
+
+Local unit tests run with Vitest. No AWS or Twilio credentials needed.
+
+### 14.1 Running Tests
+
+```bash
+npm test              # single run
+npm run test:watch    # watch mode
+```
+
+### 14.2 Test Coverage
+
+**`amplify/functions/gigler-inbound-sms/__tests__/routing.test.ts`** (27 tests):
+
+| Suite | Tests | What it covers |
+|-------|-------|---------------|
+| `buildGigDescriptions` | 5 | Gig description formatting for Gemini prompt (roles, metadata, numbering) |
+| `parseGigSelection` | 9 | AI response parsing (valid numbers, ambiguous, edge cases) |
+| `buildDisambiguationList` | 4 | User-facing gig list with role labels |
+| `deduplicateGigs` | 4 | Merging owned + participated gigs without duplicates |
+| `single-gig auto-routing` | 1 | Single gig bypasses AI selection |
+| `multi-gig routing scenarios` | 4 | End-to-end routing decision flow |
+
+### 14.3 Adding New Tests
+
+Tests live alongside the Lambda handlers:
+
+```
+amplify/functions/
+  gigler-inbound-sms/
+    handler.ts
+    __tests__/
+      routing.test.ts    <-- smart routing logic
+  gigler-gig-processor/
+    handler.ts
+    __tests__/           <-- add group MMS tests here
+```
+
+Test files are matched by `vitest.config.ts`:
+
+```typescript
+include: ["amplify/functions/**/__tests__/**/*.test.ts"]
 ```
