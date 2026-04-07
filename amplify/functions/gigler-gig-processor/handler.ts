@@ -331,7 +331,6 @@ async function addSmsParticipantToConversation(
     headers: conversationsAuthHeaders(),
     body: new URLSearchParams({
       "MessagingBinding.Address": phone,
-      "MessagingBinding.ProjectedAddress": GIGLER_NUMBER,
     }).toString(),
   });
 
