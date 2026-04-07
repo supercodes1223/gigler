@@ -594,7 +594,7 @@ function repairTruncatedJson(raw: string): Record<string, unknown> | null {
 type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations";
 
 interface Intent {
-  type: "create_gig" | "list_gigs" | "resume_gig" | "general";
+  type: "create_gig" | "list_gigs" | "resume_gig" | "complete_gig" | "pause_gig" | "archive_gig" | "general";
   gigType?: GigType;
   title?: string;
 }
@@ -604,6 +604,18 @@ async function detectIntent(message: string): Promise<Intent> {
 
   if (/^(list|my gigs|show gigs|gigs|what.*gigs)/i.test(lower)) {
     return { type: "list_gigs" };
+  }
+
+  if (/^(done|finish|complete|close|mark.*done|mark.*complete)\b/i.test(lower)) {
+    return { type: "complete_gig" };
+  }
+
+  if (/^(pause|hold|freeze|stop)\b/i.test(lower)) {
+    return { type: "pause_gig" };
+  }
+
+  if (/^(archive|delete|remove|cancel)\b/i.test(lower)) {
+    return { type: "archive_gig" };
   }
 
   if (!GEMINI_API_KEY) {
@@ -814,16 +826,78 @@ async function handleListGigs(user: User): Promise<string> {
     return `You don't have any active gigs yet, ${user.name || "there"}!\n\nJust tell me what you need and I'll create one. Anything goes.`;
   }
 
-  let response = `Your active gigs:\n`;
+  let response = `Your gigs:\n`;
   gigs.forEach((g, i) => {
+    const status = g.status as string;
+    const badge = status === "paused" ? " [paused]" : status === "completed" ? " [done]" : "";
     const roleLabel = g.userRole === "owner"
       ? ""
       : g.invitedByName ? ` (with ${g.invitedByName})` : " (collaborator)";
-    response += `\n${i + 1}. ${g.title}${roleLabel}`;
+    response += `\n${i + 1}. ${g.title}${roleLabel}${badge}`;
   });
-  response += `\n\nText a gig number to resume it, or tell me something new to create a fresh gig.`;
+  response += `\n\nText a gig number to resume, or "done 1" to complete a gig.`;
 
   return response;
+}
+
+// ── Gig Status Transitions ──────────────────────────────────────────────────
+
+type GigStatus = "active" | "paused" | "completed" | "archived";
+
+async function updateGigStatus(gigId: string, status: GigStatus): Promise<void> {
+  const now = new Date().toISOString();
+  const updateExpr = status === "completed"
+    ? "SET #status = :status, updatedAt = :now, completedAt = :now"
+    : "SET #status = :status, updatedAt = :now";
+  const values: Record<string, string> = { ":status": status, ":now": now };
+
+  await ddb.send(
+    new UpdateCommand({
+      TableName: GIG_TABLE_NAME,
+      Key: { id: gigId },
+      UpdateExpression: updateExpr,
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: values,
+    })
+  );
+}
+
+async function handleGigStatusChange(
+  user: User,
+  fromPhone: string,
+  targetStatus: GigStatus,
+  body: string
+): Promise<string> {
+  const activeGigs = await getAllActiveGigsForUser(user.id, fromPhone);
+  const statusLabel = targetStatus === "completed" ? "done" : targetStatus;
+
+  if (activeGigs.length === 0) {
+    return `You don't have any active gigs to mark as ${statusLabel}.`;
+  }
+
+  if (activeGigs.length === 1) {
+    const gig = activeGigs[0];
+    await updateGigStatus(gig.id as string, targetStatus);
+    const emoji = targetStatus === "completed" ? " ✓" : targetStatus === "paused" ? " ⏸" : "";
+    return `"${gig.title}" marked as ${statusLabel}!${emoji}\n\nText me anytime to start a new gig.`;
+  }
+
+  const numMatch = body.match(/\d+/);
+  if (numMatch) {
+    const idx = parseInt(numMatch[0], 10) - 1;
+    if (idx >= 0 && idx < activeGigs.length) {
+      const gig = activeGigs[idx];
+      await updateGigStatus(gig.id as string, targetStatus);
+      return `"${gig.title}" marked as ${statusLabel}!`;
+    }
+  }
+
+  const gigList = activeGigs.map((g, i) => {
+    const roleLabel = g.userRole === "owner" ? "" : " (collaborator)";
+    return `${i + 1}. ${g.title}${roleLabel}`;
+  }).join("\n");
+
+  return `Which gig do you want to ${statusLabel}?\n\n${gigList}\n\nReply "${statusLabel} 1", "${statusLabel} 2", etc.`;
 }
 
 // ── Onboarding Handlers ─────────────────────────────────────────────────────
@@ -929,6 +1003,24 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
 
     if (intent.type === "create_gig") {
       const response = await handleCreateGig(user, body, intent.gigType || "planning", mediaUrls);
+      await sendSms(fromPhone, response);
+      return twimlResponse("");
+    }
+
+    if (intent.type === "complete_gig") {
+      const response = await handleGigStatusChange(user, fromPhone, "completed", body);
+      await sendSms(fromPhone, response);
+      return twimlResponse("");
+    }
+
+    if (intent.type === "pause_gig") {
+      const response = await handleGigStatusChange(user, fromPhone, "paused", body);
+      await sendSms(fromPhone, response);
+      return twimlResponse("");
+    }
+
+    if (intent.type === "archive_gig") {
+      const response = await handleGigStatusChange(user, fromPhone, "archived", body);
       await sendSms(fromPhone, response);
       return twimlResponse("");
     }

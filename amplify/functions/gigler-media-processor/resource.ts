@@ -9,7 +9,9 @@ export const giglerMediaProcessor = defineFunction({
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+    GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
+    TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
+    CLOUDFRONT_DOMAIN: process.env.CLOUDFRONT_DOMAIN || "",
   },
   resourceGroupName: "data",
 });

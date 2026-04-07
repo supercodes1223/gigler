@@ -122,10 +122,11 @@ if (backend.storage.resources.bucket && mediaLambda?.resources?.lambda) {
     .addEnvironment("STORAGE_AMPLIFYGENFILES_BUCKETNAME", backend.storage.resources.bucket.bucketName);
 }
 
-// ── gigler-deliverable-generator: needs Deliverable, Gig, S3 ─────────────
+// ── gigler-deliverable-generator: needs Deliverable, Gig, Media (read), S3 ──
 const deliverableLambda = backend.giglerDeliverableGenerator;
 grantTableAccess("Deliverable", deliverableLambda, "DELIVERABLE_TABLE_NAME");
 grantTableAccess("Gig", deliverableLambda, "GIG_TABLE_NAME", true);
+grantTableAccess("Media", deliverableLambda, "MEDIA_TABLE_NAME", true);
 if (backend.storage.resources.bucket && deliverableLambda?.resources?.lambda) {
   backend.storage.resources.bucket.grantReadWrite(
     deliverableLambda.resources.lambda as unknown as import("aws-cdk-lib/aws-iam").IGrantable

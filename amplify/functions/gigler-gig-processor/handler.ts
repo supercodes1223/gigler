@@ -43,6 +43,8 @@ const GIG_PARTICIPANT_TABLE_NAME = process.env.GIG_PARTICIPANT_TABLE_NAME || "";
 const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
 const DELIVERABLE_GENERATOR_FUNCTION_NAME = process.env.DELIVERABLE_GENERATOR_FUNCTION_NAME || "";
 const THIRD_PARTY_ACTIONS_FUNCTION_NAME = process.env.THIRD_PARTY_ACTIONS_FUNCTION_NAME || "";
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
+const GITHUB_ORG = process.env.GITHUB_ORG || "";
 
 // ── Structured Tracing ───────────────────────────────────────────────────────
 
@@ -103,7 +105,7 @@ interface Gig {
 }
 
 interface GigAction {
-  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation" | "add_participant";
+  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation" | "add_participant" | "create_github_repo" | "create_collage";
   prompt?: string;
   deliverableType?: string;
   title?: string;
@@ -115,6 +117,8 @@ interface GigAction {
   params?: Record<string, unknown>;
   name?: string;
   phone?: string;
+  description?: string;
+  files?: Array<{ path: string; content: string }>;
 }
 
 // ── Lambda Invocation ────────────────────────────────────────────────────────
@@ -225,6 +229,26 @@ async function executeActions(
             action.name, action.phone, trace
           );
         }
+        break;
+
+      case "create_github_repo":
+        if (action.name && action.files?.length) {
+          await handleCreateGitHubRepo(
+            ctx.gigId, ctx.userId, ctx.phone,
+            action.name, action.description || "",
+            action.files, trace
+          );
+        }
+        break;
+
+      case "create_collage":
+        await invokeLambdaAsync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
+          gigId: ctx.gigId, userId: ctx.userId,
+          type: "collage",
+          title: action.title || "Photo Gallery",
+          content: action.content || "",
+          phone: ctx.phone, _trace: trace,
+        });
         break;
     }
   }
@@ -603,6 +627,92 @@ Send daily check-ins and practice content proactively.`,
 ALWAYS confirm before taking any action. Present options as numbered choices.`,
 };
 
+// ── GitHub Repo Creation ─────────────────────────────────────────────────────
+
+async function handleCreateGitHubRepo(
+  gigId: string,
+  userId: string,
+  phone: string,
+  repoName: string,
+  description: string,
+  files: Array<{ path: string; content: string }>,
+  trace: TraceContext
+): Promise<void> {
+  if (!GITHUB_TOKEN) {
+    console.warn("[GigProcessor] No GITHUB_TOKEN configured, skipping repo creation");
+    await sendSms(phone, "GitHub repo creation isn't configured yet. The code is saved in your gig thread!");
+    return;
+  }
+
+  const owner = GITHUB_ORG || "gigler-projects";
+  const sanitizedName = repoName
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 100);
+
+  try {
+    const createRepoRes = await fetch("https://api.github.com/user/repos", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: sanitizedName,
+        description: description || `Created by Gigler for gig ${gigId}`,
+        private: false,
+        auto_init: true,
+      }),
+    });
+
+    if (!createRepoRes.ok) {
+      const err = await createRepoRes.text();
+      console.error("[GigProcessor] GitHub repo creation failed:", createRepoRes.status, err);
+      await sendSms(phone, `Couldn't create the GitHub repo. I'll keep the code in your gig thread.`);
+      return;
+    }
+
+    const repo = await createRepoRes.json();
+    const repoFullName = repo.full_name;
+    const repoUrl = repo.html_url;
+    console.log(`[GigProcessor] Created repo: ${repoFullName}`);
+
+    for (const file of files) {
+      const contentBase64 = Buffer.from(file.content).toString("base64");
+      const putRes = await fetch(
+        `https://api.github.com/repos/${repoFullName}/contents/${file.path}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: `Add ${file.path} via Gigler`,
+            content: contentBase64,
+          }),
+        }
+      );
+
+      if (!putRes.ok) {
+        const err = await putRes.text();
+        console.error(`[GigProcessor] Failed to push ${file.path}:`, putRes.status, err);
+      }
+    }
+
+    await sendSms(phone, `Your code is live on GitHub!\n\n${repoUrl}\n\n${files.length} file(s) pushed.`);
+    console.log(`[GigProcessor] Pushed ${files.length} files to ${repoFullName}`);
+
+  } catch (error) {
+    console.error("[GigProcessor] GitHub error:", error);
+    await sendSms(phone, "Had trouble creating the GitHub repo. The code is saved in your gig thread.");
+  }
+}
+
 // ── Conversation History ─────────────────────────────────────────────────────
 
 async function fetchConversationHistory(
@@ -681,7 +791,8 @@ async function sendSms(to: string, message: string): Promise<void> {
 async function callGemini(
   systemPrompt: string,
   userMessage: string,
-  history: Array<{ role: string; content: string }> = []
+  history: Array<{ role: string; content: string }> = [],
+  enableSearch: boolean = true
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     return "I'm processing your request. Give me a moment!";
@@ -695,29 +806,40 @@ async function callGemini(
     { role: "user", parts: [{ text: userMessage }] },
   ];
 
+  const requestBody: Record<string, unknown> = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents,
+    generationConfig: {
+      maxOutputTokens: 1600,
+      temperature: 0.7,
+    },
+  };
+
+  if (enableSearch) {
+    requestBody.tools = [{ google_search: {} }];
+  }
+
   try {
-    console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL}`);
+    console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (search: ${enableSearch})`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          generationConfig: {
-            maxOutputTokens: 1600,
-            temperature: 0.7,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
     const data = await response.json();
-    return (
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I'm working on that. Give me a moment!"
-    );
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      || "I'm working on that. Give me a moment!";
+
+    const grounding = data?.candidates?.[0]?.groundingMetadata;
+    if (grounding?.webSearchQueries?.length) {
+      console.log(`[GigProcessor] Grounding searches: ${JSON.stringify(grounding.webSearchQueries)}`);
+    }
+
+    return text;
   } catch (error) {
     console.error("[GigProcessor] Gemini error:", error);
     return "I'm having trouble right now. Try again in a moment!";
@@ -798,11 +920,21 @@ const ACTION_INSTRUCTIONS = `
 IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
 
 Available actions:
-- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image
-- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable
+- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image using Imagen 3
+- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable. For "website" type, content should be complete HTML/CSS/JS. For "pdf" type, content is the document body text. For "code_project", content should be the full project code.
 - {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
 - {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
 - {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
+- {"type":"create_github_repo","name":"repo-name","description":"short description","files":[{"path":"filename","content":"file content"}]} — create a GitHub repository with generated code files. Use kebab-case for repo names.
+- {"type":"create_collage","title":"gallery title","content":"optional description"} — generate a shareable photo gallery/collage page from all images in this gig. The gallery is hosted at a short gigler.ai URL. Use when user asks for a gallery, collage, photo page, or wants to share collected images.
+
+You have access to Google Search for real-time information. When the user asks about vendors, venues, prices, availability, restaurants, or any factual information, use your search capability to provide accurate, current results with specific names, addresses, and details.
+
+When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
+- Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")
+- If the gig context makes it relevant, proactively suggest what to do with them (create a gallery, use for invitations, etc.)
+- If several photos have been collected over the gig, offer to create a shareable gallery page using create_collage
+- Don't over-explain the process — keep it casual and SMS-friendly
 
 Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
 
@@ -1003,6 +1135,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   log.info("Processing gig message", { hasMedia: !!gigEvent.mediaUrls?.length, senderName: gigEvent.senderName });
 
   const { gigId, userId, message, phone, senderName } = gigEvent;
+  const mediaUrls = gigEvent.mediaUrls || [];
 
   const gig = await getGig(gigId);
   if (!gig) {
@@ -1023,7 +1156,15 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   const systemPrompt = buildDirectPrompt(gig, metadata);
 
-  const rawResponse = await callGemini(systemPrompt, message, history);
+  let enrichedMessage = message;
+  if (mediaUrls.length > 0) {
+    const photoCount = mediaUrls.length;
+    const mediaNote = `[User attached ${photoCount} photo${photoCount > 1 ? "s" : ""} via MMS. The photos have been saved to this gig's media collection. You can offer to create a collage/gallery, use them for the gig, or acknowledge receipt.]`;
+    enrichedMessage = message ? `${message}\n\n${mediaNote}` : mediaNote;
+    log.info("Enriched message with media context", { photoCount });
+  }
+
+  const rawResponse = await callGemini(systemPrompt, enrichedMessage, history);
   const { userText, actions } = parseAiResponse(rawResponse);
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
@@ -1038,6 +1179,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
     ...metadata,
     lastInteraction: new Date().toISOString(),
     messageCount: ((metadata.messageCount as number) || 0) + 1,
+    mediaCount: ((metadata.mediaCount as number) || 0) + mediaUrls.length,
   });
 
   return { statusCode: 200, body: "Processed" };

@@ -23,7 +23,9 @@ const S3_BUCKET_NAME = process.env.STORAGE_AMPLIFYGENFILES_BUCKETNAME || process
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
+const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || "";
 
 interface TraceContext { traceId: string; requestId: string; source: string; }
 
@@ -135,64 +137,70 @@ async function createMediaRecord(
   );
 }
 
-async function generateImageWithGemini(prompt: string): Promise<Buffer | null> {
+async function generateImageWithImagen(prompt: string): Promise<Buffer | null> {
   if (!GEMINI_API_KEY) return null;
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
-          generationConfig: {
-            responseModalities: ["TEXT"],
-          },
+          instances: [{ prompt }],
+          parameters: { sampleCount: 1 },
         }),
       }
     );
 
-    const data = await response.json();
-    const inlineData = data?.candidates?.[0]?.content?.parts?.find(
-      (p: Record<string, unknown>) => p.inlineData
-    );
-
-    if (inlineData?.inlineData?.data) {
-      return Buffer.from(inlineData.inlineData.data, "base64");
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("[MediaProcessor] Imagen API error:", response.status, errText);
+      return null;
     }
-  } catch (error) {
-    console.error("[MediaProcessor] Gemini image generation error:", error);
-  }
-
-  return null;
-}
-
-async function generateImageWithDallE(prompt: string): Promise<Buffer | null> {
-  if (!OPENAI_API_KEY) return null;
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
-      }),
-    });
 
     const data = await response.json();
-    const b64 = data?.data?.[0]?.b64_json;
+    const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
     return b64 ? Buffer.from(b64, "base64") : null;
   } catch (error) {
-    console.error("[MediaProcessor] DALL-E error:", error);
+    console.error("[MediaProcessor] Imagen generation error:", error);
     return null;
+  }
+}
+
+function getPublicUrl(s3Key: string): string {
+  if (CLOUDFRONT_DOMAIN) return `https://${CLOUDFRONT_DOMAIN}/${s3Key}`;
+  if (S3_BUCKET_NAME) return `https://${S3_BUCKET_NAME}.s3.amazonaws.com/${s3Key}`;
+  return "";
+}
+
+async function sendMmsToUser(phone: string, body: string, mediaUrl: string): Promise<void> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !phone) return;
+
+  const params: Record<string, string> = {
+    To: phone,
+    Body: body,
+    From: GIGLER_NUMBER,
+    MediaUrl: mediaUrl,
+  };
+  if (TWILIO_MESSAGING_SERVICE_SID) {
+    params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+  }
+
+  try {
+    await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(params).toString(),
+      }
+    );
+  } catch (error) {
+    console.error("[MediaProcessor] Failed to send MMS:", error);
   }
 }
 
@@ -232,15 +240,11 @@ export const handler: Handler = async (event: MediaEvent, context) => {
 
     case "generate_image": {
       const prompt = event.prompt || "";
-      log.info("Generating AI image", { promptPreview: prompt.substring(0, 100) });
-      let imageBuffer = await generateImageWithGemini(prompt);
-      if (!imageBuffer) {
-        log.warn("Gemini image generation failed — trying DALL-E fallback");
-        imageBuffer = await generateImageWithDallE(prompt);
-      }
+      log.info("Generating AI image with Imagen 3", { promptPreview: prompt.substring(0, 100) });
+      const imageBuffer = await generateImageWithImagen(prompt);
 
       if (!imageBuffer) {
-        log.error("All image generation providers failed");
+        log.error("Imagen 3 image generation failed");
         return { statusCode: 500, body: "Failed to generate image" };
       }
 
@@ -249,8 +253,14 @@ export const handler: Handler = async (event: MediaEvent, context) => {
       await saveToS3(s3Key, imageBuffer, "image/png");
       await createMediaRecord(event.gigId, mediaId, s3Key, "photo", "gigler");
 
+      const publicUrl = getPublicUrl(s3Key);
+      if (publicUrl && event.phone) {
+        log.info("Sending generated image via MMS", { phone: maskPhone(event.phone) });
+        await sendMmsToUser(event.phone, "Here's the image I generated:", publicUrl);
+      }
+
       log.info("Image generated and stored", { mediaId, s3Key, bytes: imageBuffer.length });
-      return { statusCode: 200, body: JSON.stringify({ mediaId, s3Key }) };
+      return { statusCode: 200, body: JSON.stringify({ mediaId, s3Key, publicUrl }) };
     }
 
     case "generate_video": {
