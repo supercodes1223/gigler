@@ -160,11 +160,9 @@ async function sendSms(
     return { success: false, error: "SMS service not configured" };
   }
 
-  const params: Record<string, string> = { To: to, Body: message };
+  const params: Record<string, string> = { To: to, Body: message, From: fromNumber };
   if (TWILIO_MESSAGING_SERVICE_SID) {
     params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
-  } else {
-    params.From = fromNumber;
   }
 
   try {
