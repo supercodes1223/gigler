@@ -1,0 +1,1 @@
+MessageSid=SMrt003part&AccountSid=ACtest000000000000000000000000&From=%2B14154049816&To=%2B16508351235&Body=What+time+is+the+party%3F&NumMedia=0&FromCity=SanFrancisco&FromState=CA&FromZip=94102&FromCountry=US&ToCity=&ToState=&ToZip=&ToCountry=US&SmsMessageSid=SMrt003part&SmsSid=SMrt003part&SmsStatus=received&ApiVersion=2010-04-01

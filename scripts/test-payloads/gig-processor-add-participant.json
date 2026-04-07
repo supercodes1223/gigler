@@ -1,0 +1,8 @@
+{
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "message": "Add Sarah 4154049816",
+  "phone": "+12812419268",
+  "senderName": "Albert",
+  "_trace": {"traceId": "trc_test_addpart_001", "requestId": "cli-test", "source": "manual-test"}
+}
