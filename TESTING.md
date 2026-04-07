@@ -1251,7 +1251,16 @@ aws logs filter-log-events \
   --region us-east-2
 ```
 
-### 6.4 What to Verify
+### 6.4 Important: How Group Threads Appear on Phones
+
+Twilio Conversations with projected addresses creates a **server-side** group thread. On the participants' phones, messages appear as individual SMS from the Gigler number -- **not** as a visible iOS/Android group chat. This is expected behavior:
+
+- Owner sees replies from Gigler in their 1-on-1 thread with the Gigler number
+- Participant sees a welcome SMS and gig notification from the Gigler number
+- The Twilio Conversations API manages the group context server-side
+- When a participant replies in the Conversation thread, the `onMessageAdded` webhook fires and the AI sees the full group context (who said what)
+
+### 6.5 What to Verify
 
 | Check | How |
 |-------|-----|
@@ -1265,6 +1274,14 @@ aws logs filter-log-events \
 | Webhook ignores Gigler messages | HTTP 200 but no AI response generated |
 | AI responds when addressed | CloudWatch shows RESPOND: true |
 | AI stays silent for side chat | CloudWatch shows RESPOND: false |
+
+### 6.6 GigParticipant Table Key Schema
+
+The GigParticipant table uses a composite primary key:
+- **Partition key (HASH):** `gigId`
+- **Sort key (RANGE):** `phone`
+
+GSIs: `byPhone` (phone HASH), `byUserId` (userId HASH)
 
 ---
 
@@ -1342,10 +1359,10 @@ aws dynamodb query \
 ### GigParticipant Table
 
 ```bash
-# By gigId + userId (composite primary key)
+# By gigId + phone (composite primary key: gigId HASH, phone RANGE)
 aws dynamodb get-item \
   --table-name $TBL_GIG_PARTICIPANT \
-  --key '{"gigId": {"S": "<GIG_ID>"}, "userId": {"S": "<USER_ID>"}}'
+  --key '{"gigId": {"S": "<GIG_ID>"}, "phone": {"S": "+15551234567"}}'
 
 # All participants for a gig (partition key query)
 aws dynamodb query \
@@ -2042,14 +2059,14 @@ aws dynamodb query \
   --table-name $TBL_GIG_PARTICIPANT \
   --key-condition-expression "gigId = :g" \
   --expression-attribute-values "{\":g\": {\"S\": \"$GIG_ID\"}}" \
-  --projection-expression "gigId, userId" \
+  --projection-expression "gigId, phone" \
   --output json \
   --query 'Items[]' | python3 -c "
 import json, sys, subprocess
 for item in json.load(sys.stdin):
     subprocess.run(['aws', 'dynamodb', 'delete-item',
         '--table-name', '$TBL_GIG_PARTICIPANT',
-        '--key', json.dumps({'gigId': item['gigId'], 'userId': item['userId']})])
+        '--key', json.dumps({'gigId': item['gigId'], 'phone': item['phone']})])
 print('Deleted participants')
 "
 
