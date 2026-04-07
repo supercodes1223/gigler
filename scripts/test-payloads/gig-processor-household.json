@@ -1,0 +1,7 @@
+{
+  "gigId": "TEST_GIG_ID",
+  "userId": "TEST_USER_ID",
+  "message": "Power bill is $429 due on the 15th, water is $85 due on the 10th, gas is $65 due on the 20th, internet is $70 due on the 1st",
+  "phone": "+15551234567",
+  "senderName": "Albert"
+}

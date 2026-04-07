@@ -1,0 +1,7 @@
+{
+  "source": "aws.events",
+  "detail-type": "Scheduled Event",
+  "detail": {},
+  "resources": ["arn:aws:events:us-east-2:123456789012:rule/gigler-reminder-schedule"],
+  "time": "2026-04-07T12:00:00Z"
+}
