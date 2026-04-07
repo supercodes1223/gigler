@@ -12,10 +12,12 @@ import {
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
+const lambdaClient = new LambdaClient({});
 
 const REMINDER_TABLE_NAME = process.env.REMINDER_TABLE_NAME || "";
 const USER_TABLE_NAME = process.env.USER_TABLE_NAME || "";
@@ -24,6 +26,37 @@ const MESSAGE_TABLE_NAME = process.env.MESSAGE_TABLE_NAME || "";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
+const VOICE_BRIDGE_FUNCTION_NAME = process.env.VOICE_BRIDGE_FUNCTION_NAME || "";
+
+// ── Structured Tracing ───────────────────────────────────────────────────────
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  if (!phone) return undefined;
+  return phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: { traceId: string; requestId: string; source: string; gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
 
 async function sendSms(to: string, message: string): Promise<boolean> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !GIGLER_NUMBER) return false;
@@ -89,11 +122,13 @@ async function getUserPhone(userId: string): Promise<string | null> {
   return (result.Item?.phone as string) || null;
 }
 
-export const handler: Handler = async () => {
-  console.log("[ReminderScheduler] Triggered");
+export const handler: Handler = async (_event, context) => {
+  const traceId = generateTraceId();
+  const log = createLogger({ traceId, requestId: context.awsRequestId, source: "gigler-reminder-scheduler" });
+  log.info("Scheduled trigger fired");
 
   const reminders = await fetchDueReminders();
-  console.log(`[ReminderScheduler] Found ${reminders.length} due reminders`);
+  log.info("Fetched due reminders", { count: reminders.length });
 
   let sent = 0;
   for (const reminder of reminders) {
@@ -101,6 +136,10 @@ export const handler: Handler = async () => {
     const message = (reminder.message as string) || "Reminder from Gigler!";
     const recipients = (reminder.recipients as string[]) || [];
     const userId = reminder.userId as string;
+    const reminderId = reminder.id as string;
+    const gigId = (reminder.gigId as string) || undefined;
+
+    const rlog = createLogger({ traceId, requestId: context.awsRequestId, source: "gigler-reminder-scheduler", gigId, userId });
 
     let phones: string[] = [];
     if (recipients.length > 0) {
@@ -111,13 +150,34 @@ export const handler: Handler = async () => {
     }
 
     if (phones.length === 0) {
-      console.warn(`[ReminderScheduler] No phones for reminder ${reminder.id}`);
+      rlog.warn("No recipient phones for reminder", { reminderId });
       continue;
     }
 
-    if (channel === "voice") {
-      // Voice reminders route through the voice bridge
-      console.log(`[ReminderScheduler] Voice reminder ${reminder.id} -- sending as SMS for now`);
+    rlog.info("Processing reminder", { reminderId, channel, recipientCount: phones.length, reminderType: reminder.type });
+
+    if (channel === "voice" && VOICE_BRIDGE_FUNCTION_NAME) {
+      const voiceType = reminder.type === "wake_up_call" ? "wake_up" : "check_in";
+      for (const phone of phones) {
+        try {
+          await lambdaClient.send(
+            new InvokeCommand({
+              FunctionName: VOICE_BRIDGE_FUNCTION_NAME,
+              InvocationType: "Event",
+              Payload: new TextEncoder().encode(JSON.stringify({
+                type: voiceType, userId, gigId, phone,
+                _trace: { traceId, requestId: context.awsRequestId, source: "gigler-reminder-scheduler" },
+              })),
+            })
+          );
+          rlog.info("Invoked voice-bridge", { phone: maskPhone(phone), voiceType });
+        } catch (error) {
+          rlog.error("Voice-bridge invoke failed — falling back to SMS", { phone: maskPhone(phone), error: String(error) });
+          await sendSms(phone, message);
+        }
+      }
+    } else if (channel === "voice") {
+      rlog.warn("Voice bridge not configured — SMS fallback");
       for (const phone of phones) {
         const prefix = reminder.type === "wake_up_call" ? "Good morning! " : "";
         await sendSms(phone, `${prefix}${message}`);
@@ -128,10 +188,10 @@ export const handler: Handler = async () => {
       }
     }
 
-    await markReminderSent(reminder.id as string);
+    await markReminderSent(reminderId);
     sent++;
   }
 
-  console.log(`[ReminderScheduler] Sent ${sent} reminders`);
+  log.info("Reminder batch complete", { sent, total: reminders.length });
   return { statusCode: 200, body: `Processed ${sent} reminders` };
 };

@@ -14,6 +14,7 @@ Post-deployment testing against real AWS resources. No local mocks -- every test
 4. [End-to-End Test Scenarios](#4-end-to-end-test-scenarios)
 5. [DynamoDB Verification Commands](#5-dynamodb-verification-commands)
 6. [CloudWatch Log Monitoring](#6-cloudwatch-log-monitoring)
+   - [6.5 Structured Tracing & CloudWatch Logs Insights](#65-structured-tracing--cloudwatch-logs-insights)
 7. [S3 Verification](#7-s3-verification)
 8. [Frontend Verification Checklist](#8-frontend-verification-checklist)
 9. [Troubleshooting Guide](#9-troubleshooting-guide)
@@ -258,12 +259,15 @@ aws lambda invoke \
     "userId": "test-user-001",
     "message": "Plan a birthday party for June 14",
     "phone": "+15551234567",
-    "senderName": "Test User"
+    "senderName": "Test User",
+    "_trace": {"traceId": "trc_manual_test_001", "requestId": "cli-test", "source": "manual-test"}
   }' \
   /tmp/gig-processor-response.json
 
 cat /tmp/gig-processor-response.json | python3 -m json.tool
 ```
+
+> **Tip:** Including `_trace` with a known `traceId` lets you find all logs from this invocation and any downstream Lambdas it triggers using a single CloudWatch Logs Insights query (see [Section 6.5](#65-structured-tracing--cloudwatch-logs-insights)).
 
 **Verify after:**
 
@@ -281,8 +285,8 @@ aws dynamodb query \
   --scan-index-forward false \
   --limit 3
 
-# CloudWatch logs
-aws logs tail /aws/lambda/$FN_GIG_PROCESSOR --since 5m
+# CloudWatch logs — filter by your manual traceId
+aws logs tail /aws/lambda/$FN_GIG_PROCESSOR --since 5m --filter-pattern '"trc_manual_test_001"'
 ```
 
 **Expected response:** JSON with the AI's response text and any actions taken (reminders created, participants added, etc.).
@@ -363,7 +367,8 @@ aws lambda invoke \
     "gigId": "test-gig-001",
     "userId": "test-user-001",
     "prompt": "A colorful birthday party invitation with balloons and confetti",
-    "phone": "+15551234567"
+    "phone": "+15551234567",
+    "_trace": {"traceId": "trc_manual_media_001", "requestId": "cli-test", "source": "manual-test"}
   }' \
   /tmp/media-processor-response.json
 
@@ -445,7 +450,8 @@ aws lambda invoke \
     "type": "website",
     "title": "Austin'\''s Graduation Party",
     "content": "<h1>You'\''re Invited!</h1><p>Join us June 14 at 2pm at Zilker Park</p><p>RSVP to John at 555-123-4567</p>",
-    "phone": "+15551234567"
+    "phone": "+15551234567",
+    "_trace": {"traceId": "trc_manual_deliv_001", "requestId": "cli-test", "source": "manual-test"}
   }' \
   /tmp/deliverable-response.json
 
@@ -498,7 +504,8 @@ aws lambda invoke \
   --payload '{
     "type": "wake_up",
     "userId": "test-user-001",
-    "phone": "+15551234567"
+    "phone": "+15551234567",
+    "_trace": {"traceId": "trc_manual_voice_001", "requestId": "cli-test", "source": "manual-test"}
   }' \
   /tmp/voice-bridge-response.json
 
@@ -668,7 +675,8 @@ aws lambda invoke \
       "time": "7:00 PM Saturday",
       "partySize": 4
     },
-    "phone": "+15551234567"
+    "phone": "+15551234567",
+    "_trace": {"traceId": "trc_manual_tpa_001", "requestId": "cli-test", "source": "manual-test"}
   }' \
   /tmp/third-party-response.json
 
@@ -1354,6 +1362,177 @@ aws cloudwatch get-metric-statistics \
   --query 'Datapoints[*].{Time: Timestamp, Count: Sum}' \
   --output table
 ```
+
+### 6.5 Structured Tracing & CloudWatch Logs Insights
+
+Every Lambda emits structured JSON logs with a consistent schema. A single `traceId` follows a request from the entry-point Lambda through every downstream Lambda it invokes, making it possible to reconstruct the full execution chain.
+
+#### Trace Propagation
+
+```
+User SMS → gigler-inbound-sms  (generates traceId, passes _trace in payload)
+                ├──→ gigler-gig-processor     (inherits traceId, passes _trace)
+                │        ├──→ gigler-media-processor         (inherits traceId)
+                │        ├──→ gigler-deliverable-generator   (inherits traceId)
+                │        └──→ gigler-third-party-actions     (inherits traceId)
+                └──→ gigler-media-processor   (inherits traceId)
+
+EventBridge  → gigler-reminder-scheduler  (generates traceId)
+                └──→ gigler-voice-bridge  (inherits traceId)
+
+SES / SNS    → gigler-email-handler       (generates traceId)
+```
+
+Entry-point Lambdas (`inbound-sms`, `reminder-scheduler`, `email-handler`) generate a `traceId`. Downstream Lambdas receive it via the `_trace` field in the invocation payload and use the same `traceId` in all their logs.
+
+When invoking a Lambda manually for testing, you can supply your own `_trace` to make log correlation trivial:
+
+```json
+"_trace": {"traceId": "trc_manual_test_001", "requestId": "cli-test", "source": "manual-test"}
+```
+
+#### Log Entry Schema
+
+Every structured log entry is a single JSON line with these fields:
+
+| Field       | Type   | Description                                                 |
+|-------------|--------|-------------------------------------------------------------|
+| `level`     | string | `INFO`, `WARN`, or `ERROR`                                  |
+| `ts`        | string | ISO 8601 timestamp of the log entry                         |
+| `traceId`   | string | Unique per inbound request; follows the entire Lambda chain  |
+| `requestId` | string | AWS Lambda request ID (unique per invocation)                |
+| `source`    | string | Which Lambda emitted the log (e.g. `gigler-gig-processor`)  |
+| `gigId`     | string | The gig being processed (when available)                     |
+| `userId`    | string | The user involved (when available)                           |
+| `phone`     | string | Masked to last 4 digits (`***1234`) for privacy             |
+| `message`   | string | Human-readable log message                                   |
+| `data`      | object | Structured payload with contextual details (optional)        |
+
+Example log entry:
+
+```json
+{
+  "level": "INFO",
+  "ts": "2026-04-06T22:15:03.412Z",
+  "traceId": "trc_m1abc2_x9k3f1",
+  "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "source": "gigler-gig-processor",
+  "gigId": "gig_1743984000_abc123",
+  "userId": "usr_1743900000_def456",
+  "phone": "***4567",
+  "message": "Executing actions from AI response",
+  "data": { "actionCount": 2, "actionTypes": ["generate_image", "set_reminder"] }
+}
+```
+
+#### CloudWatch Logs Insights Queries
+
+Run these in the [CloudWatch Logs Insights console](https://console.aws.amazon.com/cloudwatch/home#logsV2:logs-insights). Select all `/aws/lambda/gigler-*` log groups to search across the full chain.
+
+**Trace a full request chain (SMS → gig-processor → downstream):**
+
+```sql
+fields @timestamp, source, message, gigId, userId, data
+| filter traceId = "trc_manual_test_001"
+| sort @timestamp asc
+```
+
+**All activity for a specific gig:**
+
+```sql
+fields @timestamp, source, message, traceId, data
+| filter gigId = "gig_1743984000_abc123"
+| sort @timestamp desc
+| limit 100
+```
+
+**All activity for a specific user (by masked phone):**
+
+```sql
+fields @timestamp, source, message, gigId, traceId
+| filter phone = "***4567"
+| sort @timestamp desc
+| limit 50
+```
+
+**All errors across all Lambdas:**
+
+```sql
+fields @timestamp, source, message, gigId, userId, data
+| filter level = "ERROR"
+| sort @timestamp desc
+| limit 50
+```
+
+**Find slow invocations (over 5 seconds between entry and last log):**
+
+```sql
+stats min(@timestamp) as started, max(@timestamp) as ended, count(*) as logCount
+  by traceId, source
+| filter ended - started > 5000
+| sort ended - started desc
+```
+
+**Action execution breakdown (what actions is the AI triggering?):**
+
+```sql
+fields @timestamp, gigId, data.actionTypes, data.actionCount
+| filter source = "gigler-gig-processor" and message = "Executing actions from AI response"
+| sort @timestamp desc
+| limit 50
+```
+
+**Count invocations per Lambda per hour:**
+
+```sql
+stats count(*) as invocations by source, bin(1h) as hour
+| filter message like /invoked|Processing|Triggered|event received/
+| sort hour desc
+```
+
+**Find a specific inbound SMS and trace its full journey:**
+
+```sql
+fields @timestamp, source, message, gigId, data
+| filter traceId in (
+    fields traceId | filter source = "gigler-inbound-sms" and message = "Parsed webhook" and data.messageSid = "SMxxxx"
+  )
+| sort @timestamp asc
+```
+
+#### Using `aws logs filter-log-events` from the CLI
+
+For quick CLI-based log searches using the structured JSON fields:
+
+```bash
+# Find all logs for a specific traceId
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_GIG_PROCESSOR \
+  --filter-pattern '{ $.traceId = "trc_manual_test_001" }' \
+  --start-time $(date -v-1H +%s000 2>/dev/null || date -d "-1 hour" +%s000) \
+  --query 'events[].message' \
+  --output text
+
+# Find all ERROR-level logs across a Lambda
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_INBOUND_SMS \
+  --filter-pattern '{ $.level = "ERROR" }' \
+  --start-time $(date -v-1H +%s000 2>/dev/null || date -d "-1 hour" +%s000)
+
+# Find all logs for a specific gigId
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_GIG_PROCESSOR \
+  --filter-pattern '{ $.gigId = "gig_1743984000_abc123" }' \
+  --start-time $(date -v-1H +%s000 2>/dev/null || date -d "-1 hour" +%s000)
+
+# Find all logs involving a specific phone (masked)
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/$FN_INBOUND_SMS \
+  --filter-pattern '{ $.phone = "***4567" }' \
+  --start-time $(date -v-1H +%s000 2>/dev/null || date -d "-1 hour" +%s000)
+```
+
+> **Note:** Phone numbers are masked in logs for privacy. Only the last 4 digits are stored (e.g. `***4567`). To correlate a full phone number with its masked form, take the last 4 digits and search for `***XXXX`.
 
 ---
 

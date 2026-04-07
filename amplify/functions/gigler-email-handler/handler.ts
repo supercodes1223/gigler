@@ -37,6 +37,31 @@ const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL || "notifications@gigler.ai";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
+// ── Structured Tracing ───────────────────────────────────────────────────────
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function createLogger(ctx: { traceId: string; requestId: string; source: string; gigId?: string; userId?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId,
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
+
 interface SesNotification {
   Records?: Array<{
     ses?: {
@@ -155,8 +180,10 @@ async function logMessage(
   );
 }
 
-export const handler: Handler = async (event: SesNotification) => {
-  console.log("[EmailHandler] Event received");
+export const handler: Handler = async (event: SesNotification, context) => {
+  const traceId = generateTraceId();
+  const log = createLogger({ traceId, requestId: context.awsRequestId, source: "gigler-email-handler" });
+  log.info("SES event received");
 
   const records = event.Records || [];
 
@@ -168,7 +195,7 @@ export const handler: Handler = async (event: SesNotification) => {
     const recipient = mail.destination?.[0] || "";
     const subject = mail.commonHeaders?.subject || "(no subject)";
 
-    console.log(`[EmailHandler] From: ${senderEmail}, To: ${recipient}, Subject: ${subject}`);
+    log.info("Processing email", { from: senderEmail, to: recipient, subject });
 
     // Determine routing
     const recipientLocal = recipient.split("@")[0].toLowerCase();
@@ -202,9 +229,12 @@ export const handler: Handler = async (event: SesNotification) => {
     }
 
     if (!gigId) {
-      console.log(`[EmailHandler] No gig found for ${recipient} from ${senderEmail}`);
+      log.warn("No gig found for email", { recipient, sender: senderEmail });
       continue;
     }
+
+    const elog = createLogger({ traceId, requestId: context.awsRequestId, source: "gigler-email-handler", gigId, userId: userId || undefined });
+    elog.info("Matched email to gig", { routing: recipientLocal === "gig" ? "universal" : "shortCode" });
 
     // Read email body from S3 if stored there
     let emailBody = subject;
@@ -219,7 +249,7 @@ export const handler: Handler = async (event: SesNotification) => {
         );
         emailBody = (await obj.Body?.transformToString()) || subject;
       } catch {
-        console.warn("[EmailHandler] Could not read email from S3");
+        elog.warn("Could not read email from S3", { bucket: s3Action.bucketName, key: s3Action.objectKey });
       }
     }
 

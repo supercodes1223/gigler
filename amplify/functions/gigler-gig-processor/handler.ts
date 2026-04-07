@@ -19,10 +19,12 @@ import {
   PutCommand,
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
+const lambdaClient = new LambdaClient({});
 
 const GIG_TABLE_NAME = process.env.GIG_TABLE_NAME || "";
 const MESSAGE_TABLE_NAME = process.env.MESSAGE_TABLE_NAME || "";
@@ -33,6 +35,46 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
+const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
+const DELIVERABLE_GENERATOR_FUNCTION_NAME = process.env.DELIVERABLE_GENERATOR_FUNCTION_NAME || "";
+const THIRD_PARTY_ACTIONS_FUNCTION_NAME = process.env.THIRD_PARTY_ACTIONS_FUNCTION_NAME || "";
+
+// ── Structured Tracing ───────────────────────────────────────────────────────
+
+interface TraceContext {
+  traceId: string;
+  requestId: string;
+  source: string;
+}
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  if (!phone) return undefined;
+  return phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+    tracePayload: (): TraceContext => ({ traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source }),
+  };
+}
 
 interface GigProcessorEvent {
   gigId: string;
@@ -41,6 +83,7 @@ interface GigProcessorEvent {
   mediaUrls?: string[];
   phone: string;
   senderName?: string;
+  _trace?: TraceContext;
 }
 
 interface Gig {
@@ -52,6 +95,118 @@ interface Gig {
   status: string;
   metadata?: string;
   createdAt?: string;
+}
+
+interface GigAction {
+  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation";
+  prompt?: string;
+  deliverableType?: string;
+  title?: string;
+  content?: string;
+  scheduledAt?: string;
+  reminderMessage?: string;
+  channel?: string;
+  platform?: string;
+  params?: Record<string, unknown>;
+}
+
+// ── Lambda Invocation ────────────────────────────────────────────────────────
+
+async function invokeLambdaAsync(
+  functionName: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  if (!functionName) {
+    console.warn("[GigProcessor] Skipping invoke — no function name configured");
+    return;
+  }
+  try {
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: functionName,
+        InvocationType: "Event",
+        Payload: new TextEncoder().encode(JSON.stringify(payload)),
+      })
+    );
+    console.log(`[GigProcessor] Async invoked ${functionName}`);
+  } catch (error) {
+    console.error(`[GigProcessor] Failed to invoke ${functionName}:`, error);
+  }
+}
+
+// ── AI Response Parsing ──────────────────────────────────────────────────────
+
+function parseAiResponse(raw: string): { userText: string; actions: GigAction[] } {
+  const marker = "ACTION_JSON:";
+  const markerIdx = raw.indexOf(marker);
+
+  if (markerIdx === -1) {
+    return { userText: raw.trim(), actions: [] };
+  }
+
+  const userText = raw.substring(0, markerIdx).trim();
+  const jsonStr = raw.substring(markerIdx + marker.length).trim();
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const actions: GigAction[] = Array.isArray(parsed) ? parsed : [];
+    return { userText, actions };
+  } catch (error) {
+    console.warn("[GigProcessor] Failed to parse ACTION_JSON:", error);
+    return { userText: userText || raw.trim(), actions: [] };
+  }
+}
+
+// ── Action Execution ─────────────────────────────────────────────────────────
+
+async function executeActions(
+  actions: GigAction[],
+  ctx: { gigId: string; userId: string; phone: string },
+  trace: TraceContext
+): Promise<void> {
+  for (const action of actions) {
+    switch (action.type) {
+      case "generate_image":
+        await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+          action: "generate_image",
+          gigId: ctx.gigId, userId: ctx.userId,
+          prompt: action.prompt || "", phone: ctx.phone,
+          _trace: trace,
+        });
+        break;
+
+      case "create_deliverable":
+        await invokeLambdaAsync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
+          gigId: ctx.gigId, userId: ctx.userId,
+          type: action.deliverableType || "website",
+          title: action.title || "Untitled",
+          content: action.content || "", phone: ctx.phone,
+          _trace: trace,
+        });
+        break;
+
+      case "set_reminder":
+        if (action.scheduledAt) {
+          await createReminder({
+            gigId: ctx.gigId, userId: ctx.userId,
+            scheduledAt: action.scheduledAt, type: "reminder",
+            message: action.reminderMessage || "Reminder from your gig",
+            channel: action.channel || "sms",
+            recipients: [ctx.phone],
+          });
+        }
+        break;
+
+      case "book_reservation":
+        await invokeLambdaAsync(THIRD_PARTY_ACTIONS_FUNCTION_NAME, {
+          gigId: ctx.gigId, userId: ctx.userId,
+          platform: action.platform || "opentable",
+          actionType: "search", params: action.params || {},
+          phone: ctx.phone, _trace: trace,
+        });
+        break;
+    }
+  }
 }
 
 // ── Type-specific system prompts ─────────────────────────────────────────────
@@ -303,14 +458,19 @@ async function createReminder(params: {
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-export const handler: Handler = async (event: GigProcessorEvent) => {
-  console.log(`[GigProcessor] Processing gig ${event.gigId} for user ${event.userId}`);
+export const handler: Handler = async (event: GigProcessorEvent, context) => {
+  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+  const log = createLogger({
+    ...trace, source: "gigler-gig-processor",
+    gigId: event.gigId, userId: event.userId, phone: event.phone,
+  });
+  log.info("Processing gig message", { hasMedia: !!event.mediaUrls?.length, senderName: event.senderName });
 
   const { gigId, userId, message, phone, senderName } = event;
 
   const gig = await getGig(gigId);
   if (!gig) {
-    console.error(`[GigProcessor] Gig ${gigId} not found`);
+    log.error("Gig not found");
     return { statusCode: 404, body: "Gig not found" };
   }
 
@@ -333,7 +493,7 @@ export const handler: Handler = async (event: GigProcessorEvent) => {
     metadata = {};
   }
 
-  // Build type-specific system prompt
+  // Build type-specific system prompt with action instructions
   const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
   const systemPrompt = `You are Gigler, an AI assistant. You are managing a gig called "${gig.title}".
 
@@ -342,25 +502,39 @@ ${typePrompt}
 Current gig metadata: ${JSON.stringify(metadata)}
 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-When you have enough info to create a deliverable, mention it.
 If the user wants to add someone to the gig, tell them to text: "Add [name] [phone]"
-If the gig seems complete, suggest marking it done.`;
+If the gig seems complete, suggest marking it done.
 
-  // Call Gemini
-  const aiResponse = await callGemini(systemPrompt, message, history);
+IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
 
-  // Log and send AI response
-  await logMessage(gigId, "gigler", "Gigler", aiResponse, "outbound", "ai");
-  await sendSms(phone, aiResponse);
+Available actions:
+- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image
+- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable
+- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
+- {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
 
-  // Detect if AI response suggests a reminder
-  if (/remind|schedule|set.*reminder/i.test(message)) {
-    const reminderMatch = message.match(/(\d{1,2}[/:]\d{2}\s*(?:am|pm)?|\d{4}-\d{2}-\d{2}|tomorrow|next\s+\w+day)/i);
-    if (reminderMatch) {
-      console.log(`[GigProcessor] Detected reminder request: ${reminderMatch[0]}`);
-      // Reminder creation would parse the time expression -- for now log intent
-    }
+Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
+
+  // Call Gemini with action-aware prompt
+  const rawResponse = await callGemini(systemPrompt, message, history);
+  const { userText, actions } = parseAiResponse(rawResponse);
+
+  // Log and send the user-facing portion
+  await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
+  await sendSms(phone, userText);
+
+  // Execute any parsed actions asynchronously
+  if (actions.length > 0) {
+    log.info("Executing actions from AI response", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
+    await executeActions(actions, { gigId, userId, phone }, log.tracePayload());
   }
+
+  // Update gig metadata with latest interaction timestamp
+  await updateGigMetadata(gigId, {
+    ...metadata,
+    lastInteraction: new Date().toISOString(),
+    messageCount: ((metadata.messageCount as number) || 0) + 1,
+  });
 
   return { statusCode: 200, body: "Processed" };
 };
