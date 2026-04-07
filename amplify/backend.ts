@@ -11,6 +11,7 @@ import { giglerVoiceBridge } from "./functions/gigler-voice-bridge/resource";
 import { giglerEmailHandler } from "./functions/gigler-email-handler/resource";
 import { giglerThirdPartyActions } from "./functions/gigler-third-party-actions/resource";
 import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import { Rule, Schedule } from "aws-cdk-lib/aws-events";
 import { Duration } from "aws-cdk-lib";
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
@@ -70,6 +71,18 @@ grantTableAccess("User", inboundSmsLambda, "USER_TABLE_NAME");
 grantTableAccess("Gig", inboundSmsLambda, "GIG_TABLE_NAME");
 grantTableAccess("Message", inboundSmsLambda, "MESSAGE_TABLE_NAME");
 grantTableAccess("GigParticipant", inboundSmsLambda, "GIG_PARTICIPANT_TABLE_NAME");
+
+// ── gigler-inbound-sms: Lambda Function URL for Twilio webhook ──────────
+const inboundSmsFn = (backend as any).giglerInboundSms.resources.lambda;
+const inboundSmsUrl = inboundSmsFn.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+  cors: {
+    allowedOrigins: ["*"],
+    allowedHeaders: ["*"],
+    allowedMethods: ["*" as any],
+  },
+});
+console.log("gigler-inbound-sms Function URL (for Twilio webhook):", inboundSmsUrl.url);
 
 // ── gigler-gig-processor: needs Gig, Message, Deliverable, Reminder ──────
 const gigProcessorLambda = backend.giglerGigProcessor;

@@ -35,6 +35,7 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
+const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
 const DELIVERABLE_GENERATOR_FUNCTION_NAME = process.env.DELIVERABLE_GENERATOR_FUNCTION_NAME || "";
 const THIRD_PARTY_ACTIONS_FUNCTION_NAME = process.env.THIRD_PARTY_ACTIONS_FUNCTION_NAME || "";
@@ -151,8 +152,13 @@ function parseAiResponse(raw: string): { userText: string; actions: GigAction[] 
     const parsed = JSON.parse(jsonStr);
     const actions: GigAction[] = Array.isArray(parsed) ? parsed : [];
     return { userText, actions };
-  } catch (error) {
-    console.warn("[GigProcessor] Failed to parse ACTION_JSON:", error);
+  } catch {
+    console.warn("[GigProcessor] ACTION_JSON parse failed, attempting brace repair");
+    const repaired = repairTruncatedJson(jsonStr);
+    if (repaired) {
+      const actions: GigAction[] = Array.isArray(repaired) ? repaired : [];
+      return { userText, actions };
+    }
     return { userText: userText || raw.trim(), actions: [] };
   }
 }
@@ -340,7 +346,15 @@ async function logMessage(
 // ── SMS Sending ──────────────────────────────────────────────────────────────
 
 async function sendSms(to: string, message: string): Promise<void> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !GIGLER_NUMBER) return;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
+  if (!TWILIO_MESSAGING_SERVICE_SID && !GIGLER_NUMBER) return;
+
+  const params: Record<string, string> = { To: to, Body: message };
+  if (TWILIO_MESSAGING_SERVICE_SID) {
+    params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+  } else {
+    params.From = GIGLER_NUMBER;
+  }
 
   await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
@@ -350,11 +364,7 @@ async function sendSms(to: string, message: string): Promise<void> {
         Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        From: GIGLER_NUMBER,
-        To: to,
-        Body: message,
-      }).toString(),
+      body: new URLSearchParams(params).toString(),
     }
   );
 }
@@ -403,6 +413,24 @@ async function callGemini(
   } catch (error) {
     console.error("[GigProcessor] Gemini error:", error);
     return "I'm having trouble right now. Try again in a moment!";
+  }
+}
+
+function repairTruncatedJson(raw: string): unknown | null {
+  const partial = raw.match(/\[[\s\S]*/)?.[0] || raw.match(/\{[\s\S]*/)?.[0];
+  if (!partial) return null;
+  try {
+    const repaired = partial.replace(/,\s*"[^"]*$/, "").replace(/,\s*$/, "");
+    const openBraces = (repaired.match(/\{/g) || []).length;
+    const closeBraces = (repaired.match(/\}/g) || []).length;
+    const openBrackets = (repaired.match(/\[/g) || []).length;
+    const closeBrackets = (repaired.match(/\]/g) || []).length;
+    const closed = repaired
+      + "}".repeat(Math.max(0, openBraces - closeBraces))
+      + "]".repeat(Math.max(0, openBrackets - closeBrackets));
+    return JSON.parse(closed);
+  } catch {
+    return null;
   }
 }
 
