@@ -36,6 +36,7 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 const GIG_PROCESSOR_FUNCTION_NAME = process.env.GIG_PROCESSOR_FUNCTION_NAME || "";
 const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
 
@@ -150,9 +151,20 @@ async function sendSms(
   from?: string
 ): Promise<{ success: boolean; messageSid?: string; error?: string }> {
   const fromNumber = from || GIGLER_NUMBER;
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !fromNumber) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
     console.error("[Gigler] Missing Twilio credentials");
     return { success: false, error: "SMS service not configured" };
+  }
+  if (!TWILIO_MESSAGING_SERVICE_SID && !fromNumber) {
+    console.error("[Gigler] No MessagingServiceSid and no From number");
+    return { success: false, error: "SMS service not configured" };
+  }
+
+  const params: Record<string, string> = { To: to, Body: message };
+  if (TWILIO_MESSAGING_SERVICE_SID) {
+    params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
+  } else {
+    params.From = fromNumber;
   }
 
   try {
@@ -164,11 +176,7 @@ async function sendSms(
           Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-          From: fromNumber,
-          To: to,
-          Body: message,
-        }).toString(),
+        body: new URLSearchParams(params).toString(),
       }
     );
 
@@ -456,6 +464,20 @@ async function callGemini(
   }
 }
 
+function repairTruncatedJson(raw: string): Record<string, unknown> | null {
+  const partial = raw.match(/\{[\s\S]*/)?.[0];
+  if (!partial) return null;
+  try {
+    const repaired = partial.replace(/,\s*"[^"]*$/, "").replace(/,\s*$/, "");
+    const openCount = (repaired.match(/\{/g) || []).length;
+    const closeCount = (repaired.match(/\}/g) || []).length;
+    const closed = repaired + "}".repeat(Math.max(0, openCount - closeCount));
+    return JSON.parse(closed);
+  } catch {
+    return null;
+  }
+}
+
 // ── Intent Detection ─────────────────────────────────────────────────────────
 
 type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations";
@@ -509,12 +531,20 @@ JSON format: {"type": "create_gig"|"list_gigs"|"general", "gigType": "...", "tit
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const jsonMatch = text.match(/\{[^}]+\}/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        type: parsed.type || "general",
-        gigType: parsed.gigType,
-        title: parsed.title,
-      };
+      let parsed: Record<string, unknown> | null = null;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch {
+        console.warn("[Gigler] Intent JSON parse failed, attempting brace repair");
+        parsed = repairTruncatedJson(text);
+      }
+      if (parsed) {
+        return {
+          type: (parsed.type as Intent["type"]) || "general",
+          gigType: parsed.gigType as GigType | undefined,
+          title: parsed.title as string | undefined,
+        };
+      }
     }
   } catch (err) {
     console.error("[Gigler] Intent detection error:", err);
@@ -733,7 +763,11 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
   log.info("Inbound SMS event received");
 
   try {
-    const webhook = parseTwilioWebhook(event.body || "");
+    const rawBody = event.body || "";
+    const decodedBody = (event as unknown as { isBase64Encoded?: boolean }).isBase64Encoded
+      ? Buffer.from(rawBody, "base64").toString("utf8")
+      : rawBody;
+    const webhook = parseTwilioWebhook(decodedBody);
     const { From: fromPhone, Body: messageBody } = webhook;
 
     if (!fromPhone) {

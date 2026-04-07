@@ -10,6 +10,7 @@ export const giglerGigProcessor = defineFunction({
     GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.0-flash",
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
+    TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
   },
   resourceGroupName: "data",
