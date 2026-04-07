@@ -11,7 +11,7 @@ export const giglerInboundSms = defineFunction({
     TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
-    GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
   },
   resourceGroupName: "data",
 });

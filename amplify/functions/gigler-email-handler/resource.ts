@@ -10,6 +10,7 @@ export const giglerEmailHandler = defineFunction({
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
     SES_FROM_EMAIL: process.env.SES_FROM_EMAIL || "notifications@gigler.ai",
   },
   resourceGroupName: "data",
