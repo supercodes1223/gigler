@@ -435,6 +435,7 @@ async function callGemini(
   ];
 
   try {
+    console.log(`[Gigler] Calling Gemini model: ${GEMINI_MODEL} (conversation)`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -500,6 +501,7 @@ async function detectIntent(message: string): Promise<Intent> {
   }
 
   try {
+    console.log(`[Gigler] Calling Gemini model: ${GEMINI_MODEL} (intent detection)`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -668,6 +670,7 @@ async function generateGigTitle(message: string): Promise<string> {
   }
 
   try {
+    console.log(`[Gigler] Calling Gemini model: ${GEMINI_MODEL} (title generation)`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
