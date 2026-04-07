@@ -387,6 +387,7 @@ async function callGemini(
   ];
 
   try {
+    console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL}`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
