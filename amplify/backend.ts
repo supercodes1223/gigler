@@ -84,6 +84,18 @@ const inboundSmsUrl = inboundSmsFn.addFunctionUrl({
 });
 console.log("gigler-inbound-sms Function URL (for Twilio webhook):", inboundSmsUrl.url);
 
+// ── gigler-gig-processor: Function URL for Conversations webhook ────────────
+const gigProcessorFn = (backend as any).giglerGigProcessor.resources.lambda;
+const gigProcessorUrl = gigProcessorFn.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+  cors: {
+    allowedOrigins: ["*"],
+    allowedHeaders: ["*"],
+    allowedMethods: ["*" as any],
+  },
+});
+console.log("gigler-gig-processor Function URL (for Conversations webhook):", gigProcessorUrl.url);
+
 // ── gigler-gig-processor: needs Gig, Message, Deliverable, Reminder, User, GigParticipant
 const gigProcessorLambda = backend.giglerGigProcessor;
 grantTableAccess("Gig", gigProcessorLambda, "GIG_TABLE_NAME");

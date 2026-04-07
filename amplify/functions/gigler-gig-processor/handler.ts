@@ -6,8 +6,9 @@
  * Can trigger deliverable generation, media processing,
  * reminders, and third-party actions.
  *
- * Invoked via direct Lambda invocation (not HTTP).
- * Event payload: { gigId, userId, message, mediaUrls?, phone }
+ * Invoked via direct Lambda invocation OR HTTP Function URL (Conversations webhook).
+ * Direct event payload: { gigId, userId, message, mediaUrls?, phone }
+ * HTTP event: Twilio Conversations onMessageAdded webhook (form-encoded)
  */
 
 import type { Handler } from "aws-lambda";
@@ -239,6 +240,12 @@ function twilioConversationsConfig() {
   };
 }
 
+function conversationsBase(path: string): string {
+  return TWILIO_CONVERSATIONS_SERVICE_SID
+    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}${path}`
+    : `https://conversations.twilio.com/v1${path}`;
+}
+
 function conversationsAuthHeaders() {
   return {
     Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
@@ -266,16 +273,13 @@ async function getOrCreateConversation(
 ): Promise<string> {
   if (metadata.conversationSid) return metadata.conversationSid as string;
 
-  const base = TWILIO_CONVERSATIONS_SERVICE_SID
-    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations`
-    : "https://conversations.twilio.com/v1/Conversations";
-
-  const response = await fetch(base, {
+  const response = await fetch(conversationsBase("/Conversations"), {
     method: "POST",
     headers: conversationsAuthHeaders(),
     body: new URLSearchParams({
       FriendlyName: gigTitle,
       UniqueName: `gig-${gigId}`,
+      Attributes: JSON.stringify({ gigId }),
     }).toString(),
   });
   const data = await response.json();
@@ -285,9 +289,20 @@ async function getOrCreateConversation(
   }
 
   const conversationSid = data.sid as string;
-  console.log(`[GigProcessor] Created Conversation ${conversationSid} for gig ${gigId}`);
+  console.log(`[GigProcessor] Created Group MMS Conversation ${conversationSid} for gig ${gigId}`);
 
-  await updateGigMetadata(gigId, { ...metadata, conversationSid });
+  await ddb.send(
+    new UpdateCommand({
+      TableName: GIG_TABLE_NAME,
+      Key: { id: gigId },
+      UpdateExpression: "SET conversationSid = :csid, metadata = :meta, updatedAt = :now",
+      ExpressionAttributeValues: {
+        ":csid": conversationSid,
+        ":meta": JSON.stringify({ ...metadata, conversationSid }),
+        ":now": new Date().toISOString(),
+      },
+    })
+  );
   return conversationSid;
 }
 
@@ -295,48 +310,111 @@ async function addSmsParticipantToConversation(
   conversationSid: string,
   phone: string
 ): Promise<void> {
-  const base = TWILIO_CONVERSATIONS_SERVICE_SID
-    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations/${conversationSid}/Participants`
-    : `https://conversations.twilio.com/v1/Conversations/${conversationSid}/Participants`;
+  const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
 
   const response = await fetch(base, {
     method: "POST",
     headers: conversationsAuthHeaders(),
     body: new URLSearchParams({
       "MessagingBinding.Address": phone,
-      "MessagingBinding.ProxyAddress": GIGLER_NUMBER,
+      "MessagingBinding.ProjectedAddress": GIGLER_NUMBER,
     }).toString(),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    if (data.code === 50433) {
+    if (data.code === 50433 || data.code === 50416) {
       console.log(`[GigProcessor] Participant ${phone} already in conversation`);
       return;
     }
     throw new Error(`Failed to add participant: ${data.message || response.statusText}`);
   }
-  console.log(`[GigProcessor] Added ${phone} to conversation ${conversationSid}`);
+  console.log(`[GigProcessor] Added ${phone} to Group MMS conversation ${conversationSid}`);
+}
+
+async function addGiglerProjectedAddress(conversationSid: string): Promise<void> {
+  const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
+
+  const response = await fetch(base, {
+    method: "POST",
+    headers: conversationsAuthHeaders(),
+    body: new URLSearchParams({
+      "MessagingBinding.ProjectedAddress": GIGLER_NUMBER,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    if (data.code === 50433 || data.code === 50416) {
+      console.log("[GigProcessor] Gigler projected address already in conversation");
+      return;
+    }
+    throw new Error(`Failed to add Gigler projected address: ${data.message || response.statusText}`);
+  }
+  console.log(`[GigProcessor] Added Gigler as projected address in ${conversationSid}`);
 }
 
 async function sendConversationMessage(
   conversationSid: string,
   body: string
 ): Promise<void> {
-  const base = TWILIO_CONVERSATIONS_SERVICE_SID
-    ? `https://conversations.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Conversations/${conversationSid}/Messages`
-    : `https://conversations.twilio.com/v1/Conversations/${conversationSid}/Messages`;
+  const base = conversationsBase(`/Conversations/${conversationSid}/Messages`);
 
   const response = await fetch(base, {
     method: "POST",
     headers: conversationsAuthHeaders(),
-    body: new URLSearchParams({ Author: "Gigler", Body: body }).toString(),
+    body: new URLSearchParams({ Author: GIGLER_NUMBER, Body: body }).toString(),
   });
 
   if (!response.ok) {
     const data = await response.json();
     throw new Error(`Failed to send conversation message: ${data.message || response.statusText}`);
   }
+}
+
+async function fetchConversationMessages(
+  conversationSid: string,
+  limit = 20
+): Promise<Array<{ author: string; body: string; dateCreated: string }>> {
+  const base = conversationsBase(`/Conversations/${conversationSid}/Messages?PageSize=${limit}&Order=desc`);
+
+  const response = await fetch(base, {
+    method: "GET",
+    headers: conversationsAuthHeaders(),
+  });
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  const messages = (data.messages || []) as Array<{ author: string; body: string; date_created: string }>;
+  return messages.reverse().map(m => ({
+    author: m.author,
+    body: m.body,
+    dateCreated: m.date_created,
+  }));
+}
+
+async function getGigParticipants(gigId: string): Promise<Array<Record<string, unknown>>> {
+  if (!GIG_PARTICIPANT_TABLE_NAME) return [];
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: GIG_PARTICIPANT_TABLE_NAME,
+      KeyConditionExpression: "gigId = :gid",
+      ExpressionAttributeValues: { ":gid": gigId },
+    })
+  );
+  return (result.Items as Array<Record<string, unknown>>) || [];
+}
+
+async function findGigByConversationSid(conversationSid: string): Promise<Record<string, unknown> | null> {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: GIG_TABLE_NAME,
+      IndexName: "byConversationSid",
+      KeyConditionExpression: "conversationSid = :csid",
+      ExpressionAttributeValues: { ":csid": conversationSid },
+    })
+  );
+  return (result.Items?.[0] as Record<string, unknown>) || null;
 }
 
 async function handleAddParticipant(
@@ -365,7 +443,29 @@ async function handleAddParticipant(
   const existingUser = await lookupUserByPhone(participantPhone);
   const isNewToGigler = !existingUser;
 
+  const ownerUser = await ddb.send(
+    new GetCommand({ TableName: USER_TABLE_NAME, Key: { id: ownerUserId } })
+  );
+  const ownerName = (ownerUser.Item?.name as string) || "Someone";
+
   const now = new Date().toISOString();
+
+  await ddb.send(
+    new PutCommand({
+      TableName: GIG_PARTICIPANT_TABLE_NAME,
+      Item: {
+        gigId,
+        phone: ownerPhone,
+        userId: ownerUserId,
+        role: "owner",
+        name: ownerName,
+        isGuest: false,
+        joinedAt: now,
+      },
+      ConditionExpression: "attribute_not_exists(gigId) AND attribute_not_exists(phone)",
+    })
+  ).catch(() => { /* owner already exists */ });
+
   await ddb.send(
     new PutCommand({
       TableName: GIG_PARTICIPANT_TABLE_NAME,
@@ -381,16 +481,12 @@ async function handleAddParticipant(
       },
     })
   );
-  console.log(`[GigProcessor] Created GigParticipant record for ${participantPhone} (isGuest: ${isNewToGigler})`);
-
-  const ownerUser = await ddb.send(
-    new GetCommand({ TableName: USER_TABLE_NAME, Key: { id: ownerUserId } })
-  );
-  const ownerName = (ownerUser.Item?.name as string) || "Someone";
+  console.log(`[GigProcessor] Created GigParticipant records for owner ${ownerPhone} and participant ${participantPhone}`);
   const gigTitle = gigItem.title as string || "a gig";
 
   try {
     const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
+    await addGiglerProjectedAddress(conversationSid);
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
@@ -683,17 +779,217 @@ async function createReminder(params: {
   console.log(`[GigProcessor] Created reminder ${id} for gig ${params.gigId}`);
 }
 
+// ── System Prompt Builder ────────────────────────────────────────────────────
+
+const ACTION_INSTRUCTIONS = `
+IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
+
+Available actions:
+- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image
+- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable
+- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
+- {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
+- {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
+
+Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
+
+function buildDirectPrompt(gig: Gig, metadata: Record<string, unknown>): string {
+  const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
+  return `You are Gigler, an AI assistant. You are managing a gig called "${gig.title}".
+
+${typePrompt}
+
+Current gig metadata: ${JSON.stringify(metadata)}
+
+Keep responses concise and SMS-friendly. Be action-oriented and proactive.
+When the user says to add someone (e.g. "Add Sarah 555-123-4567"), use the add_participant action. Convert the phone to E.164 format (+15551234567).
+If the gig seems complete, suggest marking it done.
+${ACTION_INSTRUCTIONS}`;
+}
+
+function buildGroupPrompt(
+  gig: Gig,
+  metadata: Record<string, unknown>,
+  participants: Array<Record<string, unknown>>,
+  senderName: string,
+  senderPhone: string
+): string {
+  const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
+  const roster = participants.map(p => {
+    const name = p.name as string || "Unknown";
+    const role = p.role as string || "collaborator";
+    const phone = p.phone as string || "";
+    return `- ${name} (${role})${phone === senderPhone ? " [sender of this message]" : ""}`;
+  }).join("\n");
+
+  return `You are Gigler, an AI assistant participating in a GROUP TEXT thread for a gig called "${gig.title}".
+
+${typePrompt}
+
+Current gig metadata: ${JSON.stringify(metadata)}
+
+PARTICIPANTS IN THIS GROUP THREAD:
+${roster}
+
+The latest message was sent by: ${senderName} (${senderPhone})
+
+CRITICAL RULES FOR GROUP CONVERSATION:
+1. You are ONE participant among humans. Do NOT respond to every message.
+2. STAY SILENT when humans are talking to each other (e.g. "sounds good!", "see you at 7", "haha yeah", casual banter).
+3. RESPOND when someone asks a question you can help with, requests something actionable, or directly addresses you/Gigler.
+4. RESPOND when you can offer genuinely useful information (e.g. after a planning discussion settles, suggest a next step).
+5. Use common sense. If two people are coordinating with each other, stay out of it.
+6. Be natural and concise. You're a helpful friend in the group, not a chatbot.
+7. NEVER repeat information that was already discussed in the thread.
+
+RESPONSE FORMAT:
+First line MUST be exactly one of:
+RESPOND: true
+RESPOND: false
+
+If RESPOND: true, write your message on the following lines.
+If RESPOND: false, write nothing else.
+${ACTION_INSTRUCTIONS}`;
+}
+
+// ── Conversations Webhook Handler ────────────────────────────────────────────
+
+function parseFormBody(body: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  for (const pair of body.split("&")) {
+    const [key, value] = pair.split("=").map(decodeURIComponent);
+    if (key) params[key] = value || "";
+  }
+  return params;
+}
+
+async function handleConversationsWebhook(event: Record<string, unknown>): Promise<{ statusCode: number; body: string }> {
+  const rawBody = (event.body as string) || "";
+  const decodedBody = (event as unknown as { isBase64Encoded?: boolean }).isBase64Encoded
+    ? Buffer.from(rawBody, "base64").toString("utf8")
+    : rawBody;
+
+  const params = parseFormBody(decodedBody);
+  const eventType = params.EventType;
+  const conversationSid = params.ConversationSid;
+  const author = params.Author;
+  const messageBody = params.Body;
+
+  if (eventType !== "onMessageAdded" || !conversationSid || !messageBody) {
+    return { statusCode: 200, body: "Ignored" };
+  }
+
+  if (author === GIGLER_NUMBER) {
+    return { statusCode: 200, body: "Skip own message" };
+  }
+
+  console.log(`[GigProcessor] Group message in ${conversationSid} from ${author}: ${messageBody.substring(0, 80)}`);
+
+  const gigFromGsi = await findGigByConversationSid(conversationSid);
+  let gigId: string | undefined = gigFromGsi?.id as string | undefined;
+
+  if (!gigId) {
+    const convResponse = await fetch(conversationsBase(`/Conversations/${conversationSid}`), {
+      method: "GET",
+      headers: conversationsAuthHeaders(),
+    });
+    if (convResponse.ok) {
+      const convData = await convResponse.json();
+      try {
+        const attrs = JSON.parse(convData.attributes || "{}");
+        gigId = attrs.gigId;
+      } catch { /* ignore */ }
+      if (!gigId && convData.unique_name) {
+        const match = (convData.unique_name as string).match(/^gig-(.+)$/);
+        if (match) gigId = match[1];
+      }
+    }
+  }
+
+  if (!gigId) {
+    console.error("[GigProcessor] Could not determine gigId from conversation");
+    return { statusCode: 200, body: "No gigId" };
+  }
+
+  const gig = await getGig(gigId);
+  if (!gig || gig.status !== "active") {
+    return { statusCode: 200, body: "Gig not active" };
+  }
+
+  let metadata: Record<string, unknown> = {};
+  try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { /* ignore */ }
+
+  const participants = await getGigParticipants(gigId);
+  const senderParticipant = participants.find(p => p.phone === author);
+  const senderName = (senderParticipant?.name as string) || author || "Someone";
+
+  await logMessage(gigId, (senderParticipant?.userId as string) || author || "unknown", senderName, messageBody, "inbound", "group-mms");
+
+  const recentMessages = await fetchConversationMessages(conversationSid, 20);
+  const history = recentMessages
+    .filter(m => m.author !== author || m.body !== messageBody)
+    .map(m => {
+      const p = participants.find(pp => pp.phone === m.author);
+      const name = m.author === GIGLER_NUMBER ? "Gigler" : ((p?.name as string) || m.author);
+      return { role: m.author === GIGLER_NUMBER ? "ai" : "user", content: `[${name}]: ${m.body}` };
+    });
+
+  const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "");
+  console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
+  const rawResponse = await callGemini(systemPrompt, `[${senderName}]: ${messageBody}`, history);
+
+  const respondMatch = rawResponse.match(/^RESPOND:\s*(true|false)\s*\n?([\s\S]*)/i);
+  const shouldRespond = respondMatch ? respondMatch[1].toLowerCase() === "true" : rawResponse.trim().length > 0;
+  const responseText = respondMatch ? (respondMatch[2] || "").trim() : rawResponse.trim();
+
+  if (!shouldRespond || !responseText) {
+    console.log("[GigProcessor] AI decided to stay silent in group thread");
+    await updateGigMetadata(gigId, {
+      ...metadata,
+      lastInteraction: new Date().toISOString(),
+      messageCount: ((metadata.messageCount as number) || 0) + 1,
+    });
+    return { statusCode: 200, body: "Silent" };
+  }
+
+  const { userText, actions } = parseAiResponse(responseText);
+
+  await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "group-mms-ai");
+  await sendConversationMessage(conversationSid, userText);
+  console.log(`[GigProcessor] Sent group reply in ${conversationSid}`);
+
+  if (actions.length > 0) {
+    const ownerParticipant = participants.find(p => p.role === "owner");
+    const ownerPhone = (ownerParticipant?.phone as string) || "";
+    const ownerUserId = (ownerParticipant?.userId as string) || "";
+    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
+  }
+
+  await updateGigMetadata(gigId, {
+    ...metadata,
+    lastInteraction: new Date().toISOString(),
+    messageCount: ((metadata.messageCount as number) || 0) + 1,
+  });
+
+  return { statusCode: 200, body: "Responded" };
+}
+
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-export const handler: Handler = async (event: GigProcessorEvent, context) => {
-  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+export const handler: Handler = async (event: Record<string, unknown>, context) => {
+  if (event.requestContext && event.headers) {
+    return handleConversationsWebhook(event);
+  }
+
+  const gigEvent = event as unknown as GigProcessorEvent;
+  const trace = gigEvent._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
   const log = createLogger({
     ...trace, source: "gigler-gig-processor",
-    gigId: event.gigId, userId: event.userId, phone: event.phone,
+    gigId: gigEvent.gigId, userId: gigEvent.userId, phone: gigEvent.phone,
   });
-  log.info("Processing gig message", { hasMedia: !!event.mediaUrls?.length, senderName: event.senderName });
+  log.info("Processing gig message", { hasMedia: !!gigEvent.mediaUrls?.length, senderName: gigEvent.senderName });
 
-  const { gigId, userId, message, phone, senderName } = event;
+  const { gigId, userId, message, phone, senderName } = gigEvent;
 
   const gig = await getGig(gigId);
   if (!gig) {
@@ -706,58 +1002,25 @@ export const handler: Handler = async (event: GigProcessorEvent, context) => {
     return { statusCode: 200, body: "Gig not active" };
   }
 
-  // Log inbound message
   await logMessage(gigId, userId, senderName || phone, message, "inbound");
-
-  // Fetch conversation history
   const history = await fetchConversationHistory(gigId, 30);
 
-  // Parse existing metadata
   let metadata: Record<string, unknown> = {};
-  try {
-    metadata = gig.metadata ? JSON.parse(gig.metadata) : {};
-  } catch {
-    metadata = {};
-  }
+  try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
 
-  // Build type-specific system prompt with action instructions
-  const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
-  const systemPrompt = `You are Gigler, an AI assistant. You are managing a gig called "${gig.title}".
+  const systemPrompt = buildDirectPrompt(gig, metadata);
 
-${typePrompt}
-
-Current gig metadata: ${JSON.stringify(metadata)}
-
-Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-When the user says to add someone (e.g. "Add Sarah 555-123-4567"), use the add_participant action. Convert the phone to E.164 format (+15551234567).
-If the gig seems complete, suggest marking it done.
-
-IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
-
-Available actions:
-- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image
-- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable
-- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
-- {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
-- {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
-
-Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
-
-  // Call Gemini with action-aware prompt
   const rawResponse = await callGemini(systemPrompt, message, history);
   const { userText, actions } = parseAiResponse(rawResponse);
 
-  // Log and send the user-facing portion
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
   await sendSms(phone, userText);
 
-  // Execute any parsed actions asynchronously
   if (actions.length > 0) {
     log.info("Executing actions from AI response", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
     await executeActions(actions, { gigId, userId, phone }, log.tracePayload());
   }
 
-  // Update gig metadata with latest interaction timestamp
   await updateGigMetadata(gigId, {
     ...metadata,
     lastInteraction: new Date().toISOString(),
