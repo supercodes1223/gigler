@@ -25,6 +25,35 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
+interface TraceContext { traceId: string; requestId: string; source: string; }
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  return phone && phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
+
 interface MediaEvent {
   action: "download_mms" | "generate_image" | "generate_video";
   gigId: string;
@@ -32,6 +61,7 @@ interface MediaEvent {
   mediaUrls?: string[];
   prompt?: string;
   phone: string;
+  _trace?: TraceContext;
 }
 
 async function downloadTwilioMedia(url: string): Promise<{ buffer: Buffer; contentType: string }> {
@@ -166,12 +196,18 @@ async function generateImageWithDallE(prompt: string): Promise<Buffer | null> {
   }
 }
 
-export const handler: Handler = async (event: MediaEvent) => {
-  console.log(`[MediaProcessor] Action: ${event.action}, Gig: ${event.gigId}`);
+export const handler: Handler = async (event: MediaEvent, context) => {
+  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+  const log = createLogger({
+    ...trace, source: "gigler-media-processor",
+    gigId: event.gigId, userId: event.userId, phone: event.phone,
+  });
+  log.info("Media processor invoked", { action: event.action });
 
   switch (event.action) {
     case "download_mms": {
       const urls = event.mediaUrls || [];
+      log.info("Downloading MMS media", { urlCount: urls.length });
       const results: string[] = [];
 
       for (const url of urls) {
@@ -184,22 +220,27 @@ export const handler: Handler = async (event: MediaEvent) => {
           await saveToS3(s3Key, buffer, contentType);
           await createMediaRecord(event.gigId, mediaId, s3Key, getMediaType(contentType), event.userId);
           results.push(s3Key);
+          log.info("Downloaded media file", { mediaId, contentType, s3Key, bytes: buffer.length });
         } catch (error) {
-          console.error(`[MediaProcessor] Failed to download: ${url}`, error);
+          log.error("Failed to download media", { url, error: String(error) });
         }
       }
 
+      log.info("MMS download complete", { processed: results.length });
       return { statusCode: 200, body: JSON.stringify({ processed: results.length, keys: results }) };
     }
 
     case "generate_image": {
       const prompt = event.prompt || "";
+      log.info("Generating AI image", { promptPreview: prompt.substring(0, 100) });
       let imageBuffer = await generateImageWithGemini(prompt);
       if (!imageBuffer) {
+        log.warn("Gemini image generation failed — trying DALL-E fallback");
         imageBuffer = await generateImageWithDallE(prompt);
       }
 
       if (!imageBuffer) {
+        log.error("All image generation providers failed");
         return { statusCode: 500, body: "Failed to generate image" };
       }
 
@@ -208,15 +249,17 @@ export const handler: Handler = async (event: MediaEvent) => {
       await saveToS3(s3Key, imageBuffer, "image/png");
       await createMediaRecord(event.gigId, mediaId, s3Key, "photo", "gigler");
 
+      log.info("Image generated and stored", { mediaId, s3Key, bytes: imageBuffer.length });
       return { statusCode: 200, body: JSON.stringify({ mediaId, s3Key }) };
     }
 
     case "generate_video": {
-      console.log("[MediaProcessor] Video generation not yet implemented");
+      log.warn("Video generation not yet implemented");
       return { statusCode: 501, body: "Video generation coming soon" };
     }
 
     default:
+      log.error("Unknown action", { action: event.action });
       return { statusCode: 400, body: "Unknown action" };
   }
 };

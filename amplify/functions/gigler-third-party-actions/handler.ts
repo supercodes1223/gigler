@@ -30,6 +30,35 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 
+interface TraceContext { traceId: string; requestId: string; source: string; }
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  return phone && phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
+
 interface ThirdPartyEvent {
   gigId: string;
   userId: string;
@@ -38,6 +67,7 @@ interface ThirdPartyEvent {
   params: Record<string, unknown>;
   phone: string;
   actionId?: string;
+  _trace?: TraceContext;
 }
 
 interface ThirdPartyAdapter {
@@ -170,14 +200,21 @@ async function sendSms(to: string, message: string): Promise<void> {
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-export const handler: Handler = async (event: ThirdPartyEvent) => {
-  console.log(`[ThirdPartyActions] ${event.platform}/${event.actionType} for gig ${event.gigId}`);
+export const handler: Handler = async (event: ThirdPartyEvent, context) => {
+  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+  const log = createLogger({
+    ...trace, source: "gigler-third-party-actions",
+    gigId: event.gigId, userId: event.userId, phone: event.phone,
+  });
+  log.info("Third-party action invoked", { platform: event.platform, actionType: event.actionType });
 
   const adapter = getAdapter(event.platform);
 
   switch (event.actionType) {
     case "search": {
+      log.info("Searching platform", { params: event.params });
       const results = await adapter.search(event.params);
+      log.info("Search results", { resultCount: results.length });
       let message = `Found ${results.length} option${results.length !== 1 ? "s" : ""}:\n`;
       results.forEach((r, i) => {
         message += `\n${i + 1}. ${r.name}${r.time ? ` at ${r.time}` : ""}${r.party ? ` (party of ${r.party})` : ""}`;
@@ -188,8 +225,10 @@ export const handler: Handler = async (event: ThirdPartyEvent) => {
     }
 
     case "action": {
+      log.info("Executing platform action", { params: event.params });
       const result = await adapter.execute(event.params);
       const actionId = `tpa_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      log.info("Action executed", { actionId, externalId: result.externalId });
 
       await ddb.send(
         new PutCommand({

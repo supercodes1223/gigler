@@ -29,12 +29,42 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
+interface TraceContext { traceId: string; requestId: string; source: string; }
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  return phone && phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
+
 interface VoiceBridgeEvent {
   type: "wake_up" | "check_in" | "consultation";
   userId: string;
   gigId?: string;
   phone: string;
   context?: string;
+  _trace?: TraceContext;
 }
 
 async function getUser(userId: string): Promise<Record<string, unknown> | null> {
@@ -102,12 +132,17 @@ function buildWakeUpBriefing(
   return briefing;
 }
 
-export const handler: Handler = async (event: VoiceBridgeEvent) => {
-  console.log(`[VoiceBridge] ${event.type} call for user ${event.userId}`);
+export const handler: Handler = async (event: VoiceBridgeEvent, context) => {
+  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+  const log = createLogger({
+    ...trace, source: "gigler-voice-bridge",
+    gigId: event.gigId, userId: event.userId, phone: event.phone,
+  });
+  log.info("Voice bridge invoked", { callType: event.type });
 
   const user = await getUser(event.userId);
   if (!user) {
-    console.error(`[VoiceBridge] User ${event.userId} not found`);
+    log.error("User not found");
     return { statusCode: 404 };
   }
 
@@ -136,7 +171,7 @@ export const handler: Handler = async (event: VoiceBridgeEvent) => {
     await logVoiceAttempt(event, callContext);
   }
 
-  console.log(`[VoiceBridge] Sent ${event.type} briefing to ${event.phone}`);
+  log.info("Voice briefing sent via SMS", { callType: event.type, activeGigCount: gigs.length });
   return { statusCode: 200, body: callContext };
 };
 

@@ -30,6 +30,31 @@ const RESERVED_PATHS = new Set([
   "d", "admin", "billing", "help", "support",
 ]);
 
+interface TraceContext { traceId: string; requestId: string; source: string; }
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId,
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+  };
+}
+
 interface DeliverableEvent {
   gigId: string;
   userId: string;
@@ -37,6 +62,7 @@ interface DeliverableEvent {
   title: string;
   content: string;
   phone: string;
+  _trace?: TraceContext;
 }
 
 function generateShortCode(): string {
@@ -151,8 +177,10 @@ function generateHtmlPage(title: string, content: string): string {
 </html>`;
 }
 
-export const handler: Handler = async (event: DeliverableEvent) => {
-  console.log(`[DeliverableGenerator] Creating ${event.type} for gig ${event.gigId}`);
+export const handler: Handler = async (event: DeliverableEvent, context) => {
+  const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
+  const log = createLogger({ ...trace, source: "gigler-deliverable-generator", gigId: event.gigId, userId: event.userId });
+  log.info("Creating deliverable", { type: event.type, title: event.title });
 
   const shortCode = await getUniqueShortCode();
   const deliverableId = `del_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -207,7 +235,7 @@ export const handler: Handler = async (event: DeliverableEvent) => {
     })
   );
 
-  console.log(`[DeliverableGenerator] Created ${event.type}: ${giglerUrl}`);
+  log.info("Deliverable created", { deliverableId, shortCode, url: giglerUrl, type: event.type, s3Key });
   return {
     statusCode: 200,
     body: JSON.stringify({

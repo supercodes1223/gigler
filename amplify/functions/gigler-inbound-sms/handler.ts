@@ -20,10 +20,12 @@ import {
   PutCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
+const lambdaClient = new LambdaClient({});
 
 const USER_TABLE_NAME = process.env.USER_TABLE_NAME || "";
 const GIG_TABLE_NAME = process.env.GIG_TABLE_NAME || "";
@@ -34,8 +36,49 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const GIG_PROCESSOR_FUNCTION_NAME = process.env.GIG_PROCESSOR_FUNCTION_NAME || "";
+const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
 
 const GENERAL_THREAD_ID = "_general";
+
+// ── Structured Tracing ───────────────────────────────────────────────────────
+
+interface TraceContext {
+  traceId: string;
+  requestId: string;
+  source: string;
+}
+
+function generateTraceId(): string {
+  return `trc_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+function maskPhone(phone?: string): string | undefined {
+  if (!phone) return undefined;
+  return phone.length > 4 ? `***${phone.slice(-4)}` : phone;
+}
+
+function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; phone?: string }) {
+  const emit = (level: string, message: string, data?: Record<string, unknown>) => {
+    const entry = {
+      level, ts: new Date().toISOString(),
+      traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source,
+      gigId: ctx.gigId, userId: ctx.userId, phone: maskPhone(ctx.phone),
+      message, ...(data && { data }),
+    };
+    if (level === "ERROR") console.error(JSON.stringify(entry));
+    else if (level === "WARN") console.warn(JSON.stringify(entry));
+    else console.log(JSON.stringify(entry));
+  };
+  return {
+    info: (msg: string, data?: Record<string, unknown>) => emit("INFO", msg, data),
+    warn: (msg: string, data?: Record<string, unknown>) => emit("WARN", msg, data),
+    error: (msg: string, data?: Record<string, unknown>) => emit("ERROR", msg, data),
+    child: (overrides: Partial<TraceContext & { gigId?: string; userId?: string; phone?: string }>) =>
+      createLogger({ ...ctx, ...overrides }),
+    tracePayload: (): TraceContext => ({ traceId: ctx.traceId, requestId: ctx.requestId, source: ctx.source }),
+  };
+}
 
 interface TwilioSmsWebhook {
   MessageSid: string;
@@ -307,6 +350,46 @@ async function linkGuestParticipationsToUser(
   }
 }
 
+// ── Lambda Invocation ────────────────────────────────────────────────────────
+
+async function invokeLambdaAsync(
+  functionName: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  if (!functionName) {
+    console.warn("[Gigler] Skipping invoke — no function name configured");
+    return;
+  }
+  try {
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: functionName,
+        InvocationType: "Event",
+        Payload: new TextEncoder().encode(JSON.stringify(payload)),
+      })
+    );
+    console.log(`[Gigler] Async invoked ${functionName}`);
+  } catch (error) {
+    console.error(`[Gigler] Failed to invoke ${functionName}:`, error);
+  }
+}
+
+// ── Active Gig Lookup ────────────────────────────────────────────────────────
+
+async function getActiveGigsForUser(
+  userId: string
+): Promise<Array<Record<string, unknown>>> {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: GIG_TABLE_NAME,
+      IndexName: "byOwner",
+      KeyConditionExpression: "ownerId = :uid",
+      ExpressionAttributeValues: { ":uid": userId },
+    })
+  );
+  return (result.Items || []).filter((g) => g.status === "active");
+}
+
 // ── Timezone Guessing ────────────────────────────────────────────────────────
 
 function guessTimezone(state?: string): string {
@@ -507,7 +590,7 @@ async function createGig(
   return { id, title };
 }
 
-async function handleCreateGig(user: User, message: string, gigType: GigType): Promise<string> {
+async function handleCreateGig(user: User, message: string, gigType: GigType, mediaUrls: string[] = []): Promise<string> {
   const title = await generateGigTitle(message);
   const gig = await createGig(user, title, gigType, message);
 
@@ -524,6 +607,29 @@ Don't use bullet points with dashes. Use simple numbered lists or line breaks.`;
 
   const aiResponse = await callGemini(systemPrompt, message);
   await logMessage(gig.id, "gigler", "Gigler", aiResponse, "outbound", "ai");
+
+  // Invoke gig-processor async so it can do type-specific follow-up
+  await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+    gigId: gig.id,
+    userId: user.id,
+    message,
+    mediaUrls,
+    phone: user.phone,
+    senderName: user.name,
+    _trace: { traceId: generateTraceId(), requestId: "create-gig", source: "gigler-inbound-sms" },
+  });
+
+  // If MMS was included, kick off media download
+  if (mediaUrls.length > 0) {
+    await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+      action: "download_mms",
+      gigId: gig.id,
+      userId: user.id,
+      mediaUrls,
+      phone: user.phone,
+      _trace: { traceId: generateTraceId(), requestId: "create-gig-mms", source: "gigler-inbound-sms" },
+    });
+  }
 
   return aiResponse;
 }
@@ -618,8 +724,13 @@ async function handleOnboardingNameCollection(
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-export const handler: APIGatewayProxyHandler = async (event) => {
-  console.log("[Gigler] Inbound SMS event received");
+export const handler: APIGatewayProxyHandler = async (event, context) => {
+  const log = createLogger({
+    traceId: generateTraceId(),
+    requestId: context.awsRequestId,
+    source: "gigler-inbound-sms",
+  });
+  log.info("Inbound SMS event received");
 
   try {
     const webhook = parseTwilioWebhook(event.body || "");
@@ -632,21 +743,27 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const body = (messageBody || "").trim();
     const mediaUrls = extractMediaUrls(webhook);
 
-    console.log(`[Gigler] From: ${fromPhone}, Body: ${body.substring(0, 100)}, Media: ${mediaUrls.length}`);
+    log.info("Parsed webhook", {
+      phone: maskPhone(fromPhone), bodyPreview: body.substring(0, 100),
+      mediaCount: mediaUrls.length, messageSid: webhook.MessageSid,
+    });
 
     // Step 1: Identify user by phone
     const user = await lookupUserByPhone(fromPhone);
 
     // Step 2: Brand new user -- never seen before
     if (!user) {
-      console.log(`[Gigler] New user: ${fromPhone}`);
+      log.info("New user — starting onboarding", { phone: maskPhone(fromPhone) });
       const response = await handleBrandNewUser(fromPhone, webhook.FromCity, webhook.FromState);
       return twimlResponse(response);
     }
 
+    // Enrich logger with user context for all subsequent logs
+    const ulog = log.child({ userId: user.id, phone: fromPhone });
+
     // Step 3: User exists but hasn't completed onboarding (waiting for name)
     if (!user.onboardingComplete) {
-      console.log(`[Gigler] Onboarding user ${user.id}: collecting name`);
+      ulog.info("Onboarding — collecting name");
       const response = await handleOnboardingNameCollection(user, body);
       return twimlResponse(response);
     }
@@ -655,12 +772,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const guestParticipations = await lookupGuestParticipation(fromPhone);
     const isKnownGuest = guestParticipations.some((p) => p.isGuest === true);
     if (isKnownGuest) {
+      ulog.info("Linking guest participations", { guestCount: guestParticipations.length });
       await linkGuestParticipationsToUser(guestParticipations, user.id);
     }
 
     // Step 5: Intent detection -- classify message before AI response
     const intent = await detectIntent(body);
-    console.log(`[Gigler] Intent: ${intent.type}`);
+    ulog.info("Intent detected", { intent: intent.type, gigType: intent.gigType });
 
     // Step 6: Route by intent
     if (intent.type === "list_gigs") {
@@ -670,12 +788,66 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     }
 
     if (intent.type === "create_gig") {
-      const response = await handleCreateGig(user, body, intent.gigType || "planning");
+      const response = await handleCreateGig(user, body, intent.gigType || "planning", mediaUrls);
       await sendSms(fromPhone, response);
       return twimlResponse("");
     }
 
-    // Step 7: Default -- general conversation with Gemini
+    // Step 6b: Check for resume_gig — route to gig-processor if user has active gig(s)
+    const activeGigs = await getActiveGigsForUser(user.id);
+
+    // If user texts a single number, treat it as gig selection from list
+    const gigSelectionMatch = body.match(/^(\d+)$/);
+    if (gigSelectionMatch && activeGigs.length > 0) {
+      const idx = parseInt(gigSelectionMatch[1], 10) - 1;
+      if (idx >= 0 && idx < activeGigs.length) {
+        const selectedGig = activeGigs[idx];
+        const glog = ulog.child({ gigId: selectedGig.id as string });
+        glog.info("User selected gig from list", { gigIndex: idx + 1, gigTitle: selectedGig.title });
+        await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+          gigId: selectedGig.id as string,
+          userId: user.id,
+          message: `I'd like to continue working on this gig.`,
+          phone: fromPhone,
+          senderName: user.name,
+          _trace: glog.tracePayload(),
+        });
+        await sendSms(fromPhone, `Resuming "${selectedGig.title}"! What would you like to do?`);
+        return twimlResponse("");
+      }
+    }
+
+    // If user has exactly 1 active gig and intent is general, route to gig-processor
+    if (activeGigs.length === 1 && intent.type === "general") {
+      const activeGig = activeGigs[0];
+      const glog = ulog.child({ gigId: activeGig.id as string });
+      glog.info("Auto-routing to single active gig", { gigTitle: activeGig.title });
+      await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+        gigId: activeGig.id as string,
+        userId: user.id,
+        message: body,
+        mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+        phone: fromPhone,
+        senderName: user.name,
+        _trace: glog.tracePayload(),
+      });
+
+      if (mediaUrls.length > 0) {
+        glog.info("Invoking media-processor for MMS download", { urlCount: mediaUrls.length });
+        await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+          action: "download_mms",
+          gigId: activeGig.id as string,
+          userId: user.id,
+          mediaUrls,
+          phone: fromPhone,
+          _trace: glog.tracePayload(),
+        });
+      }
+
+      return twimlResponse("");
+    }
+
+    // Step 7: Default — general conversation with Gemini (no active gigs or multiple)
     await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
     const history = await fetchConversationHistory(GENERAL_THREAD_ID, 20);
     const systemPrompt = buildSystemPrompt(user, isKnownGuest);
@@ -684,9 +856,22 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     await logMessage(GENERAL_THREAD_ID, "gigler", "Gigler", aiResponse, "outbound", "ai");
     await sendSms(fromPhone, aiResponse);
 
+    // Download MMS media even in general conversation
+    if (mediaUrls.length > 0) {
+      ulog.info("Invoking media-processor for general MMS", { urlCount: mediaUrls.length });
+      await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+        action: "download_mms",
+        gigId: GENERAL_THREAD_ID,
+        userId: user.id,
+        mediaUrls,
+        phone: fromPhone,
+        _trace: ulog.tracePayload(),
+      });
+    }
+
     return twimlResponse("");
   } catch (error) {
-    console.error("[Gigler] Handler error:", error);
+    log.error("Handler error", { error: String(error) });
     return twimlResponse("Something went wrong. Try again in a moment!");
   }
 };

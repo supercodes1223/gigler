@@ -132,6 +132,40 @@ grantTableAccess("ThirdPartyAction", thirdPartyLambda, "THIRD_PARTY_ACTION_TABLE
 grantTableAccess("Gig", thirdPartyLambda, "GIG_TABLE_NAME", true);
 grantTableAccess("UserIntegration", thirdPartyLambda, "USER_INTEGRATION_TABLE_NAME", true);
 
+// ── Helper to wire Lambda-to-Lambda invoke permission + env var ────────────
+function grantLambdaInvoke(
+  caller: { resources: { lambda: unknown } },
+  target: { resources: { lambda: unknown } },
+  envVarName: string
+) {
+  const callerFn = caller?.resources?.lambda as {
+    addEnvironment: (key: string, value: string) => void;
+  } | undefined;
+  const targetFn = target?.resources?.lambda as {
+    grantInvoke: (grantee: unknown) => void;
+    functionName: string;
+  } | undefined;
+
+  if (callerFn && targetFn) {
+    targetFn.grantInvoke(callerFn);
+    callerFn.addEnvironment(envVarName, targetFn.functionName);
+  }
+}
+
+// ── Cross-Lambda invoke permissions ───────────────────────────────────────
+// inbound-sms -> gig-processor (async invoke after gig creation / resume)
+grantLambdaInvoke(inboundSmsLambda, gigProcessorLambda, "GIG_PROCESSOR_FUNCTION_NAME");
+// inbound-sms -> media-processor (MMS download on inbound media)
+grantLambdaInvoke(inboundSmsLambda, mediaLambda, "MEDIA_PROCESSOR_FUNCTION_NAME");
+// gig-processor -> media-processor (AI image generation)
+grantLambdaInvoke(gigProcessorLambda, mediaLambda, "MEDIA_PROCESSOR_FUNCTION_NAME");
+// gig-processor -> deliverable-generator (PDF, website, etc.)
+grantLambdaInvoke(gigProcessorLambda, deliverableLambda, "DELIVERABLE_GENERATOR_FUNCTION_NAME");
+// gig-processor -> third-party-actions (reservations, bookings)
+grantLambdaInvoke(gigProcessorLambda, thirdPartyLambda, "THIRD_PARTY_ACTIONS_FUNCTION_NAME");
+// reminder-scheduler -> voice-bridge (wake-up calls, check-ins)
+grantLambdaInvoke(reminderLambda, voiceLambda, "VOICE_BRIDGE_FUNCTION_NAME");
+
 // ── SES permissions for email-sending Lambdas ─────────────────────────────
 const sesPolicy = new PolicyStatement({
   effect: Effect.ALLOW,
