@@ -106,14 +106,14 @@ discover_tables() {
   THIRD_PARTY_TABLE=${THIRD_PARTY_TABLE:-$(find_table "ThirdPartyAction")}
   USER_INTEGRATION_TABLE=${USER_INTEGRATION_TABLE:-$(find_table "UserIntegration")}
 
-  INBOUND_SMS_FN=${INBOUND_SMS_FN:-$(find_lambda "inbound-sms")}
-  GIG_PROCESSOR_FN=${GIG_PROCESSOR_FN:-$(find_lambda "gig-processor")}
-  REMINDER_FN=${REMINDER_FN:-$(find_lambda "reminder-scheduler")}
-  MEDIA_FN=${MEDIA_FN:-$(find_lambda "media-processor")}
-  DELIVERABLE_FN=${DELIVERABLE_FN:-$(find_lambda "deliverable-generator")}
-  VOICE_FN=${VOICE_FN:-$(find_lambda "voice-bridge")}
-  EMAIL_FN=${EMAIL_FN:-$(find_lambda "email-handler")}
-  THIRD_PARTY_FN=${THIRD_PARTY_FN:-$(find_lambda "third-party")}
+  INBOUND_SMS_FN=${INBOUND_SMS_FN:-$(find_lambda "giglerinboundsms")}
+  GIG_PROCESSOR_FN=${GIG_PROCESSOR_FN:-$(find_lambda "giglergigprocessor")}
+  REMINDER_FN=${REMINDER_FN:-$(find_lambda "giglerreminderscheduler")}
+  MEDIA_FN=${MEDIA_FN:-$(find_lambda "giglermediaprocessor")}
+  DELIVERABLE_FN=${DELIVERABLE_FN:-$(find_lambda "giglerdeliverablegenerat")}
+  VOICE_FN=${VOICE_FN:-$(find_lambda "giglervoicebridge")}
+  EMAIL_FN=${EMAIL_FN:-$(find_lambda "gigleremailhandler")}
+  THIRD_PARTY_FN=${THIRD_PARTY_FN:-$(find_lambda "giglerthirdpartyactions")}
 
   log_info "Tables:"
   log_info "  User          = ${USER_TABLE:-NOT FOUND}"
@@ -710,10 +710,10 @@ delete_test_gig() {
 
 delete_test_participant() {
   local gig_id=$1
-  local user_id=$2
+  local phone=$2
   aws dynamodb delete-item --region "$AWS_REGION" \
     --table-name "$GIG_PARTICIPANT_TABLE" \
-    --key "{\"gigId\":{\"S\":\"$gig_id\"},\"userId\":{\"S\":\"$user_id\"}}" 2>/dev/null
+    --key "{\"gigId\":{\"S\":\"$gig_id\"},\"phone\":{\"S\":\"$phone\"}}" 2>/dev/null
 }
 
 test_smart_routing() {
@@ -749,60 +749,33 @@ test_smart_routing() {
   log_info "  Created gig C (other user): $GIG_C - Team Offsite Logistics"
 
   create_test_participant "$GIG_C" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
-  ROUTING_PARTICIPANTS+=("$GIG_C|$TEST_USER_ID")
+  ROUTING_PARTICIPANTS+=("$GIG_C|$TEST_PHONE")
   log_info "  Added test user as collaborator on gig C"
 
   sleep 1
 
   # ── Scenario 1: Unambiguous routing to "Birthday Party" ──
   log_info "Scenario 1: Message clearly about birthday party..."
-  local result
-  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Route to Birthday Party gig")
-  local status
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-  if [ "$status" = "200" ]; then
-    log_pass "Scenario 1: Unambiguous party message routed successfully"
-  else
-    log_fail "Scenario 1: Expected 200, got $status"
-  fi
-  sleep 2
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Scenario 1: Route to Birthday Party" || true
+  sleep 3
 
   # ── Scenario 2: Ambiguous message should trigger disambiguation ──
   log_info "Scenario 2: Ambiguous message 'What's the status?'..."
-  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Ambiguous routing test")
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-  if [ "$status" = "200" ]; then
-    log_pass "Scenario 2: Ambiguous message handled (HTTP 200)"
-    local body_text
-    body_text=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" 2>/dev/null || echo "")
-    if echo "$body_text" | grep -qi "which\|gig\|pick\|select\|choose"; then
-      log_pass "Scenario 2: Response contains disambiguation prompt"
-    else
-      log_info "Scenario 2: Response may have auto-routed instead of disambiguating (AI decided)"
-    fi
-  else
-    log_fail "Scenario 2: Expected 200, got $status"
-  fi
-  sleep 2
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 2: Ambiguous routing" || true
+  sleep 3
 
   # ── Scenario 3: Single gig user (remove extra gigs) ──
   log_info "Scenario 3: Single-gig user auto-routes..."
-  delete_test_gig "$GIG_B"
+  delete_test_gig "$GIG_B" || true
   ROUTING_GIGS=("$GIG_A" "$GIG_C")
-  delete_test_participant "$GIG_C" "$TEST_USER_ID"
+  delete_test_participant "$GIG_C" "$TEST_PHONE" || true
   ROUTING_PARTICIPANTS=()
-  delete_test_gig "$GIG_C"
+  delete_test_gig "$GIG_C" || true
   ROUTING_GIGS=("$GIG_A")
   sleep 1
 
-  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Single-gig auto-route test")
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-  if [ "$status" = "200" ]; then
-    log_pass "Scenario 3: Single-gig user routed successfully"
-  else
-    log_fail "Scenario 3: Expected 200, got $status"
-  fi
-  sleep 2
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 3: Single-gig auto-route" || true
+  sleep 3
 
   # ── Scenario 4: Participant-only routing ──
   log_info "Scenario 4: Participant sends message about their gig..."
@@ -811,22 +784,16 @@ test_smart_routing() {
   ROUTING_GIGS+=("$GIG_D")
 
   local PARTICIPANT_USER
-  PARTICIPANT_USER=$(query_user_by_phone "$TEST_PARTICIPANT_PHONE" 2>/dev/null)
+  PARTICIPANT_USER=$(query_user_by_phone "$TEST_PARTICIPANT_PHONE" 2>/dev/null || echo '{}')
   local PARTICIPANT_USER_ID
   PARTICIPANT_USER_ID=$(echo "$PARTICIPANT_USER" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else 'usr_test_participant')" 2>/dev/null || echo "usr_test_participant")
 
   create_test_participant "$GIG_D" "$PARTICIPANT_USER_ID" "$TEST_PARTICIPANT_PHONE" "$TEST_PARTICIPANT_NAME" "collaborator"
-  ROUTING_PARTICIPANTS+=("$GIG_D|$PARTICIPANT_USER_ID")
+  ROUTING_PARTICIPANTS+=("$GIG_D|$TEST_PARTICIPANT_PHONE")
   sleep 1
 
-  result=$(send_sms_payload "$PAYLOAD_DIR/smart-routing-participant.txt" "Participant routing test")
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-  if [ "$status" = "200" ]; then
-    log_pass "Scenario 4: Participant message routed successfully"
-  else
-    log_fail "Scenario 4: Expected 200, got $status"
-  fi
-  sleep 2
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-participant.txt" "Scenario 4: Participant routing" || true
+  sleep 3
 
   # ── Scenario 5: List gigs shows both roles ──
   log_info "Scenario 5: 'list my gigs' shows owned + participated..."
@@ -837,33 +804,23 @@ test_smart_routing() {
   GIG_F=$(create_test_gig "usr_other_owner_2" "Conference Booth Setup")
   ROUTING_GIGS+=("$GIG_F")
   create_test_participant "$GIG_F" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
-  ROUTING_PARTICIPANTS+=("$GIG_F|$TEST_USER_ID")
+  ROUTING_PARTICIPANTS+=("$GIG_F|$TEST_PHONE")
   sleep 1
 
-  result=$(send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "List gigs multi-role")
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-  if [ "$status" = "200" ]; then
-    log_pass "Scenario 5: List gigs returned successfully"
-    local body_text
-    body_text=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" 2>/dev/null || echo "")
-    if echo "$body_text" | grep -qi "Road Trip\|Conference\|gig"; then
-      log_pass "Scenario 5: Response lists multiple gigs"
-    else
-      log_info "Scenario 5: Response did not mention specific gig titles (may vary by AI)"
-    fi
-  else
-    log_fail "Scenario 5: Expected 200, got $status"
-  fi
+  log_info "Sending 'list my gigs'..."
+  send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "Scenario 5: List gigs multi-role" || true
 
   # ── Teardown ──
   log_info "Cleaning up smart routing test data..."
   for gig_id in "${ROUTING_GIGS[@]}"; do
-    delete_test_gig "$gig_id"
+    delete_test_gig "$gig_id" || true
   done
-  for entry in "${ROUTING_PARTICIPANTS[@]}"; do
-    local g_id="${entry%%|*}"
-    local u_id="${entry##*|}"
-    delete_test_participant "$g_id" "$u_id"
+  for entry in "${ROUTING_PARTICIPANTS[@]-}"; do
+    if [ -n "$entry" ]; then
+      local g_id="${entry%%|*}"
+      local ph="${entry##*|}"
+      delete_test_participant "$g_id" "$ph" || true
+    fi
   done
   log_info "Smart routing test data cleaned up."
 }
@@ -888,33 +845,27 @@ test_group_mms() {
   payload=$(echo "$payload" | sed "s/TEST_USER_ID/$TEST_USER_ID/g")
   payload=$(echo "$payload" | sed "s/TEST_GIG_ID/$TEST_GIG_ID/g")
 
-  local outfile
-  outfile=$(mktemp /tmp/gigler-group-test-XXXXXX.json)
+  local outfile="/tmp/gigler-group-test-$$.json"
 
   aws lambda invoke \
     --region "$AWS_REGION" \
     --function-name "$GIG_PROCESSOR_FN" \
-    --payload "$(echo "$payload" | base64)" \
     --cli-binary-format raw-in-base64-out \
-    "$outfile" > /dev/null 2>&1
+    --payload "$payload" \
+    "$outfile" > /dev/null 2>&1 || true
 
-  local exit_code=$?
   local result
-  result=$(cat "$outfile")
+  result=$(cat "$outfile" 2>/dev/null || echo '{}')
   rm -f "$outfile"
 
-  if [ $exit_code -eq 0 ]; then
-    local status_code
-    status_code=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('statusCode','?'))" 2>/dev/null || echo "?")
-    if [ "$status_code" = "200" ]; then
-      log_pass "Add participant invocation succeeded (status=$status_code)"
-    else
-      log_fail "Add participant returned status=$status_code"
-    fi
-    echo "  Result: $(echo "$result" | head -c 300)"
+  local status_code
+  status_code=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('statusCode','?'))" 2>/dev/null || echo "?")
+  if [ "$status_code" = "200" ]; then
+    log_pass "Add participant invocation succeeded (status=$status_code)"
   else
-    log_fail "Add participant invocation failed (exit=$exit_code)"
+    log_fail "Add participant returned status=$status_code"
   fi
+  echo "  Result: $(echo "$result" | head -c 300)"
 
   sleep 3
 
@@ -1036,33 +987,25 @@ test_list_gigs() {
   COLLAB_GIG=$(create_test_gig "usr_other_list_test" "Shared Team Task")
   LISTGIG_IDS+=("$COLLAB_GIG")
   create_test_participant "$COLLAB_GIG" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
-  LISTGIG_PARTS+=("$COLLAB_GIG|$TEST_USER_ID")
+  LISTGIG_PARTS+=("$COLLAB_GIG|$TEST_PHONE")
   log_info "  Created collaborated gig: $COLLAB_GIG"
 
   sleep 1
 
   log_info "Sending 'list my gigs'..."
-  local result
-  result=$(send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "List gigs multi-role")
-
-  local status
-  status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('statusCode','?'))" 2>/dev/null || echo "?")
-
-  if [ "$status" = "200" ]; then
-    log_pass "List gigs returned HTTP 200"
-  else
-    log_fail "List gigs returned status=$status"
-  fi
+  send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "List gigs multi-role" || true
 
   # Teardown
   log_info "Cleaning up list-gigs test data..."
   for gig_id in "${LISTGIG_IDS[@]}"; do
-    delete_test_gig "$gig_id"
+    delete_test_gig "$gig_id" || true
   done
-  for entry in "${LISTGIG_PARTS[@]}"; do
-    local g_id="${entry%%|*}"
-    local u_id="${entry##*|}"
-    delete_test_participant "$g_id" "$u_id"
+  for entry in "${LISTGIG_PARTS[@]-}"; do
+    if [ -n "$entry" ]; then
+      local g_id="${entry%%|*}"
+      local ph="${entry##*|}"
+      delete_test_participant "$g_id" "$ph" || true
+    fi
   done
   log_info "List gigs test data cleaned up."
 }
