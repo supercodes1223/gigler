@@ -16,6 +16,42 @@ export default function HomePage() {
           <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
           </Link>
+          <details className="relative md:hidden">
+            <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border border-brand-border bg-brand-surface text-foreground transition hover:bg-brand-surface-hover">
+              <span className="sr-only">Open navigation menu</span>
+              <span className="flex flex-col gap-1">
+                <span className="block h-0.5 w-4 rounded-full bg-current" />
+                <span className="block h-0.5 w-4 rounded-full bg-current" />
+                <span className="block h-0.5 w-4 rounded-full bg-current" />
+              </span>
+            </summary>
+            <div className="absolute right-0 top-14 w-56 rounded-2xl border border-brand-border bg-background-alt/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+              <Link
+                href="/about"
+                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
+              >
+                About
+              </Link>
+              <Link
+                href="/pricing"
+                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
+              >
+                Pricing
+              </Link>
+              <Link
+                href="/careers"
+                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
+              >
+                Careers
+              </Link>
+              <Link
+                href="/dashboard"
+                className="mt-1 block rounded-xl bg-foreground px-4 py-3 text-sm font-semibold text-background transition hover:bg-white"
+              >
+                Get Started Free
+              </Link>
+            </div>
+          </details>
           <div className="hidden md:flex items-center gap-8 text-sm">
             <Link href="/about" className="text-brand-muted hover:text-foreground transition">
               About
