@@ -10,7 +10,7 @@
 
 import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
@@ -60,7 +60,7 @@ function createLogger(ctx: TraceContext & { gigId?: string; userId?: string }) {
 interface DeliverableEvent {
   gigId: string;
   userId: string;
-  type: "pdf" | "website" | "menu" | "collage" | "code_project";
+  type: "pdf" | "website" | "menu" | "collage" | "code_project" | "bills_dashboard";
   title: string;
   content: string;
   phone: string;
@@ -344,6 +344,193 @@ function generateGalleryHtml(title: string, images: MediaRecord[], description: 
 </html>`;
 }
 
+interface BillEntry {
+  billType: string;
+  vendor?: string;
+  amount?: number;
+  dueDate?: string;
+  billingPeriod?: string;
+  status: string;
+  submittedAt?: string;
+  submittedBy?: string;
+  paidAt?: string;
+  paidBy?: string;
+  mediaId?: string;
+}
+
+async function getGigMetadata(gigId: string): Promise<Record<string, unknown>> {
+  if (!GIG_TABLE_NAME) return {};
+  const result = await ddb.send(new GetCommand({ TableName: GIG_TABLE_NAME, Key: { id: gigId } }));
+  if (!result.Item?.metadata) return {};
+  try { return JSON.parse(result.Item.metadata as string); } catch { return {}; }
+}
+
+function generateBillsDashboardHtml(
+  title: string,
+  bills: Record<string, BillEntry[]>,
+  monthlyTotals: Record<string, number>,
+  billConfig: Record<string, { dueDay?: number }>
+): string {
+  const months = Object.keys(bills).sort().reverse();
+  const currentMonth = months[0] || new Date().toISOString().substring(0, 7);
+  const currentBills = bills[currentMonth] || [];
+  const now = new Date();
+
+  const statusBadge = (status: string, dueDate?: string): string => {
+    if (status === "paid") return '<span class="badge paid">Paid</span>';
+    if (status === "submitted") {
+      if (dueDate && new Date(dueDate) < now) return '<span class="badge overdue">Overdue</span>';
+      return '<span class="badge submitted">Submitted</span>';
+    }
+    if (dueDate && new Date(dueDate) < now) return '<span class="badge overdue">Overdue</span>';
+    return '<span class="badge pending">Pending</span>';
+  };
+
+  const formatCurrency = (n?: number): string => n !== undefined ? `$${n.toFixed(2)}` : "—";
+  const formatDate = (d?: string): string => {
+    if (!d) return "—";
+    try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); } catch { return d; }
+  };
+  const monthLabel = (key: string): string => {
+    try {
+      const [y, m] = key.split("-");
+      return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    } catch { return key; }
+  };
+
+  const billRows = (entries: BillEntry[]): string => entries.map((b) => `
+    <tr>
+      <td class="bill-type">${b.billType}</td>
+      <td>${b.vendor || "—"}</td>
+      <td class="amount">${formatCurrency(b.amount)}</td>
+      <td>${formatDate(b.dueDate)}</td>
+      <td>${statusBadge(b.status, b.dueDate)}</td>
+    </tr>`).join("");
+
+  const prevMonthSections = months.slice(1).map((month) => {
+    const entries = bills[month] || [];
+    const total = monthlyTotals[month] || 0;
+    const paidCount = entries.filter((b) => b.status === "paid").length;
+    return `
+    <details class="month-section">
+      <summary>
+        <span class="month-name">${monthLabel(month)}</span>
+        <span class="month-stats">${paidCount}/${entries.length} paid &middot; ${formatCurrency(total)}</span>
+      </summary>
+      <table>
+        <thead><tr><th>Bill</th><th>Vendor</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody>${billRows(entries)}</tbody>
+        <tfoot><tr><td colspan="2">Total</td><td class="amount">${formatCurrency(total)}</td><td></td><td></td></tr></tfoot>
+      </table>
+    </details>`;
+  }).join("");
+
+  const comparisonBars = months.slice(0, 6).reverse().map((month) => {
+    const total = monthlyTotals[month] || 0;
+    const maxTotal = Math.max(...Object.values(monthlyTotals), 1);
+    const pct = Math.round((total / maxTotal) * 100);
+    const [, m] = month.split("-");
+    const shortMonth = new Date(2026, parseInt(m) - 1).toLocaleDateString("en-US", { month: "short" });
+    return `
+    <div class="bar-group">
+      <div class="bar-label">${shortMonth}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-value">${formatCurrency(total)}</div>
+    </div>`;
+  }).join("");
+
+  const currentTotal = monthlyTotals[currentMonth] || 0;
+  const paidCount = currentBills.filter((b) => b.status === "paid").length;
+  const submittedCount = currentBills.filter((b) => b.status === "submitted").length;
+  const pendingCount = currentBills.length - paidCount - submittedCount;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} - Gigler</title>
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="Household bills dashboard powered by Gigler">
+  <style>
+    :root { --bg: #0f0f0f; --surface: #1a1a1a; --border: #27272a; --text: #e4e4e7; --muted: #71717a; --green: #22c55e; --yellow: #eab308; --red: #ef4444; --accent: #6d28d9; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'SF Pro Display', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .header { margin-bottom: 2rem; }
+    .header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+    .header .subtitle { color: var(--muted); margin-top: 0.25rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.yellow { color: var(--yellow); }
+    .stat-card .value.red { color: var(--red); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+    th { text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    tfoot td { font-weight: 700; border-top: 2px solid var(--border); border-bottom: none; }
+    .bill-type { font-weight: 600; text-transform: capitalize; }
+    .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .badge.paid { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.submitted { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .badge.pending { background: rgba(113,113,122,0.15); color: var(--muted); }
+    .badge.overdue { background: rgba(239,68,68,0.15); color: var(--red); }
+    .section-title { font-size: 1.1rem; font-weight: 600; margin: 2rem 0 1rem; }
+    .month-section { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 0.75rem; }
+    .month-section summary { padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; }
+    .month-section summary::-webkit-details-marker { display: none; }
+    .month-name { font-weight: 600; }
+    .month-stats { color: var(--muted); font-size: 0.85rem; }
+    .month-section table { border: none; border-radius: 0; }
+    .comparison { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 2rem; }
+    .bar-group { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+    .bar-label { width: 40px; font-size: 0.8rem; color: var(--muted); text-align: right; }
+    .bar-track { flex: 1; height: 24px; background: var(--border); border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.5s; }
+    .bar-value { width: 70px; font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .footer { text-align: center; padding: 2rem 0; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+    .footer a { color: var(--accent); text-decoration: none; }
+    @media (max-width: 600px) { .container { padding: 1rem; } .header h1 { font-size: 1.5rem; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${title}</h1>
+      <div class="subtitle">${monthLabel(currentMonth)}</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="label">Total</div><div class="value">${formatCurrency(currentTotal)}</div></div>
+      <div class="stat-card"><div class="label">Paid</div><div class="value green">${paidCount}</div></div>
+      <div class="stat-card"><div class="label">Submitted</div><div class="value yellow">${submittedCount}</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value${pendingCount > 0 ? " red" : ""}">${pendingCount}</div></div>
+    </div>
+
+    <div class="section-title">This Month</div>
+    <table>
+      <thead><tr><th>Bill</th><th>Vendor</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
+      <tbody>${billRows(currentBills)}</tbody>
+      <tfoot><tr><td colspan="2">Total</td><td class="amount">${formatCurrency(currentTotal)}</td><td></td><td></td></tr></tfoot>
+    </table>
+
+    ${months.length > 1 ? `
+    <div class="section-title">Month-over-Month</div>
+    <div class="comparison">${comparisonBars}</div>
+
+    <div class="section-title">Previous Months</div>
+    ${prevMonthSections}
+    ` : ""}
+
+    <div class="footer">Powered by <a href="${SITE_URL}">Gigler</a></div>
+  </div>
+</body>
+</html>`;
+}
+
 export const handler: Handler = async (event: DeliverableEvent, context) => {
   const trace = event._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
   const log = createLogger({ ...trace, source: "gigler-deliverable-generator", gigId: event.gigId, userId: event.userId });
@@ -382,6 +569,17 @@ export const handler: Handler = async (event: DeliverableEvent, context) => {
       s3Key = `deliverables/${event.gigId}/${deliverableId}/readme.html`;
       const html = generateHtmlPage(event.title, event.content);
       publicUrl = await uploadToS3(s3Key, html, "text/html");
+      break;
+    }
+    case "bills_dashboard": {
+      const metadata = await getGigMetadata(event.gigId);
+      const bills = (metadata.bills as Record<string, BillEntry[]>) || {};
+      const monthlyTotals = (metadata.monthlyTotals as Record<string, number>) || {};
+      const billConfig = (metadata.billConfig as Record<string, { dueDay?: number }>) || {};
+      log.info("Bills dashboard data", { months: Object.keys(bills).length, currentMonthBills: (bills[Object.keys(bills).sort().reverse()[0] || ""] || []).length });
+      const dashboardHtml = generateBillsDashboardHtml(event.title, bills, monthlyTotals, billConfig);
+      s3Key = `deliverables/${event.gigId}/${deliverableId}/index.html`;
+      publicUrl = await uploadToS3(s3Key, dashboardHtml, "text/html");
       break;
     }
   }

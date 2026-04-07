@@ -591,7 +591,7 @@ function repairTruncatedJson(raw: string): Record<string, unknown> | null {
 
 // ── Intent Detection ─────────────────────────────────────────────────────────
 
-type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations";
+type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations" | "household" | "custom";
 
 interface Intent {
   type: "create_gig" | "list_gigs" | "resume_gig" | "complete_gig" | "pause_gig" | "archive_gig" | "general";
@@ -620,7 +620,7 @@ async function detectIntent(message: string): Promise<Intent> {
 
   if (!GEMINI_API_KEY) {
     return isLikelyGigRequest(lower)
-      ? { type: "create_gig", gigType: classifyGigType(lower) }
+      ? { type: "create_gig", gigType: classifyGigTypeFallback(lower) }
       : { type: "general" };
   }
 
@@ -675,7 +675,7 @@ JSON format: {"type": "create_gig"|"list_gigs"|"general", "gigType": "...", "tit
   }
 
   return isLikelyGigRequest(lower)
-    ? { type: "create_gig", gigType: classifyGigType(lower) }
+    ? { type: "create_gig", gigType: classifyGigTypeFallback(lower) }
     : { type: "general" };
 }
 
@@ -684,9 +684,15 @@ function isLikelyGigRequest(msg: string): boolean {
   return actionWords.some((w) => msg.includes(w));
 }
 
-function classifyGigType(msg: string): GigType {
+const PRESET_GIG_TYPES: GigType[] = [
+  "coding", "planning", "creative", "professional", "lifestyle",
+  "scheduling", "education", "business_formation", "reservations", "household",
+];
+
+function classifyGigTypeFallback(msg: string): GigType {
   if (/code|website|app|deploy|github|debug|api|database/i.test(msg)) return "coding";
   if (/llc|business|ein|operating agreement|tax id|bank account/i.test(msg)) return "business_formation";
+  if (/bill|utilit|rent|electric|water|gas bill|expense|household/i.test(msg)) return "household";
   if (/party|wedding|reunion|trip|event|birthday|graduation/i.test(msg)) return "planning";
   if (/image|photo|video|collage|flyer|design|graphic/i.test(msg)) return "creative";
   if (/legal|contract|resume|consult|mediat/i.test(msg)) return "professional";
@@ -697,16 +703,58 @@ function classifyGigType(msg: string): GigType {
   return "planning";
 }
 
+async function classifyGigWithGemini(msg: string): Promise<{ type: GigType; customPrompt: string | null }> {
+  if (!GEMINI_API_KEY) {
+    return { type: classifyGigTypeFallback(msg), customPrompt: null };
+  }
+
+  const classificationPrompt = `Given this gig request: "${msg}"
+
+Available preset gig types: ${PRESET_GIG_TYPES.join(", ")}
+
+If one of the presets is a strong match, return: {"type": "<preset>", "customPrompt": null}
+If none fit well, return: {"type": "custom", "customPrompt": "You are managing a [description] gig. Help the user by:\\n- [specific capability 1]\\n- [specific capability 2]\\n- ...\\n\\nSETUP PHASE: When this gig is first created, collect the following before moving to ongoing management:\\n1. [key info to collect]\\n2. [key info to collect]\\nAsk naturally over 2-3 messages."}
+
+The custom prompt should be tailored to exactly what the user described. Be specific about what actions would be helpful. Include a brief SETUP PHASE section listing 2-4 key things to collect from the user upfront.
+
+Return ONLY valid JSON, no other text.`;
+
+  try {
+    const raw = await callGemini(classificationPrompt, msg);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return { type: classifyGigTypeFallback(msg), customPrompt: null };
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const gigType = (parsed.type || "planning") as GigType;
+
+    if (gigType === "custom" && parsed.customPrompt) {
+      return { type: "custom", customPrompt: parsed.customPrompt };
+    }
+
+    if (PRESET_GIG_TYPES.includes(gigType)) {
+      return { type: gigType, customPrompt: null };
+    }
+
+    return { type: classifyGigTypeFallback(msg), customPrompt: null };
+  } catch {
+    return { type: classifyGigTypeFallback(msg), customPrompt: null };
+  }
+}
+
 // ── Gig CRUD ─────────────────────────────────────────────────────────────────
 
 async function createGig(
   user: User,
   title: string,
   gigType: GigType,
-  description?: string
+  description?: string,
+  customPrompt?: string | null
 ): Promise<{ id: string; title: string }> {
   const now = new Date().toISOString();
   const id = `gig_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+  const metadata: Record<string, unknown> = {};
+  if (customPrompt) metadata.customPrompt = customPrompt;
 
   await ddb.send(
     new PutCommand({
@@ -718,7 +766,7 @@ async function createGig(
         description: description || title,
         type: gigType,
         status: "active",
-        metadata: JSON.stringify({}),
+        metadata: JSON.stringify(metadata),
         createdAt: now,
         updatedAt: now,
       },
@@ -744,9 +792,9 @@ async function createGig(
   return { id, title };
 }
 
-async function handleCreateGig(user: User, message: string, gigType: GigType, mediaUrls: string[] = []): Promise<string> {
+async function handleCreateGig(user: User, message: string, gigType: GigType, mediaUrls: string[] = [], customPrompt?: string | null): Promise<string> {
   const title = await generateGigTitle(message);
-  const gig = await createGig(user, title, gigType, message);
+  const gig = await createGig(user, title, gigType, message, customPrompt);
 
   await logMessage(gig.id, user.id, user.name || user.phone, message, "inbound");
 
@@ -1002,7 +1050,8 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     }
 
     if (intent.type === "create_gig") {
-      const response = await handleCreateGig(user, body, intent.gigType || "planning", mediaUrls);
+      const classification = await classifyGigWithGemini(body);
+      const response = await handleCreateGig(user, body, classification.type, mediaUrls, classification.customPrompt);
       await sendSms(fromPhone, response);
       return twimlResponse("");
     }

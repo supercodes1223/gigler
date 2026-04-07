@@ -26,6 +26,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
 
 interface TraceContext { traceId: string; requestId: string; source: string; }
 
@@ -119,7 +120,8 @@ async function createMediaRecord(
   mediaId: string,
   s3Key: string,
   type: string,
-  uploadedBy: string
+  uploadedBy: string,
+  extractedData?: string
 ): Promise<void> {
   if (!MEDIA_TABLE_NAME) return;
   await ddb.send(
@@ -132,9 +134,65 @@ async function createMediaRecord(
         type,
         uploadedBy,
         createdAt: new Date().toISOString(),
+        extractedData,
       },
     })
   );
+}
+
+interface BillExtraction {
+  vendor: string;
+  billType: string;
+  amount: number;
+  dueDate: string;
+  billingPeriod: string;
+  isBill: boolean;
+}
+
+async function extractBillData(imageBuffer: Buffer, contentType: string): Promise<BillExtraction | null> {
+  if (!GEMINI_API_KEY) return null;
+
+  const mimeType = contentType.startsWith("image/") ? contentType : "image/jpeg";
+  const b64 = imageBuffer.toString("base64");
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mimeType, data: b64 } },
+              { text: `Analyze this image. Is it a utility bill, invoice, or statement?
+
+If YES, extract: vendor name, bill type (power/gas/water/trash/internet/rent/phone/insurance/other), amount due (number only), due date (YYYY-MM-DD), and billing period (e.g. "Mar 2026").
+Return JSON: {"isBill": true, "vendor": "...", "billType": "...", "amount": 0.00, "dueDate": "YYYY-MM-DD", "billingPeriod": "..."}
+
+If NO (it's a regular photo, selfie, screenshot, etc.), return: {"isBill": false}
+
+Return ONLY valid JSON.` },
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 300 },
+        }),
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]) as BillExtraction;
+    return parsed.isBill ? parsed : null;
+  } catch (error) {
+    console.error("[MediaProcessor] Vision extraction error:", error);
+    return null;
+  }
 }
 
 async function generateImageWithImagen(prompt: string): Promise<Buffer | null> {
@@ -217,6 +275,7 @@ export const handler: Handler = async (event: MediaEvent, context) => {
       const urls = event.mediaUrls || [];
       log.info("Downloading MMS media", { urlCount: urls.length });
       const results: string[] = [];
+      const extractions: BillExtraction[] = [];
 
       for (const url of urls) {
         try {
@@ -226,7 +285,18 @@ export const handler: Handler = async (event: MediaEvent, context) => {
           const s3Key = `media/${event.gigId}/${mediaId}.${ext}`;
 
           await saveToS3(s3Key, buffer, contentType);
-          await createMediaRecord(event.gigId, mediaId, s3Key, getMediaType(contentType), event.userId);
+
+          let extractedJson: string | undefined;
+          if (contentType.startsWith("image/") || contentType === "application/pdf") {
+            const billData = await extractBillData(buffer, contentType);
+            if (billData) {
+              extractedJson = JSON.stringify(billData);
+              extractions.push(billData);
+              log.info("Bill data extracted via Vision", { mediaId, vendor: billData.vendor, amount: billData.amount });
+            }
+          }
+
+          await createMediaRecord(event.gigId, mediaId, s3Key, getMediaType(contentType), event.userId, extractedJson);
           results.push(s3Key);
           log.info("Downloaded media file", { mediaId, contentType, s3Key, bytes: buffer.length });
         } catch (error) {
@@ -234,8 +304,11 @@ export const handler: Handler = async (event: MediaEvent, context) => {
         }
       }
 
-      log.info("MMS download complete", { processed: results.length });
-      return { statusCode: 200, body: JSON.stringify({ processed: results.length, keys: results }) };
+      log.info("MMS download complete", { processed: results.length, billsExtracted: extractions.length });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ processed: results.length, keys: results, extractions }),
+      };
     }
 
     case "generate_image": {

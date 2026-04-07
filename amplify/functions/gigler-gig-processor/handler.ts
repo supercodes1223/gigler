@@ -105,7 +105,7 @@ interface Gig {
 }
 
 interface GigAction {
-  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation" | "add_participant" | "create_github_repo" | "create_collage";
+  type: "generate_image" | "create_deliverable" | "set_reminder" | "book_reservation" | "add_participant" | "create_github_repo" | "create_collage" | "update_bill_status";
   prompt?: string;
   deliverableType?: string;
   title?: string;
@@ -119,6 +119,16 @@ interface GigAction {
   phone?: string;
   description?: string;
   files?: Array<{ path: string; content: string }>;
+  recurrence?: string;
+  recurrenceDay?: number;
+  billType?: string;
+  vendor?: string;
+  amount?: number;
+  dueDate?: string;
+  billingPeriod?: string;
+  billStatus?: string;
+  paidBy?: string;
+  mediaId?: string;
 }
 
 // ── Lambda Invocation ────────────────────────────────────────────────────────
@@ -209,6 +219,24 @@ async function executeActions(
             message: action.reminderMessage || "Reminder from your gig",
             channel: action.channel || "sms",
             recipients: [ctx.phone],
+            recurrence: action.recurrence,
+            recurrenceDay: action.recurrenceDay,
+          });
+        }
+        break;
+
+      case "update_bill_status":
+        if (action.billType) {
+          await handleUpdateBillStatus(ctx.gigId, {
+            billType: action.billType,
+            vendor: action.vendor,
+            amount: action.amount,
+            dueDate: action.dueDate,
+            billingPeriod: action.billingPeriod,
+            status: action.billStatus || "submitted",
+            submittedBy: ctx.phone,
+            paidBy: action.paidBy || ctx.phone,
+            mediaId: action.mediaId,
           });
         }
         break;
@@ -625,6 +653,36 @@ Send daily check-ins and practice content proactively.`,
 - Tracking confirmation numbers and details
 - Setting reminders for upcoming reservations
 ALWAYS confirm before taking any action. Present options as numbered choices.`,
+
+  household: `You are managing a household bills/expenses gig. This is a group effort between family members.
+
+CAPABILITIES:
+- Track utility bills (power, gas, water, trash, internet, rent, etc.)
+- When someone sends a bill photo, acknowledge it and confirm the extracted amount and due date
+- Maintain a checklist of bills per month: which are submitted, which are paid
+- When a parent says "zelle sent" or "payment sent" or "paid [bill]", mark that bill as paid via update_bill_status
+- When the son submits a bill (photo or text like "power bill: $429"), mark it as submitted via update_bill_status
+- Proactively remind about upcoming due dates
+- At month end or on request, generate the monthly dashboard via create_deliverable with deliverableType "bills_dashboard"
+- Be natural and family-friendly -- this is a parent-child collaboration, not a corporate tool
+- Use common sense: "got the electric" means they received the bill, "sent $500" means payment was made
+
+SETUP PHASE: When this gig is first created, collect the following before switching to ongoing tracking mode. Ask naturally over 2-3 messages, not as a rigid form:
+1. What bills need tracking? (power, gas, water, trash, internet, rent, etc.)
+2. Due date for each bill (day of month)
+3. Who should be added as participants? (name + phone)
+4. How many days before due date should reminders go out? (default: 3 days)
+
+Example setup conversation:
+User: "Track monthly utility bills for Jordan"
+You: "On it! What bills are we tracking — power, gas, water, trash, internet? All of those or different ones?"
+User: "Power, water, gas, and internet"
+You: "Got it — 4 bills. When's each one due? Like 'power on the 15th, gas on the 20th'"
+User: "Power 15th, water 10th, gas 20th, internet 1st"
+You: "Locked in. Want me to add Jordan to the group? Drop their number and I'll loop them in."
+
+Once setup info is collected, use set_reminder with recurrence "monthly" for each bill, and switch to ongoing tracking mode.
+When bill photos arrive with extracted data (shown as [Bill detected: ...]), use update_bill_status to record them.`,
 };
 
 // ── GitHub Repo Creation ─────────────────────────────────────────────────────
@@ -898,6 +956,8 @@ async function createReminder(params: {
   message: string;
   channel: string;
   recipients: string[];
+  recurrence?: string;
+  recurrenceDay?: number;
 }): Promise<void> {
   const id = `rem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   await ddb.send(
@@ -911,7 +971,97 @@ async function createReminder(params: {
       },
     })
   );
-  console.log(`[GigProcessor] Created reminder ${id} for gig ${params.gigId}`);
+  console.log(`[GigProcessor] Created reminder ${id} for gig ${params.gigId}${params.recurrence ? ` (${params.recurrence})` : ""}`);
+}
+
+// ── Bill Tracking ────────────────────────────────────────────────────────────
+
+interface BillEntry {
+  billType: string;
+  vendor?: string;
+  amount?: number;
+  dueDate?: string;
+  billingPeriod?: string;
+  status: string;
+  submittedAt?: string;
+  submittedBy?: string;
+  paidAt?: string;
+  paidBy?: string;
+  mediaId?: string;
+}
+
+async function handleUpdateBillStatus(gigId: string, entry: {
+  billType: string;
+  vendor?: string;
+  amount?: number;
+  dueDate?: string;
+  billingPeriod?: string;
+  status: string;
+  submittedBy?: string;
+  paidBy?: string;
+  mediaId?: string;
+}): Promise<void> {
+  const gig = await getGig(gigId);
+  if (!gig) return;
+
+  let metadata: Record<string, unknown> = {};
+  try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
+
+  const now = new Date().toISOString();
+  const monthKey = now.substring(0, 7);
+
+  const bills = (metadata.bills as Record<string, BillEntry[]>) || {};
+  if (!bills[monthKey]) bills[monthKey] = [];
+
+  const existing = bills[monthKey].find(
+    (b) => b.billType.toLowerCase() === entry.billType.toLowerCase()
+  );
+
+  if (existing) {
+    if (entry.vendor) existing.vendor = entry.vendor;
+    if (entry.amount !== undefined) existing.amount = entry.amount;
+    if (entry.dueDate) existing.dueDate = entry.dueDate;
+    if (entry.billingPeriod) existing.billingPeriod = entry.billingPeriod;
+    if (entry.mediaId) existing.mediaId = entry.mediaId;
+
+    if (entry.status === "paid") {
+      existing.status = "paid";
+      existing.paidAt = now;
+      existing.paidBy = entry.paidBy;
+    } else if (entry.status === "submitted" && existing.status !== "paid") {
+      existing.status = "submitted";
+      existing.submittedAt = now;
+      existing.submittedBy = entry.submittedBy;
+    }
+  } else {
+    const newEntry: BillEntry = {
+      billType: entry.billType,
+      vendor: entry.vendor,
+      amount: entry.amount,
+      dueDate: entry.dueDate,
+      billingPeriod: entry.billingPeriod,
+      status: entry.status,
+      mediaId: entry.mediaId,
+    };
+    if (entry.status === "submitted") {
+      newEntry.submittedAt = now;
+      newEntry.submittedBy = entry.submittedBy;
+    } else if (entry.status === "paid") {
+      newEntry.paidAt = now;
+      newEntry.paidBy = entry.paidBy;
+    }
+    bills[monthKey].push(newEntry);
+  }
+
+  const monthlyTotals = (metadata.monthlyTotals as Record<string, number>) || {};
+  monthlyTotals[monthKey] = bills[monthKey].reduce((sum, b) => sum + (b.amount || 0), 0);
+
+  metadata.bills = bills;
+  metadata.monthlyTotals = monthlyTotals;
+  metadata.lastInteraction = now;
+
+  await updateGigMetadata(gigId, metadata);
+  console.log(`[GigProcessor] Updated bill status: ${entry.billType} -> ${entry.status} for gig ${gigId}`);
 }
 
 // ── System Prompt Builder ────────────────────────────────────────────────────
@@ -922,11 +1072,12 @@ IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: fol
 Available actions:
 - {"type":"generate_image","prompt":"detailed image description"} — generate an AI image using Imagen 3
 - {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable. For "website" type, content should be complete HTML/CSS/JS. For "pdf" type, content is the document body text. For "code_project", content should be the full project code.
-- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice"} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times (tomorrow, next Monday, in 2 hours) to absolute ISO 8601.
+- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice","recurrence":"monthly","recurrenceDay":15} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times to absolute ISO 8601. For recurring reminders, add "recurrence" (none/daily/weekly/monthly) and "recurrenceDay" (1-31 for monthly). The scheduler will auto-create the next occurrence after each send.
 - {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
 - {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
 - {"type":"create_github_repo","name":"repo-name","description":"short description","files":[{"path":"filename","content":"file content"}]} — create a GitHub repository with generated code files. Use kebab-case for repo names.
 - {"type":"create_collage","title":"gallery title","content":"optional description"} — generate a shareable photo gallery/collage page from all images in this gig. The gallery is hosted at a short gigler.ai URL. Use when user asks for a gallery, collage, photo page, or wants to share collected images.
+- {"type":"update_bill_status","billType":"power","vendor":"Austin Energy","amount":429,"dueDate":"2026-04-15","billingPeriod":"Mar 2026","billStatus":"submitted"} — update a bill's status in the household tracker. Use when someone submits a bill (photo or text) or marks it as paid. billStatus can be "submitted" or "paid".
 
 You have access to Google Search for real-time information. When the user asks about vendors, venues, prices, availability, restaurants, or any factual information, use your search capability to provide accurate, current results with specific names, addresses, and details.
 
@@ -939,7 +1090,12 @@ When a user sends photos/images (indicated by "[User attached N photo(s) via MMS
 Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
 
 function buildDirectPrompt(gig: Gig, metadata: Record<string, unknown>): string {
-  const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
+  let typePrompt: string;
+  if (gig.type === "custom" && metadata.customPrompt) {
+    typePrompt = metadata.customPrompt as string;
+  } else {
+    typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
+  }
   return `You are Gigler, an AI assistant. You are managing a gig called "${gig.title}".
 
 ${typePrompt}
