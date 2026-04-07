@@ -273,23 +273,37 @@ async function getOrCreateConversation(
 ): Promise<string> {
   if (metadata.conversationSid) return metadata.conversationSid as string;
 
+  const uniqueName = `gig-${gigId}`;
   const response = await fetch(conversationsBase("/Conversations"), {
     method: "POST",
     headers: conversationsAuthHeaders(),
     body: new URLSearchParams({
       FriendlyName: gigTitle,
-      UniqueName: `gig-${gigId}`,
+      UniqueName: uniqueName,
       Attributes: JSON.stringify({ gigId }),
     }).toString(),
   });
   const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(`Failed to create conversation: ${data.message || response.statusText}`);
-  }
+  let conversationSid: string;
 
-  const conversationSid = data.sid as string;
-  console.log(`[GigProcessor] Created Group MMS Conversation ${conversationSid} for gig ${gigId}`);
+  if (!response.ok && data.code === 50053) {
+    const fetchResp = await fetch(conversationsBase(`/Conversations/${uniqueName}`), {
+      method: "GET",
+      headers: conversationsAuthHeaders(),
+    });
+    if (!fetchResp.ok) {
+      throw new Error("Conversation exists but could not be fetched");
+    }
+    const existing = await fetchResp.json();
+    conversationSid = existing.sid as string;
+    console.log(`[GigProcessor] Reusing existing Conversation ${conversationSid} for gig ${gigId}`);
+  } else if (!response.ok) {
+    throw new Error(`Failed to create conversation: ${data.message || response.statusText}`);
+  } else {
+    conversationSid = data.sid as string;
+    console.log(`[GigProcessor] Created Group MMS Conversation ${conversationSid} for gig ${gigId}`);
+  }
 
   await ddb.send(
     new UpdateCommand({
