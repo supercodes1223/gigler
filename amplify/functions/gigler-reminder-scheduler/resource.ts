@@ -9,6 +9,7 @@ export const giglerReminderScheduler = defineFunction({
     TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || "",
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
+    TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
   },
   resourceGroupName: "data",
 });

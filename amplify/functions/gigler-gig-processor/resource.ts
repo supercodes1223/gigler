@@ -13,6 +13,8 @@ export const giglerGigProcessor = defineFunction({
     TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
     TWILIO_CONVERSATIONS_SERVICE_SID: process.env.TWILIO_CONVERSATIONS_SERVICE_SID || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN || "",
+    GITHUB_ORG: process.env.GITHUB_ORG || "",
   },
   resourceGroupName: "data",
 });
