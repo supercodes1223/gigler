@@ -852,11 +852,20 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       }
     }
 
-    // If user has exactly 1 active gig and intent is general, route to gig-processor
-    if (activeGigs.length === 1 && intent.type === "general") {
-      const activeGig = activeGigs[0];
+    // If user has active gig(s) and intent is general, route to the most recent gig
+    if (activeGigs.length >= 1 && intent.type === "general") {
+      const sorted = activeGigs.sort((a, b) => {
+        const aMeta = typeof a.metadata === "string" ? JSON.parse(a.metadata) : (a.metadata || {});
+        const bMeta = typeof b.metadata === "string" ? JSON.parse(b.metadata) : (b.metadata || {});
+        const aTime = (aMeta.lastInteraction as string) || (a.updatedAt as string) || (a.createdAt as string) || "";
+        const bTime = (bMeta.lastInteraction as string) || (b.updatedAt as string) || (b.createdAt as string) || "";
+        return bTime.localeCompare(aTime);
+      });
+      const activeGig = sorted[0];
       const glog = ulog.child({ gigId: activeGig.id as string });
-      glog.info("Auto-routing to single active gig", { gigTitle: activeGig.title });
+      glog.info("Auto-routing to most recent active gig", {
+        gigTitle: activeGig.title, totalActiveGigs: activeGigs.length,
+      });
       await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
         gigId: activeGig.id as string,
         userId: user.id,
@@ -882,7 +891,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       return twimlResponse("");
     }
 
-    // Step 7: Default — general conversation with Gemini (no active gigs or multiple)
+    // Step 7: Default — general conversation with Gemini (no active gigs)
     await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
     const history = await fetchConversationHistory(GENERAL_THREAD_ID, 20);
     const systemPrompt = buildSystemPrompt(user, isKnownGuest);
