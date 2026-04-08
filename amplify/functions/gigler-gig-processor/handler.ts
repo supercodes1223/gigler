@@ -1643,9 +1643,11 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   const eventType = params.EventType;
   const conversationSid = params.ConversationSid;
   const author = params.Author;
-  const messageBody = params.Body;
+  const messageBody = params.Body || "";
+  const mediaPayload = params.Media;
+  const hasMedia = !!mediaPayload && mediaPayload !== "null" && mediaPayload !== "[]";
 
-  if (eventType !== "onMessageAdded" || !conversationSid || !messageBody) {
+  if (eventType !== "onMessageAdded" || !conversationSid || (!messageBody && !hasMedia)) {
     return { statusCode: 200, body: "Ignored" };
   }
 
@@ -1653,7 +1655,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     return { statusCode: 200, body: "Skip own message" };
   }
 
-  console.log(`[GigProcessor] Group message in ${conversationSid} from ${author}: ${messageBody.substring(0, 80)}`);
+  const bodyPreview = messageBody ? messageBody.substring(0, 80) : `[media: ${hasMedia ? "yes" : "no"}]`;
+  console.log(`[GigProcessor] Group message in ${conversationSid} from ${author}: ${bodyPreview}`);
 
   const gigFromGsi = await findGigByConversationSid(conversationSid);
   let gigId: string | undefined = gigFromGsi?.id as string | undefined;
@@ -1693,7 +1696,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   const senderParticipant = participants.find(p => p.phone === author);
   const senderName = (senderParticipant?.name as string) || author || "Someone";
 
-  await logMessage(gigId, (senderParticipant?.userId as string) || author || "unknown", senderName, messageBody, "inbound", "group-mms");
+  const logBody = messageBody || "[sent an image/file]";
+  await logMessage(gigId, (senderParticipant?.userId as string) || author || "unknown", senderName, logBody, "inbound", "group-mms");
 
   const recentMessages = await fetchConversationMessages(conversationSid, 20);
   const history = recentMessages
@@ -1701,7 +1705,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     .map(m => {
       const p = participants.find(pp => pp.phone === m.author);
       const name = m.author === GIGLER_NUMBER ? "Gigler" : ((p?.name as string) || m.author);
-      return { role: m.author === GIGLER_NUMBER ? "ai" : "user", content: `[${name}]: ${m.body}` };
+      return { role: m.author === GIGLER_NUMBER ? "ai" : "user", content: `[${name}]: ${m.body || "[image/file]"}` };
     });
 
   const setupHistory = await fetchConversationHistory(gigId, 15);
@@ -1709,9 +1713,16 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     ? setupHistory.map(m => `[${m.role === "ai" ? "Gigler" : "Owner"}]: ${m.content}`).join("\n")
     : undefined;
 
+  let userMessage = messageBody;
+  if (hasMedia && !messageBody) {
+    userMessage = "[sent a photo/file — the image has been saved to the gig's media collection. Acknowledge receipt and ask if this is a bill or what it's for.]";
+  } else if (hasMedia && messageBody) {
+    userMessage = `${messageBody}\n[Also attached a photo/file — saved to media collection.]`;
+  }
+
   const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext);
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
-  const geminiResponse = await callGemini(systemPrompt, `[${senderName}]: ${messageBody}`, history);
+  const geminiResponse = await callGemini(systemPrompt, `[${senderName}]: ${userMessage}`, history);
   const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse);
 
   const respondMatch = rawText.match(/^RESPOND:\s*(true|false)\s*\n?([\s\S]*)/i);
