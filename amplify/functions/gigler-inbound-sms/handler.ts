@@ -1077,12 +1077,13 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       mediaCount: mediaUrls.length, messageSid: webhook.MessageSid,
     });
 
-    if (hasOtherRecipients(webhook) && mediaUrls.length === 0) {
+    if (hasOtherRecipients(webhook)) {
       const participations = await lookupGuestParticipation(fromPhone);
       if (participations.length > 0) {
-        log.info("Ignoring mirrored group text on SMS webhook (no media)", {
+        log.info("Ignoring mirrored group MMS on SMS webhook (Conversations webhook handles it)", {
           phone: maskPhone(fromPhone),
           participantGigCount: participations.length,
+          hasMedia: mediaUrls.length > 0,
           messageSid: webhook.MessageSid,
         });
         return twimlResponse("");

@@ -1811,6 +1811,19 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
     return { statusCode: 200, body: "Metadata updated (skipReply)" };
   }
 
+  if (metadata.conversationSid && mediaUrls.length > 0 && !message.trim()) {
+    log.info("Media-only message for group gig — deferring AI to Conversations webhook", {
+      conversationSid: metadata.conversationSid,
+      mediaCount: mediaUrls.length,
+    });
+    await updateGigMetadata(gigId, {
+      ...metadata,
+      lastInteraction: new Date().toISOString(),
+      mediaCount: ((metadata.mediaCount as number) || 0) + mediaUrls.length,
+    });
+    return { statusCode: 200, body: "Media saved (group gig, Conversations webhook handles AI)" };
+  }
+
   const history = await fetchConversationHistory(gigId, 30);
 
   const systemPrompt = buildDirectPrompt(gig, metadata, senderName || "the user");
