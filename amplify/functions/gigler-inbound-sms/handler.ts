@@ -907,16 +907,21 @@ async function generateGigTitle(message: string): Promise<string> {
       }
     );
     const data = await response.json();
-    const title = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/^["']|["']$/g, "");
+    if (!response.ok) {
+      console.warn(`[Gigler] Title generation API error: ${response.status}`, JSON.stringify(data).substring(0, 500));
+      return message.substring(0, 50).replace(/\s+\S*$/, "").trim() || "New Gig";
+    }
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const title = typeof rawText === "string" ? rawText.trim().replace(/^["']|["']$/g, "") : null;
     if (title && title.length > 2 && title.length < 80) {
       console.log(`[Gigler] Generated title: "${title}"`);
       return title;
     }
-    console.warn(`[Gigler] Title generation returned unusable result: "${title}"`);
+    console.warn(`[Gigler] Title generation returned unusable result. rawText=${JSON.stringify(rawText)}, candidates=${JSON.stringify(data?.candidates?.[0]?.finishReason)}`);
   } catch (err) {
     console.error("[Gigler] Title generation failed:", err);
   }
-  return "New Gig";
+  return message.substring(0, 50).replace(/\s+\S*$/, "").trim() || "New Gig";
 }
 
 async function handleListGigs(user: User): Promise<string> {
