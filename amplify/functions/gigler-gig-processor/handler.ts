@@ -383,7 +383,7 @@ async function getOrCreateConversation(
 async function addSmsParticipantToConversation(
   conversationSid: string,
   phone: string
-): Promise<void> {
+): Promise<string> {
   const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
 
   const response = await fetch(base, {
@@ -398,11 +398,18 @@ async function addSmsParticipantToConversation(
     const data = await response.json();
     if (data.code === 50433 || data.code === 50416) {
       console.log(`[GigProcessor] Participant ${phone} already in conversation`);
-      return;
+      return conversationSid;
+    }
+    const existingMatch = (data.message || "").match(/already exists as Conversation (CH[a-f0-9]+)/);
+    if (existingMatch) {
+      const existingSid = existingMatch[1];
+      console.log(`[GigProcessor] Twilio says Group MMS already exists as ${existingSid}, switching to it`);
+      return existingSid;
     }
     throw new Error(`Failed to add participant: ${data.message || response.statusText}`);
   }
   console.log(`[GigProcessor] Added ${phone} to Group MMS conversation ${conversationSid}`);
+  return conversationSid;
 }
 
 async function addGiglerProjectedAddress(conversationSid: string): Promise<void> {
@@ -558,10 +565,27 @@ async function handleAddParticipant(
   const gigTitle = gigItem.title as string || "a gig";
 
   try {
-    const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
+    let conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
     await addGiglerProjectedAddress(conversationSid);
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
-    await addSmsParticipantToConversation(conversationSid, participantPhone);
+    const finalSid = await addSmsParticipantToConversation(conversationSid, participantPhone);
+
+    if (finalSid !== conversationSid) {
+      console.log(`[GigProcessor] Switching to existing Twilio conversation ${finalSid}`);
+      conversationSid = finalSid;
+      await addGiglerProjectedAddress(conversationSid).catch(() => {});
+      await ddb.send(
+        new UpdateCommand({
+          TableName: GIG_TABLE_NAME,
+          Key: { id: gigId },
+          UpdateExpression: "SET conversationSid = :csid, updatedAt = :now",
+          ExpressionAttributeValues: {
+            ":csid": conversationSid,
+            ":now": new Date().toISOString(),
+          },
+        })
+      );
+    }
 
     const groupIntro = isNewToGigler
       ? `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Welcome to Gigler — I'm your AI assistant and I'll help coordinate everything here. Reply in this thread to collaborate!`
