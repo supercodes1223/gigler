@@ -306,7 +306,7 @@ function mapFunctionCallToAction(name: string, args: Record<string, unknown>): G
 
 async function executeActions(
   actions: GigAction[],
-  ctx: { gigId: string; userId: string; phone: string },
+  ctx: { gigId: string; userId: string; phone: string; conversationSid?: string },
   trace: TraceContext
 ): Promise<void> {
   for (const action of actions) {
@@ -328,9 +328,15 @@ async function executeActions(
           content: action.content || "", phone: ctx.phone,
           _trace: trace,
         });
-        if (delResult?.url && ctx.phone) {
-          await sendSms(ctx.phone, `Here's your tracking page: ${delResult.url}`);
-          console.log(`[GigProcessor] Sent deliverable link to ${ctx.phone}: ${delResult.url}`);
+        if (delResult?.url) {
+          const linkMsg = `Here's your tracking page: ${delResult.url}`;
+          if (ctx.conversationSid) {
+            await sendConversationMessage(ctx.conversationSid, linkMsg);
+            console.log(`[GigProcessor] Sent deliverable link to group ${ctx.conversationSid}: ${delResult.url}`);
+          } else if (ctx.phone) {
+            await sendSms(ctx.phone, linkMsg);
+            console.log(`[GigProcessor] Sent deliverable link to ${ctx.phone}: ${delResult.url}`);
+          }
         }
         break;
       }
@@ -662,6 +668,30 @@ async function findGigByConversationSid(conversationSid: string): Promise<Record
   return (result.Items?.[0] as Record<string, unknown>) || null;
 }
 
+function buildParticipantActionHint(gigType: string, description: string, participantName: string): string {
+  const desc = description.toLowerCase();
+
+  if (gigType === "household" || desc.includes("bill") || desc.includes("utility")) {
+    return ` Just text or snap a photo of your bills here and I'll track everything automatically.`;
+  }
+  if (gigType === "planning" || desc.includes("party") || desc.includes("event")) {
+    return ` Share your ideas, updates, or questions here — I'll keep everyone coordinated.`;
+  }
+  if (gigType === "creative" || desc.includes("photo") || desc.includes("collage") || desc.includes("image")) {
+    return ` Drop photos or ideas here and I'll help organize them.`;
+  }
+  if (gigType === "coding" || desc.includes("code") || desc.includes("website") || desc.includes("app")) {
+    return ` Share requirements, feedback, or questions here — I'll track the project progress.`;
+  }
+  if (gigType === "scheduling" || desc.includes("remind") || desc.includes("schedule")) {
+    return ` I'll send reminders and keep things on track. Reply here anytime!`;
+  }
+  if (gigType === "education" || desc.includes("study") || desc.includes("learn")) {
+    return ` Share notes, questions, or updates here — I'll help keep the study plan on track.`;
+  }
+  return ` Reply here anytime — I'll help keep things organized!`;
+}
+
 async function handleAddParticipant(
   gigId: string,
   ownerUserId: string,
@@ -748,6 +778,10 @@ async function handleAddParticipant(
   );
   console.log(`[GigProcessor] Created GigParticipant records for owner ${ownerPhone} and participant ${participantPhone}`);
   const gigTitle = gigItem.title as string || "a gig";
+  const gigDescription = gigItem.description as string || "";
+  const gigType = gigItem.type as string || "";
+
+  const actionHint = buildParticipantActionHint(gigType, gigDescription, participantName);
 
   try {
     const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
@@ -756,16 +790,16 @@ async function handleAddParticipant(
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
     const groupIntro = isNewToGigler
-      ? `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Welcome to Gigler — I'm your AI assistant and I'll help coordinate everything here. Reply in this thread to collaborate!`
-      : `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Reply in this thread to collaborate!`;
+      ? `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}". I'm Gigler, your AI assistant for this gig.${actionHint}`
+      : `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}".${actionHint}`;
 
     await sendConversationMessage(conversationSid, groupIntro);
     console.log(`[GigProcessor] Sent group intro to conversation ${conversationSid}`);
   } catch (err) {
     console.error("[GigProcessor] Conversation setup failed, falling back to direct SMS:", err);
     const fallbackMsg = isNewToGigler
-      ? `Hi ${participantName}! ${ownerName} has added you to their Gigler gig: "${gigTitle}". I'm Gigler, your AI assistant — I'll help coordinate everything.`
-      : `Hi ${participantName}! ${ownerName} has added you to their gig: "${gigTitle}".`;
+      ? `Hi ${participantName}! ${ownerName} has added you to their Gigler gig: "${gigTitle}". I'm Gigler, your AI assistant.${actionHint}`
+      : `Hi ${participantName}! ${ownerName} has added you to their gig: "${gigTitle}".${actionHint}`;
     await sendSms(participantPhone, fallbackMsg);
   }
 
@@ -1689,7 +1723,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     const ownerPhone = (ownerParticipant?.phone as string) || "";
     const ownerUserId = (ownerParticipant?.userId as string) || "";
     console.log(`[GigProcessor] Executing ${actions.length} action(s) from group context: ${actions.map(a => a.type).join(", ")}`);
-    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
+    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone, conversationSid }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
   }
 
   if (!shouldRespond || !userText) {
@@ -1786,7 +1820,8 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   if (actions.length > 0) {
     log.info("Executing actions from AI response", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
-    await executeActions(actions, { gigId, userId, phone }, log.tracePayload());
+    const gigConvSid = (metadata.conversationSid as string) || undefined;
+    await executeActions(actions, { gigId, userId, phone, conversationSid: gigConvSid }, log.tracePayload());
   }
 
   await updateGigMetadata(gigId, {

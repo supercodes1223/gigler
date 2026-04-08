@@ -76,17 +76,15 @@ export default async function ShortCodePage({ params }: PageProps) {
     );
   }
 
-  if (deliverable.publicUrl && (
-    deliverable.type === "website" ||
-    deliverable.type === "menu" ||
-    deliverable.type === "code_project" ||
-    deliverable.type === "bills_dashboard"
-  )) {
+  const hasValidHttpUrl =
+    deliverable.publicUrl && deliverable.publicUrl.startsWith("http");
+
+  if (hasValidHttpUrl) {
     redirect(deliverable.publicUrl);
   }
 
-  if (deliverable.publicUrl && deliverable.type === "pdf") {
-    redirect(deliverable.publicUrl);
+  if (deliverable.s3Key) {
+    redirect(`/api/d/${shortCode}`);
   }
 
   return (
