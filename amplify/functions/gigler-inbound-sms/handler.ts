@@ -898,7 +898,7 @@ async function generateGigTitle(message: string): Promise<string> {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "Generate a short, clear title (3-6 words max) for this gig request. Return ONLY the title text, nothing else.",
+              text: "Generate a short, clear title (3-6 words max) for this gig/task request. Examples: 'Monthly Utility Bills Tracker', 'Austin Birthday Party', 'Website Redesign Project'. Return ONLY the title text, nothing else. No quotes.",
             }],
           },
           contents: [{ role: "user", parts: [{ text: message }] }],
@@ -907,11 +907,16 @@ async function generateGigTitle(message: string): Promise<string> {
       }
     );
     const data = await response.json();
-    const title = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    return title || message.substring(0, 50).trim();
-  } catch {
-    return message.substring(0, 50).trim();
+    const title = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/^["']|["']$/g, "");
+    if (title && title.length > 2 && title.length < 80) {
+      console.log(`[Gigler] Generated title: "${title}"`);
+      return title;
+    }
+    console.warn(`[Gigler] Title generation returned unusable result: "${title}"`);
+  } catch (err) {
+    console.error("[Gigler] Title generation failed:", err);
   }
+  return "New Gig";
 }
 
 async function handleListGigs(user: User): Promise<string> {
