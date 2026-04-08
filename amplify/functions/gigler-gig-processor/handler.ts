@@ -380,10 +380,22 @@ async function getOrCreateConversation(
   return conversationSid;
 }
 
+async function deleteConversation(conversationSid: string): Promise<void> {
+  const resp = await fetch(conversationsBase(`/Conversations/${conversationSid}`), {
+    method: "DELETE",
+    headers: conversationsAuthHeaders(),
+  });
+  if (resp.ok || resp.status === 404) {
+    console.log(`[GigProcessor] Deleted Twilio conversation ${conversationSid}`);
+  } else {
+    console.warn(`[GigProcessor] Failed to delete conversation ${conversationSid}: ${resp.status}`);
+  }
+}
+
 async function addSmsParticipantToConversation(
   conversationSid: string,
   phone: string
-): Promise<string> {
+): Promise<void> {
   const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
 
   const response = await fetch(base, {
@@ -398,18 +410,30 @@ async function addSmsParticipantToConversation(
     const data = await response.json();
     if (data.code === 50433 || data.code === 50416) {
       console.log(`[GigProcessor] Participant ${phone} already in conversation`);
-      return conversationSid;
+      return;
     }
-    const existingMatch = (data.message || "").match(/already exists as Conversation (CH[a-f0-9]+)/);
+    const existingMatch = (data.message || "").match(/already exists as Conversation (CH[a-f0-9]+)/i);
     if (existingMatch) {
-      const existingSid = existingMatch[1];
-      console.log(`[GigProcessor] Twilio says Group MMS already exists as ${existingSid}, switching to it`);
-      return existingSid;
+      const staleSid = existingMatch[1];
+      console.log(`[GigProcessor] Stale conversation ${staleSid} conflicts, deleting it and retrying`);
+      await deleteConversation(staleSid);
+      const retry = await fetch(base, {
+        method: "POST",
+        headers: conversationsAuthHeaders(),
+        body: new URLSearchParams({ "MessagingBinding.Address": phone }).toString(),
+      });
+      if (!retry.ok) {
+        const retryData = await retry.json();
+        if (retryData.code !== 50433 && retryData.code !== 50416) {
+          throw new Error(`Failed to add participant after stale cleanup: ${retryData.message || retry.statusText}`);
+        }
+      }
+      console.log(`[GigProcessor] Added ${phone} after stale conversation cleanup`);
+      return;
     }
     throw new Error(`Failed to add participant: ${data.message || response.statusText}`);
   }
   console.log(`[GigProcessor] Added ${phone} to Group MMS conversation ${conversationSid}`);
-  return conversationSid;
 }
 
 async function addGiglerProjectedAddress(conversationSid: string): Promise<void> {
@@ -565,34 +589,10 @@ async function handleAddParticipant(
   const gigTitle = gigItem.title as string || "a gig";
 
   try {
-    let conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
+    const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
     await addGiglerProjectedAddress(conversationSid);
-
-    const ownerSid = await addSmsParticipantToConversation(conversationSid, ownerPhone);
-    if (ownerSid !== conversationSid) {
-      console.log(`[GigProcessor] Owner add redirected to existing conversation ${ownerSid}`);
-      conversationSid = ownerSid;
-      await addGiglerProjectedAddress(conversationSid).catch(() => {});
-    }
-
-    const participantSid = await addSmsParticipantToConversation(conversationSid, participantPhone);
-    if (participantSid !== conversationSid) {
-      console.log(`[GigProcessor] Participant add redirected to existing conversation ${participantSid}`);
-      conversationSid = participantSid;
-      await addGiglerProjectedAddress(conversationSid).catch(() => {});
-    }
-
-    await ddb.send(
-      new UpdateCommand({
-        TableName: GIG_TABLE_NAME,
-        Key: { id: gigId },
-        UpdateExpression: "SET conversationSid = :csid, updatedAt = :now",
-        ExpressionAttributeValues: {
-          ":csid": conversationSid,
-          ":now": new Date().toISOString(),
-        },
-      })
-    );
+    await addSmsParticipantToConversation(conversationSid, ownerPhone);
+    await addSmsParticipantToConversation(conversationSid, participantPhone);
 
     const groupIntro = isNewToGigler
       ? `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Welcome to Gigler — I'm your AI assistant and I'll help coordinate everything here. Reply in this thread to collaborate!`
