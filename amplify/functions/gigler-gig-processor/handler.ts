@@ -156,6 +156,35 @@ async function invokeLambdaAsync(
   }
 }
 
+async function invokeLambdaSync(
+  functionName: string,
+  payload: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+  if (!functionName) {
+    console.warn("[GigProcessor] Skipping sync invoke — no function name configured");
+    return null;
+  }
+  try {
+    const result = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: functionName,
+        InvocationType: "RequestResponse",
+        Payload: new TextEncoder().encode(JSON.stringify(payload)),
+      })
+    );
+    const responsePayload = result.Payload ? new TextDecoder().decode(result.Payload) : "{}";
+    console.log(`[GigProcessor] Sync invoked ${functionName}`);
+    const parsed = JSON.parse(responsePayload);
+    if (parsed.body) {
+      try { return JSON.parse(parsed.body); } catch { return parsed; }
+    }
+    return parsed;
+  } catch (error) {
+    console.error(`[GigProcessor] Failed to sync invoke ${functionName}:`, error);
+    return null;
+  }
+}
+
 // ── AI Response Extraction (Native Function Calling) ─────────────────────────
 
 function extractFromGeminiResponse(response: GeminiResponse): { userText: string; actions: GigAction[] } {
@@ -291,15 +320,20 @@ async function executeActions(
         });
         break;
 
-      case "create_deliverable":
-        await invokeLambdaAsync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
+      case "create_deliverable": {
+        const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
           gigId: ctx.gigId, userId: ctx.userId,
           type: action.deliverableType || "website",
           title: action.title || "Untitled",
           content: action.content || "", phone: ctx.phone,
           _trace: trace,
         });
+        if (delResult?.url && ctx.phone) {
+          await sendSms(ctx.phone, `Here's your tracking page: ${delResult.url}`);
+          console.log(`[GigProcessor] Sent deliverable link to ${ctx.phone}: ${delResult.url}`);
+        }
         break;
+      }
 
       case "set_reminder":
         if (action.scheduledAt) {
@@ -1527,10 +1561,11 @@ CRITICAL RULES FOR GROUP CONVERSATION:
 2. STAY SILENT when humans are talking to each other (e.g. "sounds good!", "see you at 7", "haha yeah", casual banter).
 3. RESPOND when someone asks a question you can help with, requests something actionable, or directly addresses you/Gigler.
 4. RESPOND when you can offer genuinely useful information (e.g. after a planning discussion settles, suggest a next step).
-5. ALWAYS RESPOND to a participant's FIRST message in the group — welcome them briefly and acknowledge what they said. After that first exchange, follow the normal silent/respond rules.
+5. ALWAYS RESPOND to a participant's FIRST message in the group — welcome them warmly, acknowledge what they specifically said (e.g. "Sounds good, I'll look for those on Friday!"), and briefly explain what's been set up. After that first exchange, follow the normal silent/respond rules.
 6. Use common sense. If two people are coordinating with each other, stay out of it.
 7. Be natural and concise. You're a helpful friend in the group, not a chatbot.
 8. NEVER repeat information that was already discussed in the thread.
+9. Do NOT re-create reminders, deliverables, or other setup actions that were already configured in the 1-on-1 setup context above. Only call tools for NEW requests from participants.
 
 RESPONSE FORMAT:
 First line MUST be exactly one of:
