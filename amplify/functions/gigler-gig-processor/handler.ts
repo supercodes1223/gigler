@@ -156,38 +156,86 @@ async function invokeLambdaAsync(
   }
 }
 
-// ── AI Response Parsing ──────────────────────────────────────────────────────
+// ── AI Response Extraction (Native Function Calling) ─────────────────────────
 
-function parseAiResponse(raw: string): { userText: string; actions: GigAction[] } {
-  const marker = "ACTION_JSON:";
-  const markerIdx = raw.indexOf(marker);
+function extractFromGeminiResponse(response: GeminiResponse): { userText: string; actions: GigAction[] } {
+  const textParts: string[] = [];
+  const actions: GigAction[] = [];
 
-  if (markerIdx === -1) {
-    return { userText: raw.trim(), actions: [] };
+  for (const part of response.parts) {
+    if (part.text) {
+      textParts.push(part.text);
+    }
+    if (part.functionCall) {
+      const fc = part.functionCall;
+      const action = mapFunctionCallToAction(fc.name, fc.args);
+      if (action) {
+        actions.push(action);
+      }
+    }
   }
 
-  const userText = raw.substring(0, markerIdx).trim();
-  const jsonStr = raw.substring(markerIdx + marker.length).trim();
+  const userText = textParts.join("").trim() || "I'm working on that!";
+  if (actions.length > 0) {
+    console.log(`[GigProcessor] Extracted ${actions.length} action(s) via function calling: ${actions.map(a => a.type).join(", ")}`);
+  }
+  return { userText, actions };
+}
 
-  try {
-    const parsed = JSON.parse(jsonStr);
-    const actions: GigAction[] = Array.isArray(parsed) ? parsed : [];
-    return { userText, actions };
-  } catch {
-    console.warn("[GigProcessor] ACTION_JSON parse failed, attempting brace repair. Raw JSON:", jsonStr.substring(0, 2000));
-    const repaired = repairTruncatedJson(jsonStr);
-    if (repaired) {
-      const actions: GigAction[] = Array.isArray(repaired) ? repaired : [];
-      console.info(`[GigProcessor] Brace repair recovered ${actions.length} action(s)`);
-      return { userText, actions };
-    }
-    const extracted = extractIndividualActions(jsonStr);
-    if (extracted.length > 0) {
-      console.info(`[GigProcessor] Individual extraction recovered ${extracted.length} action(s)`);
-      return { userText, actions: extracted };
-    }
-    console.error("[GigProcessor] All JSON recovery methods failed — actions lost");
-    return { userText: userText || raw.trim(), actions: [] };
+function mapFunctionCallToAction(name: string, args: Record<string, unknown>): GigAction | null {
+  switch (name) {
+    case "add_participant":
+      return { type: "add_participant", name: args.name as string, phone: args.phone as string };
+    case "set_reminder":
+      return {
+        type: "set_reminder",
+        scheduledAt: args.scheduledAt as string,
+        reminderMessage: args.reminderMessage as string,
+        channel: (args.channel as string) || "sms",
+        recurrence: args.recurrence as string | undefined,
+        recurrenceDay: args.recurrenceDay as number | undefined,
+      };
+    case "generate_image":
+      return { type: "generate_image", prompt: args.prompt as string };
+    case "create_deliverable":
+      return {
+        type: "create_deliverable",
+        deliverableType: args.deliverableType as string,
+        title: args.title as string,
+        content: args.content as string,
+      };
+    case "book_reservation":
+      return {
+        type: "book_reservation",
+        platform: args.platform as string,
+        params: args.params as Record<string, unknown>,
+      };
+    case "create_github_repo":
+      return {
+        type: "create_github_repo",
+        name: args.name as string,
+        description: args.description as string | undefined,
+        files: args.files as Array<{ path: string; content: string }>,
+      };
+    case "create_collage":
+      return {
+        type: "create_collage",
+        title: args.title as string,
+        content: args.content as string | undefined,
+      };
+    case "update_bill_status":
+      return {
+        type: "update_bill_status",
+        billType: args.billType as string,
+        vendor: args.vendor as string | undefined,
+        amount: args.amount as number | undefined,
+        dueDate: args.dueDate as string | undefined,
+        billingPeriod: args.billingPeriod as string | undefined,
+        billStatus: args.billStatus as string,
+      };
+    default:
+      console.warn(`[GigProcessor] Unknown function call: ${name}`);
+      return null;
   }
 }
 
@@ -917,14 +965,26 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
 
 // ── Gemini AI ────────────────────────────────────────────────────────────────
 
+interface GeminiPart {
+  text?: string;
+  functionCall?: { name: string; id?: string; args: Record<string, unknown> };
+}
+
+interface GeminiResponse {
+  parts: GeminiPart[];
+  finishReason?: string;
+}
+
 async function callGemini(
   systemPrompt: string,
   userMessage: string,
   history: Array<{ role: string; content: string }> = [],
-  enableSearch: boolean = true
-): Promise<string> {
+  options: { enableSearch?: boolean; enableFunctions?: boolean } = {}
+): Promise<GeminiResponse> {
+  const { enableSearch = true, enableFunctions = true } = options;
+
   if (!GEMINI_API_KEY) {
-    return "I'm processing your request. Give me a moment!";
+    return { parts: [{ text: "I'm processing your request. Give me a moment!" }] };
   }
 
   const contents = [
@@ -935,21 +995,28 @@ async function callGemini(
     { role: "user", parts: [{ text: userMessage }] },
   ];
 
+  const tools: Array<Record<string, unknown>> = [];
+  if (enableSearch) {
+    tools.push({ google_search: {} });
+  }
+  if (enableFunctions) {
+    tools.push({ functionDeclarations: GIGLER_FUNCTION_DECLARATIONS });
+  }
+
   const requestBody: Record<string, unknown> = {
     systemInstruction: { parts: [{ text: systemPrompt }] },
     contents,
     generationConfig: {
-      maxOutputTokens: 1600,
+      maxOutputTokens: 4096,
       temperature: 0.7,
     },
   };
-
-  if (enableSearch) {
-    requestBody.tools = [{ google_search: {} }];
+  if (tools.length > 0) {
+    requestBody.tools = tools;
   }
 
   try {
-    console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (search: ${enableSearch})`);
+    console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (search: ${enableSearch}, functions: ${enableFunctions})`);
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -960,55 +1027,32 @@ async function callGemini(
     );
 
     const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-      || "I'm working on that. Give me a moment!";
+    const candidate = data?.candidates?.[0];
+    const finishReason = candidate?.finishReason as string | undefined;
+    const parts: GeminiPart[] = candidate?.content?.parts || [];
 
-    const grounding = data?.candidates?.[0]?.groundingMetadata;
+    console.log(`[GigProcessor] Gemini finishReason: ${finishReason}, parts: ${parts.length} (text: ${parts.filter(p => p.text).length}, functionCall: ${parts.filter(p => p.functionCall).length})`);
+
+    if (finishReason === "MAX_TOKENS") {
+      console.warn("[GigProcessor] Gemini response hit MAX_TOKENS — output may be truncated");
+    }
+
+    const grounding = candidate?.groundingMetadata;
     if (grounding?.webSearchQueries?.length) {
       console.log(`[GigProcessor] Grounding searches: ${JSON.stringify(grounding.webSearchQueries)}`);
     }
 
-    return text;
+    if (parts.length === 0) {
+      return { parts: [{ text: "I'm working on that. Give me a moment!" }], finishReason };
+    }
+
+    return { parts, finishReason };
   } catch (error) {
     console.error("[GigProcessor] Gemini error:", error);
-    return "I'm having trouble right now. Try again in a moment!";
+    return { parts: [{ text: "I'm having trouble right now. Try again in a moment!" }] };
   }
 }
 
-function repairTruncatedJson(raw: string): unknown | null {
-  const partial = raw.match(/\[[\s\S]*/)?.[0] || raw.match(/\{[\s\S]*/)?.[0];
-  if (!partial) return null;
-  try {
-    const repaired = partial
-      .replace(/,\s*"[^"]*$/, "")
-      .replace(/,\s*$/, "")
-      .replace(/,\s*\}/g, "}")
-      .replace(/,\s*\]/g, "]");
-    const openBraces = (repaired.match(/\{/g) || []).length;
-    const closeBraces = (repaired.match(/\}/g) || []).length;
-    const openBrackets = (repaired.match(/\[/g) || []).length;
-    const closeBrackets = (repaired.match(/\]/g) || []).length;
-    const closed = repaired
-      + "}".repeat(Math.max(0, openBraces - closeBraces))
-      + "]".repeat(Math.max(0, openBrackets - closeBrackets));
-    return JSON.parse(closed);
-  } catch {
-    return null;
-  }
-}
-
-function extractIndividualActions(raw: string): GigAction[] {
-  const actions: GigAction[] = [];
-  const objectPattern = /\{[^{}]*"type"\s*:\s*"[^"]+?"[^{}]*\}/g;
-  let match: RegExpExecArray | null;
-  while ((match = objectPattern.exec(raw)) !== null) {
-    try {
-      const obj = JSON.parse(match[0]);
-      if (obj.type) actions.push(obj as GigAction);
-    } catch { /* skip unparseable */ }
-  }
-  return actions;
-}
 
 // ── Gig Metadata Management ─────────────────────────────────────────────────
 
@@ -1154,28 +1198,143 @@ async function handleUpdateBillStatus(gigId: string, entry: {
 
 // ── System Prompt Builder ────────────────────────────────────────────────────
 
-const ACTION_INSTRUCTIONS = `
-IMPORTANT: After your user-facing response, on a NEW line write ACTION_JSON: followed by a JSON array of actions to execute. If no actions are needed, write ACTION_JSON: []
+const GIGLER_FUNCTION_DECLARATIONS = [
+  {
+    name: "add_participant",
+    description: "Add a person to this gig as a collaborator and create a group SMS thread. Use when the user says 'Add [name] [phone]' or asks to invite someone.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The participant's name" },
+        phone: { type: "string", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
+      },
+      required: ["name", "phone"],
+    },
+  },
+  {
+    name: "set_reminder",
+    description: "Schedule a reminder SMS. Use the user's timezone or default to America/Chicago. Convert relative times (e.g. 'tomorrow at 9am') to absolute ISO 8601.",
+    parameters: {
+      type: "object",
+      properties: {
+        scheduledAt: { type: "string", description: "ISO 8601 datetime for the reminder" },
+        reminderMessage: { type: "string", description: "The reminder text to send" },
+        channel: { type: "string", enum: ["sms", "voice"], description: "Delivery channel" },
+        recurrence: { type: "string", enum: ["none", "daily", "weekly", "monthly"], description: "Repeat schedule. Use 'monthly' for recurring bills." },
+        recurrenceDay: { type: "integer", description: "Day of month (1-31) for monthly recurrence" },
+      },
+      required: ["scheduledAt", "reminderMessage"],
+    },
+  },
+  {
+    name: "generate_image",
+    description: "Generate an AI image using Imagen 3. Provide a detailed visual description.",
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Detailed description of the image to generate" },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    name: "create_deliverable",
+    description: "Create a deliverable file (PDF document, website, menu, or code project). For websites, content should be complete HTML/CSS/JS. For PDFs, content is the document body text.",
+    parameters: {
+      type: "object",
+      properties: {
+        deliverableType: { type: "string", enum: ["pdf", "website", "menu", "code_project", "bills_dashboard"], description: "Type of deliverable" },
+        title: { type: "string", description: "Title of the deliverable" },
+        content: { type: "string", description: "The full content to include" },
+      },
+      required: ["deliverableType", "title", "content"],
+    },
+  },
+  {
+    name: "book_reservation",
+    description: "Search for a reservation at a restaurant, hotel, or event venue.",
+    parameters: {
+      type: "object",
+      properties: {
+        platform: { type: "string", enum: ["opentable", "resy", "evite"], description: "Booking platform" },
+        params: {
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            date: { type: "string" },
+            partySize: { type: "integer" },
+          },
+          description: "Search parameters",
+        },
+      },
+      required: ["platform", "params"],
+    },
+  },
+  {
+    name: "create_github_repo",
+    description: "Create a GitHub repository with generated code files. Use kebab-case for repo names.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Repository name in kebab-case" },
+        description: { type: "string", description: "Short description of the repo" },
+        files: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "File path (e.g. 'src/index.ts')" },
+              content: { type: "string", description: "File content" },
+            },
+            required: ["path", "content"],
+          },
+          description: "Files to create in the repo",
+        },
+      },
+      required: ["name", "files"],
+    },
+  },
+  {
+    name: "create_collage",
+    description: "Generate a shareable photo gallery/collage page from all images in this gig, hosted at a short gigler.ai URL. Use when user asks for a gallery, collage, photo page, or wants to share collected images.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Gallery title" },
+        content: { type: "string", description: "Optional description for the gallery" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_bill_status",
+    description: "Update a bill's status in the household tracker. Use when someone submits a bill (photo or text with amount) or marks a bill as paid.",
+    parameters: {
+      type: "object",
+      properties: {
+        billType: { type: "string", description: "Bill category (e.g. 'power', 'water', 'internet', 'trash', 'gas')" },
+        vendor: { type: "string", description: "Vendor/company name (e.g. 'Austin Energy')" },
+        amount: { type: "number", description: "Bill amount in dollars" },
+        dueDate: { type: "string", description: "Due date (e.g. '2026-04-15')" },
+        billingPeriod: { type: "string", description: "Billing period (e.g. 'Mar 2026')" },
+        billStatus: { type: "string", enum: ["submitted", "paid"], description: "Status of the bill" },
+      },
+      required: ["billType", "billStatus"],
+    },
+  },
+];
 
-Available actions:
-- {"type":"generate_image","prompt":"detailed image description"} — generate an AI image using Imagen 3
-- {"type":"create_deliverable","deliverableType":"pdf|website|menu|code_project","title":"...","content":"the full content to include"} — create a deliverable. For "website" type, content should be complete HTML/CSS/JS. For "pdf" type, content is the document body text. For "code_project", content should be the full project code.
-- {"type":"set_reminder","scheduledAt":"ISO 8601 datetime","reminderMessage":"...","channel":"sms|voice","recurrence":"monthly","recurrenceDay":15} — set a reminder. Use the user's timezone or default to America/Chicago. Convert relative times to absolute ISO 8601. For recurring reminders, add "recurrence" (none/daily/weekly/monthly) and "recurrenceDay" (1-31 for monthly). The scheduler will auto-create the next occurrence after each send.
-- {"type":"book_reservation","platform":"opentable|resy|evite","params":{"query":"...","date":"...","partySize":2}} — search for a reservation
-- {"type":"add_participant","name":"person's name","phone":"+1XXXXXXXXXX"} — add a person to this gig as a collaborator. Use this when the user says "Add [name] [phone]" or asks to invite someone. The phone MUST be in E.164 format (+1 followed by 10 digits).
-- {"type":"create_github_repo","name":"repo-name","description":"short description","files":[{"path":"filename","content":"file content"}]} — create a GitHub repository with generated code files. Use kebab-case for repo names.
-- {"type":"create_collage","title":"gallery title","content":"optional description"} — generate a shareable photo gallery/collage page from all images in this gig. The gallery is hosted at a short gigler.ai URL. Use when user asks for a gallery, collage, photo page, or wants to share collected images.
-- {"type":"update_bill_status","billType":"power","vendor":"Austin Energy","amount":429,"dueDate":"2026-04-15","billingPeriod":"Mar 2026","billStatus":"submitted"} — update a bill's status in the household tracker. Use when someone submits a bill (photo or text) or marks it as paid. billStatus can be "submitted" or "paid".
+const TOOL_USE_GUIDANCE = `You have tools available for taking actions. Use them when the user requests something actionable — do NOT describe actions in text instead of calling the tool.
+When adding a participant, call the add_participant tool. When setting reminders, call the set_reminder tool. And so on.
+Only call tools when the user explicitly requests something actionable. Do NOT call tools for general conversation.
 
-You have access to Google Search for real-time information. When the user asks about vendors, venues, prices, availability, restaurants, or any factual information, use your search capability to provide accurate, current results with specific names, addresses, and details.
+You also have access to Google Search for real-time information. When the user asks about vendors, venues, prices, availability, restaurants, or any factual information, use your search capability to provide accurate, current results.
 
 When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
 - Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")
 - If the gig context makes it relevant, proactively suggest what to do with them (create a gallery, use for invitations, etc.)
 - If several photos have been collected over the gig, offer to create a shareable gallery page using create_collage
-- Don't over-explain the process — keep it casual and SMS-friendly
-
-Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
+- Don't over-explain the process — keep it casual and SMS-friendly`;
 
 function buildDirectPrompt(gig: Gig, metadata: Record<string, unknown>, ownerName: string): string {
   let typePrompt: string;
@@ -1193,9 +1352,9 @@ Current gig metadata: ${JSON.stringify(metadata)}
 IMPORTANT: You are in a PRIVATE 1-on-1 SMS conversation with ${ownerName}. Only ${ownerName} can see your messages here. Do NOT address other people in this thread — they cannot see it. If you are adding a participant, confirm the action to ${ownerName} only (e.g. "Done, I added Guido to the group!") but save any messages directed at the new person for the group thread where they can actually read them.
 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-When the user says to add someone (e.g. "Add Sarah 555-123-4567"), use the add_participant action. Convert the phone to E.164 format (+15551234567).
+When the user says to add someone (e.g. "Add Sarah 555-123-4567"), call the add_participant tool with the phone in E.164 format (+15551234567).
 If the gig seems complete, suggest marking it done.
-${ACTION_INSTRUCTIONS}`;
+${TOOL_USE_GUIDANCE}`;
 }
 
 function buildGroupPrompt(
@@ -1245,7 +1404,7 @@ RESPOND: false
 
 If RESPOND: true, write your message on the following lines.
 If RESPOND: false, write nothing else.
-${ACTION_INSTRUCTIONS}`;
+${TOOL_USE_GUIDANCE}`;
 }
 
 // ── Conversations Webhook Handler ────────────────────────────────────────────
@@ -1337,13 +1496,14 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
 
   const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext);
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
-  const rawResponse = await callGemini(systemPrompt, `[${senderName}]: ${messageBody}`, history);
+  const geminiResponse = await callGemini(systemPrompt, `[${senderName}]: ${messageBody}`, history);
+  const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse);
 
-  const respondMatch = rawResponse.match(/^RESPOND:\s*(true|false)\s*\n?([\s\S]*)/i);
-  const shouldRespond = respondMatch ? respondMatch[1].toLowerCase() === "true" : rawResponse.trim().length > 0;
-  const responseText = respondMatch ? (respondMatch[2] || "").trim() : rawResponse.trim();
+  const respondMatch = rawText.match(/^RESPOND:\s*(true|false)\s*\n?([\s\S]*)/i);
+  const shouldRespond = respondMatch ? respondMatch[1].toLowerCase() === "true" : rawText.length > 0;
+  const userText = respondMatch ? (respondMatch[2] || "").trim() : rawText;
 
-  if (!shouldRespond || !responseText) {
+  if (!shouldRespond || !userText) {
     console.log("[GigProcessor] AI decided to stay silent in group thread");
     await updateGigMetadata(gigId, {
       ...metadata,
@@ -1354,8 +1514,6 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     });
     return { statusCode: 200, body: "Silent" };
   }
-
-  const { userText, actions } = parseAiResponse(responseText);
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "group-mms-ai");
   await sendConversationMessage(conversationSid, userText);
@@ -1438,8 +1596,8 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
     log.info("Enriched message with media context", { photoCount });
   }
 
-  const rawResponse = await callGemini(systemPrompt, enrichedMessage, history);
-  const { userText, actions } = parseAiResponse(rawResponse);
+  const geminiResponse = await callGemini(systemPrompt, enrichedMessage, history);
+  const { userText, actions } = extractFromGeminiResponse(geminiResponse);
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
   await sendSms(phone, userText);
