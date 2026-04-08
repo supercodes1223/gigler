@@ -981,7 +981,7 @@ async function callGemini(
   history: Array<{ role: string; content: string }> = [],
   options: { enableSearch?: boolean; enableFunctions?: boolean } = {}
 ): Promise<GeminiResponse> {
-  const { enableSearch = true, enableFunctions = true } = options;
+  const { enableSearch = false, enableFunctions = true } = options;
 
   if (!GEMINI_API_KEY) {
     return { parts: [{ text: "I'm processing your request. Give me a moment!" }] };
@@ -1337,8 +1337,6 @@ const GIGLER_FUNCTION_DECLARATIONS = [
 const TOOL_USE_GUIDANCE = `You have tools available for taking actions. Use them when the user requests something actionable — do NOT describe actions in text instead of calling the tool.
 When adding a participant, call the add_participant tool. When setting reminders, call the set_reminder tool. And so on.
 Only call tools when the user explicitly requests something actionable. Do NOT call tools for general conversation.
-
-You also have access to Google Search for real-time information. When the user asks about vendors, venues, prices, availability, restaurants, or any factual information, use your search capability to provide accurate, current results.
 
 When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
 - Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")
