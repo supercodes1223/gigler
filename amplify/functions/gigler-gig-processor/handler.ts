@@ -174,12 +174,19 @@ function parseAiResponse(raw: string): { userText: string; actions: GigAction[] 
     const actions: GigAction[] = Array.isArray(parsed) ? parsed : [];
     return { userText, actions };
   } catch {
-    console.warn("[GigProcessor] ACTION_JSON parse failed, attempting brace repair");
+    console.warn("[GigProcessor] ACTION_JSON parse failed, attempting brace repair. Raw JSON:", jsonStr.substring(0, 2000));
     const repaired = repairTruncatedJson(jsonStr);
     if (repaired) {
       const actions: GigAction[] = Array.isArray(repaired) ? repaired : [];
+      console.info(`[GigProcessor] Brace repair recovered ${actions.length} action(s)`);
       return { userText, actions };
     }
+    const extracted = extractIndividualActions(jsonStr);
+    if (extracted.length > 0) {
+      console.info(`[GigProcessor] Individual extraction recovered ${extracted.length} action(s)`);
+      return { userText, actions: extracted };
+    }
+    console.error("[GigProcessor] All JSON recovery methods failed — actions lost");
     return { userText: userText || raw.trim(), actions: [] };
   }
 }
@@ -941,7 +948,11 @@ function repairTruncatedJson(raw: string): unknown | null {
   const partial = raw.match(/\[[\s\S]*/)?.[0] || raw.match(/\{[\s\S]*/)?.[0];
   if (!partial) return null;
   try {
-    const repaired = partial.replace(/,\s*"[^"]*$/, "").replace(/,\s*$/, "");
+    const repaired = partial
+      .replace(/,\s*"[^"]*$/, "")
+      .replace(/,\s*$/, "")
+      .replace(/,\s*\}/g, "}")
+      .replace(/,\s*\]/g, "]");
     const openBraces = (repaired.match(/\{/g) || []).length;
     const closeBraces = (repaired.match(/\}/g) || []).length;
     const openBrackets = (repaired.match(/\[/g) || []).length;
@@ -953,6 +964,19 @@ function repairTruncatedJson(raw: string): unknown | null {
   } catch {
     return null;
   }
+}
+
+function extractIndividualActions(raw: string): GigAction[] {
+  const actions: GigAction[] = [];
+  const objectPattern = /\{[^{}]*"type"\s*:\s*"[^"]+?"[^{}]*\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = objectPattern.exec(raw)) !== null) {
+    try {
+      const obj = JSON.parse(match[0]);
+      if (obj.type) actions.push(obj as GigAction);
+    } catch { /* skip unparseable */ }
+  }
+  return actions;
 }
 
 // ── Gig Metadata Management ─────────────────────────────────────────────────
