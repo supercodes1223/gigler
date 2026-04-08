@@ -90,6 +90,7 @@ interface GigProcessorEvent {
   mediaUrls?: string[];
   phone: string;
   senderName?: string;
+  skipReply?: boolean;
   _trace?: TraceContext;
 }
 
@@ -1337,10 +1338,22 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   }
 
   await logMessage(gigId, userId, senderName || phone, message, "inbound");
-  const history = await fetchConversationHistory(gigId, 30);
 
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
+
+  if (gigEvent.skipReply) {
+    log.info("skipReply set — updating metadata only");
+    await updateGigMetadata(gigId, {
+      ...metadata,
+      lastInteraction: new Date().toISOString(),
+      messageCount: ((metadata.messageCount as number) || 0) + 1,
+      mediaCount: ((metadata.mediaCount as number) || 0) + (gigEvent.mediaUrls?.length || 0),
+    });
+    return { statusCode: 200, body: "Metadata updated (skipReply)" };
+  }
+
+  const history = await fetchConversationHistory(gigId, 30);
 
   const systemPrompt = buildDirectPrompt(gig, metadata);
 

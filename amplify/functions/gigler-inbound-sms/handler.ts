@@ -831,16 +831,15 @@ async function handleCreateGig(user: User, message: string, gigType: GigType, me
   const systemPrompt = `You are Gigler. A user just created a new gig called "${gig.title}" (type: ${gigType}). Their original request was: "${message}".
 
 Respond with:
-1. Confirm the gig was created with the title
-2. Ask 2-3 clarifying questions to get started
-3. Keep it concise and SMS-friendly
+1. Briefly confirm the gig was created (one short sentence)
+2. Ask ONE specific follow-up question to get started — the most important thing you need to know first
+3. Keep it concise, warm, and SMS-friendly (2-4 lines max)
 
-Don't use bullet points with dashes. Use simple numbered lists or line breaks.`;
+Do NOT ask multiple questions at once. One question per message — you'll ask more as the conversation continues.`;
 
   const aiResponse = await callGemini(systemPrompt, message);
   await logMessage(gig.id, "gigler", "Gigler", aiResponse, "outbound", "ai");
 
-  // Invoke gig-processor async so it can do type-specific follow-up
   await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
     gigId: gig.id,
     userId: user.id,
@@ -848,6 +847,7 @@ Don't use bullet points with dashes. Use simple numbered lists or line breaks.`;
     mediaUrls,
     phone: user.phone,
     senderName: user.name,
+    skipReply: true,
     _trace: { traceId: generateTraceId(), requestId: "create-gig", source: "gigler-inbound-sms" },
   });
 
