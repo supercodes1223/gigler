@@ -691,7 +691,7 @@ If the user is asking to DO something (plan, build, create, organize, schedule, 
 If they're asking about their gigs or listing them, classify as list_gigs.
 Otherwise, classify as general.
 
-Gig types: coding, planning, creative, professional, lifestyle, scheduling, education, business_formation, reservations
+Gig types: coding, planning, creative, professional, lifestyle, scheduling, education, business_formation, reservations, household
 
 JSON format: {"type": "create_gig"|"list_gigs"|"general", "gigType": "...", "title": "short title"}`,
             }],
@@ -907,7 +907,7 @@ async function generateGigTitle(message: string, gigType: GigType): Promise<stri
             }],
           },
           contents: [{ role: "user", parts: [{ text: message }] }],
-          generationConfig: { maxOutputTokens: 100, temperature: 0.5 },
+          generationConfig: { maxOutputTokens: 500, temperature: 0.1 },
         }),
       }
     );
@@ -1204,8 +1204,18 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     }
 
     if (intent.type === "create_gig") {
-      const classification = await classifyGigWithGemini(body);
-      const response = await handleCreateGig(user, body, classification.type, mediaUrls, classification.customPrompt);
+      let gigType: GigType = intent.gigType || "planning";
+      let customPrompt: string | null = null;
+
+      if (intent.gigType && PRESET_GIG_TYPES.includes(intent.gigType)) {
+        gigType = intent.gigType;
+      } else {
+        const classification = await classifyGigWithGemini(body);
+        gigType = classification.type;
+        customPrompt = classification.customPrompt;
+      }
+
+      const response = await handleCreateGig(user, body, gigType, mediaUrls, customPrompt);
       await sendSms(fromPhone, response);
       return twimlResponse("");
     }
