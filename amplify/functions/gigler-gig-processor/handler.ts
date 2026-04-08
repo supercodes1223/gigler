@@ -175,17 +175,51 @@ function extractFromGeminiResponse(response: GeminiResponse): { userText: string
     }
   }
 
-  const userText = textParts.join("").trim() || "I'm working on that!";
+  let userText = textParts.join("").trim();
+
+  if (!userText && actions.length > 0) {
+    userText = generateFallbackText(actions);
+  } else if (!userText) {
+    userText = "I'm working on that!";
+  }
+
   if (actions.length > 0) {
     console.log(`[GigProcessor] Extracted ${actions.length} action(s) via function calling: ${actions.map(a => a.type).join(", ")}`);
   }
   return { userText, actions };
 }
 
+function generateFallbackText(actions: GigAction[]): string {
+  const types = actions.map(a => a.type);
+  if (types.includes("add_participant")) {
+    const p = actions.find(a => a.type === "add_participant");
+    return `On it! Adding ${p?.name || "them"} to the group now.`;
+  }
+  if (types.includes("set_reminder")) {
+    return "Done! I've set up the reminders for you.";
+  }
+  if (types.includes("generate_image")) {
+    return "Generating that image for you now!";
+  }
+  if (types.includes("create_deliverable")) {
+    return "Creating that for you now!";
+  }
+  if (types.includes("create_collage")) {
+    return "Building your gallery page now!";
+  }
+  return "On it!";
+}
+
 function mapFunctionCallToAction(name: string, args: Record<string, unknown>): GigAction | null {
   switch (name) {
-    case "add_participant":
-      return { type: "add_participant", name: args.name as string, phone: args.phone as string };
+    case "add_participant": {
+      let participantName = (args.name as string) || "Participant";
+      const relationshipWords = ["son", "daughter", "mom", "dad", "mother", "father", "brother", "sister", "wife", "husband", "kid", "child", "parent", "roommate"];
+      if (relationshipWords.includes(participantName.toLowerCase())) {
+        participantName = "Participant";
+      }
+      return { type: "add_participant", name: participantName, phone: args.phone as string };
+    }
     case "set_reminder":
       return {
         type: "set_reminder",
@@ -1211,11 +1245,11 @@ async function handleUpdateBillStatus(gigId: string, entry: {
 const GIGLER_FUNCTION_DECLARATIONS = [
   {
     name: "add_participant",
-    description: "Add a person to this gig as a collaborator and create a group SMS thread. Use when the user says 'Add [name] [phone]' or asks to invite someone.",
+    description: "Add a person to this gig as a collaborator and create a group SMS thread. Use when the user says 'Add [name] [phone]' or asks to invite someone. If the user provides only a phone number without a name, use the name they mentioned earlier in conversation (e.g. 'my son Jeff' -> name is 'Jeff'). If no name was ever mentioned, set name to 'Participant'.",
     parameters: {
       type: "OBJECT",
       properties: {
-        name: { type: "STRING", description: "The participant's name" },
+        name: { type: "STRING", description: "The participant's actual first name. Must be a real name, NOT a relationship like 'Son', 'Mom', 'Dad'. If unknown, use 'Participant'." },
         phone: { type: "STRING", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
       },
       required: ["name", "phone"],
