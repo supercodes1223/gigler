@@ -999,20 +999,30 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
   if (TWILIO_MESSAGING_SERVICE_SID) {
     params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
   }
-  try {
-    await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(params).toString(),
-      }
-    );
-  } catch (error) {
-    console.error("[GigProcessor] Failed to send vCard MMS:", error);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(params).toString(),
+        }
+      );
+      if (response.ok) return;
+
+      const errorText = await response.text();
+      console.error(`[GigProcessor] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${errorText.substring(0, 500)}`);
+    } catch (error) {
+      console.error(`[GigProcessor] Failed to send vCard MMS (attempt ${attempt}):`, error);
+    }
+
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    }
   }
 }
 
