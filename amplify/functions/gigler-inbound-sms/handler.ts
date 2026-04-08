@@ -1071,6 +1071,32 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       await linkGuestParticipationsToUser(guestParticipations, user.id);
     }
 
+    // Step 4b: Check for a recently active gig (created/interacted in last 10 min).
+    // If found, route directly to it — skip intent detection to avoid misclassifying
+    // follow-up messages as new gig creation requests.
+    const allGigs = await getAllActiveGigsForUser(user.id, fromPhone);
+    const RECENT_WINDOW_MS = 10 * 60 * 1000;
+    const now = Date.now();
+    const recentGig = allGigs.find((g) => {
+      const meta = (() => { try { return typeof g.metadata === "string" ? JSON.parse(g.metadata as string) : (g.metadata || {}); } catch { return {}; } })();
+      const lastTs = meta.lastInteraction || g.updatedAt || g.createdAt;
+      return lastTs && (now - new Date(lastTs as string).getTime()) < RECENT_WINDOW_MS;
+    });
+
+    if (recentGig && !/^(list|my gigs|show gigs|create|new gig|done|finish|pause|archive|cancel)\b/i.test(body.trim())) {
+      ulog.info("Auto-routing to recently active gig", { gigId: recentGig.id, title: recentGig.title });
+      await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+        gigId: recentGig.id as string,
+        userId: user.id,
+        message: body,
+        mediaUrls,
+        phone: fromPhone,
+        senderName: user.name,
+        _trace: ulog.tracePayload(),
+      });
+      return twimlResponse("");
+    }
+
     // Step 5: Intent detection -- classify message before AI response
     const intent = await detectIntent(body);
     ulog.info("Intent detected", { intent: intent.type, gigType: intent.gigType });
@@ -1107,8 +1133,8 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       return twimlResponse("");
     }
 
-    // Step 6b: Fetch all gigs (owned + participating)
-    const activeGigs = await getAllActiveGigsForUser(user.id, fromPhone);
+    // Step 6b: Reuse gigs already fetched in Step 4b
+    const activeGigs = allGigs;
 
     // If user texts a single number, treat it as gig selection from list
     const gigSelectionMatch = body.match(/^(\d+)$/);
