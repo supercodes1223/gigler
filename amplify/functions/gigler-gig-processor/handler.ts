@@ -626,8 +626,27 @@ async function handleAddParticipant(
     ? JSON.parse(gigItem.metadata)
     : (gigItem.metadata as Record<string, unknown>) || {};
 
-  const existingUser = await lookupUserByPhone(participantPhone);
+  let existingUser = await lookupUserByPhone(participantPhone);
   const isNewToGigler = !existingUser;
+
+  if (isNewToGigler) {
+    const now2 = new Date().toISOString();
+    const newUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    await ddb.send(new PutCommand({
+      TableName: USER_TABLE_NAME,
+      Item: {
+        id: newUserId,
+        phone: participantPhone,
+        name: participantName !== "Participant" ? participantName : undefined,
+        plan: "free",
+        onboardingComplete: true,
+        createdAt: now2,
+        updatedAt: now2,
+      },
+    }));
+    existingUser = { id: newUserId, phone: participantPhone, name: participantName, onboardingComplete: true };
+    console.log(`[GigProcessor] Created User ${newUserId} for new participant ${participantPhone}`);
+  }
 
   const ownerUser = await ddb.send(
     new GetCommand({ TableName: USER_TABLE_NAME, Key: { id: ownerUserId } })
@@ -658,10 +677,10 @@ async function handleAddParticipant(
       Item: {
         gigId,
         phone: participantPhone,
-        userId: existingUser?.id as string || undefined,
+        userId: existingUser!.id as string,
         role: "collaborator",
         name: participantName,
-        isGuest: isNewToGigler,
+        isGuest: false,
         invitedBy: ownerUserId,
         joinedAt: now,
       },
