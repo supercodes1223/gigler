@@ -122,6 +122,10 @@ function extractMediaUrls(webhook: TwilioSmsWebhook): string[] {
   return urls;
 }
 
+function hasOtherRecipients(webhook: TwilioSmsWebhook): boolean {
+  return Object.keys(webhook).some((key) => /^OtherRecipients\d+$/.test(key));
+}
+
 // ── TwiML Response ───────────────────────────────────────────────────────────
 
 function twimlResponse(message: string): APIGatewayProxyResult {
@@ -204,20 +208,30 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
   if (TWILIO_MESSAGING_SERVICE_SID) {
     params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
   }
-  try {
-    await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(params).toString(),
-      }
-    );
-  } catch (error) {
-    console.error("[Gigler] Failed to send vCard MMS:", error);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams(params).toString(),
+        }
+      );
+      if (response.ok) return;
+
+      const errorText = await response.text();
+      console.error(`[Gigler] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${errorText.substring(0, 500)}`);
+    } catch (error) {
+      console.error(`[Gigler] Failed to send vCard MMS (attempt ${attempt}):`, error);
+    }
+
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+    }
   }
 }
 
@@ -823,7 +837,7 @@ async function createGig(
 }
 
 async function handleCreateGig(user: User, message: string, gigType: GigType, mediaUrls: string[] = [], customPrompt?: string | null): Promise<string> {
-  const title = await generateGigTitle(message);
+  const title = await generateGigTitle(message, gigType);
   const gig = await createGig(user, title, gigType, message, customPrompt);
 
   await logMessage(gig.id, user.id, user.name || user.phone, message, "inbound");
@@ -883,12 +897,41 @@ Do NOT ask multiple questions at once. One question per message — you'll ask m
   return aiResponse;
 }
 
-async function generateGigTitle(message: string): Promise<string> {
+function getSafeFallbackTitle(gigType: GigType): string {
+  switch (gigType) {
+    case "coding":
+      return "New Coding Gig";
+    case "planning":
+      return "New Planning Gig";
+    case "creative":
+      return "New Creative Gig";
+    case "professional":
+      return "New Professional Gig";
+    case "lifestyle":
+      return "New Lifestyle Gig";
+    case "scheduling":
+      return "New Scheduling Gig";
+    case "education":
+      return "New Education Gig";
+    case "business_formation":
+      return "New Business Formation Gig";
+    case "reservations":
+      return "New Reservations Gig";
+    case "household":
+      return "New Household Gig";
+    case "custom":
+    default:
+      return "New Gig";
+  }
+}
+
+async function generateGigTitle(message: string, gigType: GigType): Promise<string> {
+  const fallbackTitle = getSafeFallbackTitle(gigType);
   if (!GEMINI_API_KEY) {
-    return message.substring(0, 50).replace(/[^\w\s]/g, "").trim() || "New Gig";
+    return fallbackTitle;
   }
 
-  const titleModel = "gemini-3.0-flash";
+  const titleModel = "gemini-2.5-flash";
 
   try {
     console.log(`[Gigler] Calling Gemini model: ${titleModel} (title generation)`);
@@ -911,7 +954,7 @@ async function generateGigTitle(message: string): Promise<string> {
     const data = await response.json();
     if (!response.ok) {
       console.warn(`[Gigler] Title generation API error: ${response.status}`, JSON.stringify(data).substring(0, 500));
-      return message.substring(0, 50).replace(/\s+\S*$/, "").trim() || "New Gig";
+      return fallbackTitle;
     }
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const title = typeof rawText === "string" ? rawText.trim().replace(/^["']|["']$/g, "") : null;
@@ -924,7 +967,7 @@ async function generateGigTitle(message: string): Promise<string> {
   } catch (err) {
     console.error("[Gigler] Title generation failed:", err);
   }
-  return message.substring(0, 50).replace(/\s+\S*$/, "").trim() || "New Gig";
+  return fallbackTitle;
 }
 
 async function handleListGigs(user: User): Promise<string> {
@@ -1072,6 +1115,18 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       phone: maskPhone(fromPhone), bodyPreview: body.substring(0, 100),
       mediaCount: mediaUrls.length, messageSid: webhook.MessageSid,
     });
+
+    if (hasOtherRecipients(webhook)) {
+      const participations = await lookupGuestParticipation(fromPhone);
+      if (participations.length > 0) {
+        log.info("Ignoring mirrored group MMS on SMS webhook", {
+          phone: maskPhone(fromPhone),
+          participantGigCount: participations.length,
+          messageSid: webhook.MessageSid,
+        });
+        return twimlResponse("");
+      }
+    }
 
     // Step 1: Identify user by phone
     const user = await lookupUserByPhone(fromPhone);
