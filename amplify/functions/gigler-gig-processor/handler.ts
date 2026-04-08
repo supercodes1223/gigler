@@ -997,7 +997,7 @@ async function callGemini(
 
   const tools: Array<Record<string, unknown>> = [];
   if (enableSearch) {
-    tools.push({ google_search: {} });
+    tools.push({ googleSearch: {} });
   }
   if (enableFunctions) {
     tools.push({ functionDeclarations: GIGLER_FUNCTION_DECLARATIONS });
@@ -1013,6 +1013,9 @@ async function callGemini(
   };
   if (tools.length > 0) {
     requestBody.tools = tools;
+    if (enableSearch && enableFunctions) {
+      requestBody.toolConfig = { includeServerSideToolInvocations: true };
+    }
   }
 
   try {
@@ -1027,6 +1030,12 @@ async function callGemini(
     );
 
     const data = await response.json();
+
+    if (data?.error) {
+      console.error(`[GigProcessor] Gemini API error: ${JSON.stringify(data.error)}`);
+      return { parts: [{ text: "I'm having trouble right now. Try again in a moment!" }] };
+    }
+
     const candidate = data?.candidates?.[0];
     const finishReason = candidate?.finishReason as string | undefined;
     const parts: GeminiPart[] = candidate?.content?.parts || [];
@@ -1043,6 +1052,7 @@ async function callGemini(
     }
 
     if (parts.length === 0) {
+      console.warn(`[GigProcessor] Gemini returned 0 parts. Full response: ${JSON.stringify(data).substring(0, 1000)}`);
       return { parts: [{ text: "I'm working on that. Give me a moment!" }], finishReason };
     }
 
@@ -1203,10 +1213,10 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "add_participant",
     description: "Add a person to this gig as a collaborator and create a group SMS thread. Use when the user says 'Add [name] [phone]' or asks to invite someone.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        name: { type: "string", description: "The participant's name" },
-        phone: { type: "string", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
+        name: { type: "STRING", description: "The participant's name" },
+        phone: { type: "STRING", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
       },
       required: ["name", "phone"],
     },
@@ -1215,13 +1225,13 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "set_reminder",
     description: "Schedule a reminder SMS. Use the user's timezone or default to America/Chicago. Convert relative times (e.g. 'tomorrow at 9am') to absolute ISO 8601.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        scheduledAt: { type: "string", description: "ISO 8601 datetime for the reminder" },
-        reminderMessage: { type: "string", description: "The reminder text to send" },
-        channel: { type: "string", enum: ["sms", "voice"], description: "Delivery channel" },
-        recurrence: { type: "string", enum: ["none", "daily", "weekly", "monthly"], description: "Repeat schedule. Use 'monthly' for recurring bills." },
-        recurrenceDay: { type: "integer", description: "Day of month (1-31) for monthly recurrence" },
+        scheduledAt: { type: "STRING", description: "ISO 8601 datetime for the reminder" },
+        reminderMessage: { type: "STRING", description: "The reminder text to send" },
+        channel: { type: "STRING", enum: ["sms", "voice"], description: "Delivery channel" },
+        recurrence: { type: "STRING", enum: ["none", "daily", "weekly", "monthly"], description: "Repeat schedule. Use 'monthly' for recurring bills." },
+        recurrenceDay: { type: "INTEGER", description: "Day of month (1-31) for monthly recurrence" },
       },
       required: ["scheduledAt", "reminderMessage"],
     },
@@ -1230,9 +1240,9 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "generate_image",
     description: "Generate an AI image using Imagen 3. Provide a detailed visual description.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        prompt: { type: "string", description: "Detailed description of the image to generate" },
+        prompt: { type: "STRING", description: "Detailed description of the image to generate" },
       },
       required: ["prompt"],
     },
@@ -1241,11 +1251,11 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "create_deliverable",
     description: "Create a deliverable file (PDF document, website, menu, or code project). For websites, content should be complete HTML/CSS/JS. For PDFs, content is the document body text.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        deliverableType: { type: "string", enum: ["pdf", "website", "menu", "code_project", "bills_dashboard"], description: "Type of deliverable" },
-        title: { type: "string", description: "Title of the deliverable" },
-        content: { type: "string", description: "The full content to include" },
+        deliverableType: { type: "STRING", enum: ["pdf", "website", "menu", "code_project", "bills_dashboard"], description: "Type of deliverable" },
+        title: { type: "STRING", description: "Title of the deliverable" },
+        content: { type: "STRING", description: "The full content to include" },
       },
       required: ["deliverableType", "title", "content"],
     },
@@ -1254,15 +1264,15 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "book_reservation",
     description: "Search for a reservation at a restaurant, hotel, or event venue.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        platform: { type: "string", enum: ["opentable", "resy", "evite"], description: "Booking platform" },
+        platform: { type: "STRING", enum: ["opentable", "resy", "evite"], description: "Booking platform" },
         params: {
-          type: "object",
+          type: "OBJECT",
           properties: {
-            query: { type: "string" },
-            date: { type: "string" },
-            partySize: { type: "integer" },
+            query: { type: "STRING" },
+            date: { type: "STRING" },
+            partySize: { type: "INTEGER" },
           },
           description: "Search parameters",
         },
@@ -1274,17 +1284,17 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "create_github_repo",
     description: "Create a GitHub repository with generated code files. Use kebab-case for repo names.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        name: { type: "string", description: "Repository name in kebab-case" },
-        description: { type: "string", description: "Short description of the repo" },
+        name: { type: "STRING", description: "Repository name in kebab-case" },
+        description: { type: "STRING", description: "Short description of the repo" },
         files: {
-          type: "array",
+          type: "ARRAY",
           items: {
-            type: "object",
+            type: "OBJECT",
             properties: {
-              path: { type: "string", description: "File path (e.g. 'src/index.ts')" },
-              content: { type: "string", description: "File content" },
+              path: { type: "STRING", description: "File path (e.g. 'src/index.ts')" },
+              content: { type: "STRING", description: "File content" },
             },
             required: ["path", "content"],
           },
@@ -1298,10 +1308,10 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "create_collage",
     description: "Generate a shareable photo gallery/collage page from all images in this gig, hosted at a short gigler.ai URL. Use when user asks for a gallery, collage, photo page, or wants to share collected images.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        title: { type: "string", description: "Gallery title" },
-        content: { type: "string", description: "Optional description for the gallery" },
+        title: { type: "STRING", description: "Gallery title" },
+        content: { type: "STRING", description: "Optional description for the gallery" },
       },
       required: ["title"],
     },
@@ -1310,14 +1320,14 @@ const GIGLER_FUNCTION_DECLARATIONS = [
     name: "update_bill_status",
     description: "Update a bill's status in the household tracker. Use when someone submits a bill (photo or text with amount) or marks a bill as paid.",
     parameters: {
-      type: "object",
+      type: "OBJECT",
       properties: {
-        billType: { type: "string", description: "Bill category (e.g. 'power', 'water', 'internet', 'trash', 'gas')" },
-        vendor: { type: "string", description: "Vendor/company name (e.g. 'Austin Energy')" },
-        amount: { type: "number", description: "Bill amount in dollars" },
-        dueDate: { type: "string", description: "Due date (e.g. '2026-04-15')" },
-        billingPeriod: { type: "string", description: "Billing period (e.g. 'Mar 2026')" },
-        billStatus: { type: "string", enum: ["submitted", "paid"], description: "Status of the bill" },
+        billType: { type: "STRING", description: "Bill category (e.g. 'power', 'water', 'internet', 'trash', 'gas')" },
+        vendor: { type: "STRING", description: "Vendor/company name (e.g. 'Austin Energy')" },
+        amount: { type: "NUMBER", description: "Bill amount in dollars" },
+        dueDate: { type: "STRING", description: "Due date (e.g. '2026-04-15')" },
+        billingPeriod: { type: "STRING", description: "Billing period (e.g. 'Mar 2026')" },
+        billStatus: { type: "STRING", enum: ["submitted", "paid"], description: "Status of the bill" },
       },
       required: ["billType", "billStatus"],
     },
