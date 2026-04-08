@@ -888,7 +888,7 @@ async function generateGigTitle(message: string): Promise<string> {
     return message.substring(0, 50).replace(/[^\w\s]/g, "").trim() || "New Gig";
   }
 
-  const titleModel = "gemini-2.0-flash";
+  const titleModel = "gemini-3.0-flash";
 
   try {
     console.log(`[Gigler] Calling Gemini model: ${titleModel} (title generation)`);
