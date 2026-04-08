@@ -1482,7 +1482,9 @@ IMPORTANT: You are in a PRIVATE 1-on-1 SMS conversation with ${ownerName}. Only 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
 
 PARTICIPANT PRIORITY RULE:
-If the gig description or conversation mentions another person (son, daughter, friend, roommate, teammate, etc.) or mentions a "group chat" or "group text", you MUST collect that person's real first name AND phone number BEFORE setting up reminders, deliverables, or other actions. Ask for the name and number in your very first response if they haven't been provided yet. Do NOT proceed with other setup until participants are added. Once you have both name and phone, call add_participant immediately with phone in E.164 format (+15551234567).
+If the gig description or conversation mentions another person (son, daughter, friend, roommate, teammate, etc.) or mentions a "group chat" or "group text", you MUST collect that person's real first name AND phone number BEFORE setting up reminders, deliverables, or other actions. Ask for the name and number in your very first response if they haven't been provided yet. Do NOT proceed with other setup until participants are added.
+
+When the user provides the name and phone number, call add_participant AND ALSO set up any pending reminders or deliverables that were discussed earlier in the same response. Do not make the user ask again -- execute everything that was agreed upon. Use phone in E.164 format (+15551234567).
 
 When the user wants to add someone, you need BOTH their real first name AND phone number before calling add_participant. If the user gives only a phone number, ask for the person's name first. If they give only a name, ask for the phone.
 If the gig seems complete, suggest marking it done.
@@ -1525,9 +1527,10 @@ CRITICAL RULES FOR GROUP CONVERSATION:
 2. STAY SILENT when humans are talking to each other (e.g. "sounds good!", "see you at 7", "haha yeah", casual banter).
 3. RESPOND when someone asks a question you can help with, requests something actionable, or directly addresses you/Gigler.
 4. RESPOND when you can offer genuinely useful information (e.g. after a planning discussion settles, suggest a next step).
-5. Use common sense. If two people are coordinating with each other, stay out of it.
-6. Be natural and concise. You're a helpful friend in the group, not a chatbot.
-7. NEVER repeat information that was already discussed in the thread.
+5. ALWAYS RESPOND to a participant's FIRST message in the group — welcome them briefly and acknowledge what they said. After that first exchange, follow the normal silent/respond rules.
+6. Use common sense. If two people are coordinating with each other, stay out of it.
+7. Be natural and concise. You're a helpful friend in the group, not a chatbot.
+8. NEVER repeat information that was already discussed in the thread.
 
 RESPONSE FORMAT:
 First line MUST be exactly one of:
@@ -1635,6 +1638,14 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   const shouldRespond = respondMatch ? respondMatch[1].toLowerCase() === "true" : rawText.length > 0;
   const userText = respondMatch ? (respondMatch[2] || "").trim() : rawText;
 
+  if (actions.length > 0) {
+    const ownerParticipant = participants.find(p => p.role === "owner");
+    const ownerPhone = (ownerParticipant?.phone as string) || "";
+    const ownerUserId = (ownerParticipant?.userId as string) || "";
+    console.log(`[GigProcessor] Executing ${actions.length} action(s) from group context: ${actions.map(a => a.type).join(", ")}`);
+    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
+  }
+
   if (!shouldRespond || !userText) {
     console.log("[GigProcessor] AI decided to stay silent in group thread");
     await updateGigMetadata(gigId, {
@@ -1644,19 +1655,12 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       awaitingReply: false,
       lastRespondent: author || "user",
     });
-    return { statusCode: 200, body: "Silent" };
+    return { statusCode: 200, body: actions.length > 0 ? "Silent (actions executed)" : "Silent" };
   }
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "group-mms-ai");
   await sendConversationMessage(conversationSid, userText);
   console.log(`[GigProcessor] Sent group reply in ${conversationSid}`);
-
-  if (actions.length > 0) {
-    const ownerParticipant = participants.find(p => p.role === "owner");
-    const ownerPhone = (ownerParticipant?.phone as string) || "";
-    const ownerUserId = (ownerParticipant?.userId as string) || "";
-    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
-  }
 
   await updateGigMetadata(gigId, {
     ...metadata,
