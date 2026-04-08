@@ -1078,6 +1078,17 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
 
     // Step 2: Brand new user -- never seen before
     if (!user) {
+      const participations = await lookupGuestParticipation(fromPhone);
+      if (participations.length > 0) {
+        log.info("Known participant texting in — creating user (skip onboarding)", { phone: maskPhone(fromPhone), gigCount: participations.length });
+        const participantName = (participations[0].name as string) || undefined;
+        const newUser = await createUser(fromPhone, webhook.FromCity, webhook.FromState);
+        if (participantName) await updateUserName(newUser.id, participantName);
+        await markOnboardingComplete(newUser.id);
+        await linkGuestParticipationsToUser(participations, newUser.id);
+        const response = `Hey${participantName ? ` ${participantName}` : ""}! You're already part of a gig here on Gigler. You can also create your own gigs anytime — just tell me what you need!`;
+        return twimlResponse(response);
+      }
       log.info("New user — starting onboarding", { phone: maskPhone(fromPhone) });
       const response = await handleBrandNewUser(fromPhone, webhook.FromCity, webhook.FromState);
       return twimlResponse(response);
