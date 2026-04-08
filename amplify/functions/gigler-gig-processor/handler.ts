@@ -408,6 +408,31 @@ async function lookupUserByPhone(phone: string): Promise<Record<string, unknown>
   return (result.Items?.[0] as Record<string, unknown>) || null;
 }
 
+async function updateUserState(
+  userId: string,
+  updates: { vcardStatus?: "pending" | "sent" | "failed" }
+): Promise<void> {
+  const setClauses: string[] = ["updatedAt = :now"];
+  const values: Record<string, unknown> = { ":now": new Date().toISOString() };
+  const names: Record<string, string> = {};
+
+  if (updates.vcardStatus) {
+    setClauses.push("#vcardStatus = :vcardStatus");
+    names["#vcardStatus"] = "vcardStatus";
+    values[":vcardStatus"] = updates.vcardStatus;
+  }
+
+  await ddb.send(
+    new UpdateCommand({
+      TableName: USER_TABLE_NAME,
+      Key: { id: userId },
+      UpdateExpression: `SET ${setClauses.join(", ")}`,
+      ...(Object.keys(names).length > 0 ? { ExpressionAttributeNames: names } : {}),
+      ExpressionAttributeValues: values,
+    })
+  );
+}
+
 async function getOrCreateConversation(
   gigId: string,
   gigTitle: string,
@@ -640,6 +665,7 @@ async function handleAddParticipant(
         name: participantName !== "Participant" ? participantName : undefined,
         plan: "free",
         onboardingComplete: true,
+        vcardStatus: "pending",
         createdAt: now2,
         updatedAt: now2,
       },
@@ -714,7 +740,9 @@ async function handleAddParticipant(
     await sendSms(participantPhone, welcomeMsg);
     console.log(`[GigProcessor] Sent 1-on-1 welcome SMS to new user ${participantPhone}`);
 
-    sendVcardToNewUser(participantPhone).catch(() => {});
+    void sendVcardToNewUser(participantPhone).then((result) => {
+      void updateUserState(existingUser!.id as string, { vcardStatus: result.success ? "sent" : "failed" });
+    });
   }
 }
 
@@ -964,32 +992,51 @@ async function logMessage(
 
 // ── SMS Sending ──────────────────────────────────────────────────────────────
 
-async function sendSms(to: string, message: string): Promise<void> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
-  if (!TWILIO_MESSAGING_SERVICE_SID && !GIGLER_NUMBER) return;
+async function sendSms(to: string, message: string): Promise<{ success: boolean; messageSid?: string; error?: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    console.error("[GigProcessor] Missing Twilio credentials");
+    return { success: false, error: "SMS service not configured" };
+  }
+  if (!TWILIO_MESSAGING_SERVICE_SID && !GIGLER_NUMBER) {
+    console.error("[GigProcessor] No MessagingServiceSid and no From number");
+    return { success: false, error: "SMS service not configured" };
+  }
 
   const params: Record<string, string> = { To: to, Body: message, From: GIGLER_NUMBER };
   if (TWILIO_MESSAGING_SERVICE_SID) {
     params.MessagingServiceSid = TWILIO_MESSAGING_SERVICE_SID;
   }
 
-  await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams(params).toString(),
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(params).toString(),
+      }
+    );
+    const data = await response.json();
+    if (response.ok) {
+      console.log(`[GigProcessor] SMS sent to ${to} sid=${data.sid || "unknown"}`);
+      return { success: true, messageSid: data.sid };
     }
-  );
+
+    console.error("[GigProcessor] Twilio error:", data);
+    return { success: false, error: data.message || "Failed to send SMS" };
+  } catch (error) {
+    console.error("[GigProcessor] SMS send error:", error);
+    return { success: false, error: "Network error sending SMS" };
+  }
 }
 
 const VCARD_URL = "https://gigler.ai/gigler.vcf";
 
-async function sendVcardToNewUser(phone: string): Promise<void> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
+async function sendVcardToNewUser(phone: string): Promise<{ success: boolean; messageSid?: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return { success: false };
   const params: Record<string, string> = {
     To: phone,
     From: GIGLER_NUMBER,
@@ -1012,10 +1059,19 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
           body: new URLSearchParams(params).toString(),
         }
       );
-      if (response.ok) return;
+      const responseText = await response.text();
+      if (response.ok) {
+        let messageSid: string | undefined;
+        try {
+          messageSid = (JSON.parse(responseText) as { sid?: string }).sid;
+        } catch {
+          messageSid = undefined;
+        }
+        console.log(`[GigProcessor] vCard sent to ${phone}${messageSid ? ` sid=${messageSid}` : ""}`);
+        return { success: true, messageSid };
+      }
 
-      const errorText = await response.text();
-      console.error(`[GigProcessor] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${errorText.substring(0, 500)}`);
+      console.error(`[GigProcessor] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${responseText.substring(0, 500)}`);
     } catch (error) {
       console.error(`[GigProcessor] Failed to send vCard MMS (attempt ${attempt}):`, error);
     }
@@ -1024,6 +1080,7 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, attempt * 500));
     }
   }
+  return { success: false };
 }
 
 // ── Gemini AI ────────────────────────────────────────────────────────────────
