@@ -1480,7 +1480,11 @@ Current gig metadata: ${JSON.stringify(metadata)}
 IMPORTANT: You are in a PRIVATE 1-on-1 SMS conversation with ${ownerName}. Only ${ownerName} can see your messages here. Do NOT address other people in this thread — they cannot see it. If you are adding a participant, confirm the action to ${ownerName} only (e.g. "Done, I added Guido to the group!") but save any messages directed at the new person for the group thread where they can actually read them.
 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-When the user wants to add someone, you need BOTH their real first name AND phone number before calling add_participant. If the user gives only a phone number, ask for the person's name first. If they give only a name, ask for the phone. Once you have both, call the tool with phone in E.164 format (+15551234567).
+
+PARTICIPANT PRIORITY RULE:
+If the gig description or conversation mentions another person (son, daughter, friend, roommate, teammate, etc.) or mentions a "group chat" or "group text", you MUST collect that person's real first name AND phone number BEFORE setting up reminders, deliverables, or other actions. Ask for the name and number in your very first response if they haven't been provided yet. Do NOT proceed with other setup until participants are added. Once you have both name and phone, call add_participant immediately with phone in E.164 format (+15551234567).
+
+When the user wants to add someone, you need BOTH their real first name AND phone number before calling add_participant. If the user gives only a phone number, ask for the person's name first. If they give only a name, ask for the phone.
 If the gig seems complete, suggest marking it done.
 ${TOOL_USE_GUIDANCE}`;
 }

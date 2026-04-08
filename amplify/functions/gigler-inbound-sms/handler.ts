@@ -903,7 +903,7 @@ async function generateGigTitle(message: string, gigType: GigType): Promise<stri
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "Create a short concise title (3-6 words) from this gig description. The title must describe the ACTIVITY, not just a person or object. NEVER return a single word. Examples: 'Monthly Utility Bills Tracker', 'Saturday Birthday Party Plan', 'Website Redesign Project', 'Weekly Grocery Shopping List'. Return ONLY the title, no quotes, no explanation.",
+              text: "Create a short concise title (3-6 words) from this gig description. Rules:\n- Title MUST describe the ACTIVITY or TASK, not a person\n- NEVER start with relationship words (Son's, Mom's, Dad's, etc.)\n- NEVER use just a person reference as the subject\n- Focus on WHAT is being done, not WHO it's for\n- Return ONLY the title text, no quotes, no explanation\n\nGood examples: 'Monthly Utility Bill Tracker', 'Saturday Birthday Party Plan', 'Website Redesign Project', 'College Bills Reminder Setup'\nBad examples: 'Son's Monthly', 'Mom's Birthday', 'Kid's School'",
             }],
           },
           contents: [{ role: "user", parts: [{ text: message }] }],

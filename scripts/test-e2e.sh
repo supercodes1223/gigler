@@ -135,6 +135,48 @@ discover_tables() {
   log_info "  VoiceBridge   = ${VOICE_FN:-NOT FOUND}"
   log_info "  EmailHandler  = ${EMAIL_FN:-NOT FOUND}"
   log_info "  ThirdParty    = ${THIRD_PARTY_FN:-NOT FOUND}"
+
+  discover_test_ids_from_db
+}
+
+discover_test_ids_from_db() {
+  if [ -n "${TEST_USER_ID:-}" ] && [ -n "${TEST_GIG_ID:-}" ]; then
+    return
+  fi
+
+  if [ -z "${USER_TABLE:-}" ] || [ -z "${GIG_TABLE:-}" ]; then
+    return
+  fi
+
+  if [ -z "${TEST_USER_ID:-}" ]; then
+    local user_result
+    user_result=$(aws dynamodb query --region "$AWS_REGION" \
+      --table-name "$USER_TABLE" \
+      --index-name "byPhone" \
+      --key-condition-expression "phone = :phone" \
+      --expression-attribute-values "{\":phone\":{\"S\":\"$TEST_PHONE\"}}" \
+      --output json 2>/dev/null) || true
+
+    TEST_USER_ID=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
+    if [ -n "$TEST_USER_ID" ]; then
+      log_info "Auto-discovered TEST_USER_ID=$TEST_USER_ID"
+    fi
+  fi
+
+  if [ -z "${TEST_GIG_ID:-}" ] && [ -n "${TEST_USER_ID:-}" ]; then
+    local gig_result
+    gig_result=$(aws dynamodb query --region "$AWS_REGION" \
+      --table-name "$GIG_TABLE" \
+      --index-name "byOwner" \
+      --key-condition-expression "ownerId = :uid" \
+      --expression-attribute-values "{\":uid\":{\"S\":\"$TEST_USER_ID\"}}" \
+      --output json 2>/dev/null) || true
+
+    TEST_GIG_ID=$(echo "$gig_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[-1]['id']['S'] if items else '')" 2>/dev/null || echo "")
+    if [ -n "$TEST_GIG_ID" ]; then
+      log_info "Auto-discovered TEST_GIG_ID=$TEST_GIG_ID"
+    fi
+  fi
 }
 
 # ── DynamoDB Query Helpers ────────────────────────────────────────────────────
@@ -155,7 +197,7 @@ query_messages_by_gig() {
     --table-name "$MESSAGE_TABLE" \
     --key-condition-expression "gigId = :gid" \
     --expression-attribute-values "{\":gid\":{\"S\":\"$gig_id\"}}" \
-    --scan-index-forward false \
+    --no-scan-index-forward \
     --limit 5 \
     --output json 2>/dev/null
 }
@@ -305,15 +347,14 @@ invoke_lambda() {
   payload=$(echo "$payload" | sed "s/+15551234567/$TEST_PHONE/g")
 
   echo "$payload" > "${outfile}.payload"
+  local exit_code=0
   aws lambda invoke \
     --region "$AWS_REGION" \
     --function-name "$function_name" \
     --payload "file://${outfile}.payload" \
     --cli-binary-format raw-in-base64-out \
-    "$outfile" 2>&1
+    "$outfile" 2>&1 || exit_code=$?
   rm -f "${outfile}.payload"
-
-  local exit_code=$?
   local result
   result=$(cat "$outfile")
   rm -f "$outfile"
@@ -374,7 +415,7 @@ test_smoke() {
 
   if [ -n "${USER_TABLE:-}" ]; then
     local user_result
-    user_result=$(query_user_by_phone "$TEST_PHONE")
+    user_result=$(query_user_by_phone "$TEST_PHONE") || true
     local user_count
     user_count=$(echo "$user_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -391,7 +432,7 @@ test_smoke() {
 
   if [ -n "${MESSAGE_TABLE:-}" ]; then
     local msg_result
-    msg_result=$(query_messages_by_gig "_general")
+    msg_result=$(query_messages_by_gig "_general") || true
     local msg_count
     msg_count=$(echo "$msg_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -416,7 +457,7 @@ test_sms_onboarding() {
 
   if [ -n "${USER_TABLE:-}" ]; then
     local user_result
-    user_result=$(query_user_by_phone "$TEST_PHONE")
+    user_result=$(query_user_by_phone "$TEST_PHONE") || true
     local user_count
     user_count=$(echo "$user_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -438,7 +479,7 @@ test_sms_onboarding() {
 
   if [ -n "${USER_TABLE:-}" ] && [ -n "${TEST_USER_ID:-}" ]; then
     local user_result
-    user_result=$(query_user_by_phone "$TEST_PHONE")
+    user_result=$(query_user_by_phone "$TEST_PHONE") || true
     local name
     name=$(echo "$user_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['Items'][0].get('name',{}).get('S',''))" 2>/dev/null || echo "")
     local onboarded
@@ -464,7 +505,7 @@ test_sms_onboarding() {
 
   if [ -n "${GIG_TABLE:-}" ] && [ -n "${TEST_USER_ID:-}" ]; then
     local gig_result
-    gig_result=$(query_gigs_by_owner "$TEST_USER_ID")
+    gig_result=$(query_gigs_by_owner "$TEST_USER_ID") || true
     local gig_count
     gig_count=$(echo "$gig_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -495,7 +536,7 @@ test_gig_processor() {
 
   if [ -n "${MESSAGE_TABLE:-}" ] && [ -n "${TEST_GIG_ID:-}" ]; then
     local msg_result
-    msg_result=$(query_messages_by_gig "$TEST_GIG_ID")
+    msg_result=$(query_messages_by_gig "$TEST_GIG_ID") || true
     local msg_count
     msg_count=$(echo "$msg_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -548,7 +589,7 @@ test_deliverable() {
 
   if [ -n "${DELIVERABLE_TABLE:-}" ] && [ -n "${TEST_GIG_ID:-}" ]; then
     local del_result
-    del_result=$(query_deliverables_by_gig "$TEST_GIG_ID")
+    del_result=$(query_deliverables_by_gig "$TEST_GIG_ID") || true
     local del_count
     del_count=$(echo "$del_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -574,7 +615,7 @@ test_media() {
 
   if [ -n "${MEDIA_TABLE:-}" ] && [ -n "${TEST_GIG_ID:-}" ]; then
     local media_result
-    media_result=$(query_media_by_gig "$TEST_GIG_ID")
+    media_result=$(query_media_by_gig "$TEST_GIG_ID") || true
     local media_count
     media_count=$(echo "$media_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -629,7 +670,7 @@ test_email() {
   if [ -n "${MESSAGE_TABLE:-}" ]; then
     log_info "Checking for email-sourced messages..."
     local msg_result
-    msg_result=$(query_messages_by_gig "_general")
+    msg_result=$(query_messages_by_gig "_general") || true
     local msg_count
     msg_count=$(echo "$msg_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
     log_info "Messages in _general thread: $msg_count"
@@ -651,7 +692,7 @@ test_third_party() {
 
   if [ -n "${THIRD_PARTY_TABLE:-}" ] && [ -n "${TEST_GIG_ID:-}" ]; then
     local tpa_result
-    tpa_result=$(query_third_party_by_gig "$TEST_GIG_ID")
+    tpa_result=$(query_third_party_by_gig "$TEST_GIG_ID") || true
     local tpa_count
     tpa_count=$(echo "$tpa_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -905,7 +946,7 @@ test_group_mms() {
   # Verify GigParticipant record
   if [ -n "${GIG_PARTICIPANT_TABLE:-}" ]; then
     local part_result
-    part_result=$(query_participants_by_gig "$TEST_GIG_ID")
+    part_result=$(query_participants_by_gig "$TEST_GIG_ID") || true
     local part_count
     part_count=$(echo "$part_result" | python3 -c "import sys,json; print(json.load(sys.stdin).get('Count',0))" 2>/dev/null || echo "0")
 
@@ -927,7 +968,7 @@ for i in items:
   # Verify Conversation was created on the Gig record
   if [ -n "${GIG_TABLE:-}" ]; then
     local gig_result
-    gig_result=$(get_gig_by_id "$TEST_GIG_ID")
+    gig_result=$(get_gig_by_id "$TEST_GIG_ID") || true
     local conv_sid
     conv_sid=$(echo "$gig_result" | python3 -c "import sys,json; item=json.load(sys.stdin).get('Item',{}); print(item.get('conversationSid',{}).get('S',''))" 2>/dev/null || echo "")
 
@@ -1137,7 +1178,7 @@ cleanup_test_data() {
   # Find and delete user
   if [ -n "${USER_TABLE:-}" ]; then
     local user_result
-    user_result=$(query_user_by_phone "$TEST_PHONE")
+    user_result=$(query_user_by_phone "$TEST_PHONE") || true
     local user_id
     user_id=$(echo "$user_result" | python3 -c "import sys,json; items=json.load(sys.stdin).get('Items',[]); print(items[0]['id']['S'] if items else '')" 2>/dev/null || echo "")
 
@@ -1145,13 +1186,13 @@ cleanup_test_data() {
       log_info "Deleting user $user_id..."
       aws dynamodb delete-item --region "$AWS_REGION" \
         --table-name "$USER_TABLE" \
-        --key "{\"id\":{\"S\":\"$user_id\"}}" 2>/dev/null
+        --key "{\"id\":{\"S\":\"$user_id\"}}" 2>/dev/null || true
       log_pass "User deleted"
 
       # Delete gigs owned by this user
       if [ -n "${GIG_TABLE:-}" ]; then
         local gig_result
-        gig_result=$(query_gigs_by_owner "$user_id")
+        gig_result=$(query_gigs_by_owner "$user_id") || true
         local gig_ids
         gig_ids=$(echo "$gig_result" | python3 -c "
 import sys,json
