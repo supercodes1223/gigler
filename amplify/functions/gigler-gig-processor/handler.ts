@@ -602,7 +602,7 @@ async function handleAddParticipant(
   }
 
   if (isNewToGigler) {
-    const welcomeMsg = `Welcome to Gigler! 🎉\n\n${ownerName} just added you to their gig "${gigTitle}".\n\nGigler is your AI-powered assistant that helps you plan, organize, and execute anything via text.\n\nYou can create your own gigs anytime — just text this number with what you need!\n\nLearn more at gigler.ai`;
+    const welcomeMsg = `Welcome to Gigler! 🎉\n\n${ownerName} just added you to their gig "${gigTitle}".\n\nGigler is your AI-powered assistant that helps you plan, organize, and execute anything via text.\n\nYou can create your own gigs anytime — just text this number or go to gigler.ai!`;
     await sendSms(participantPhone, welcomeMsg);
     console.log(`[GigProcessor] Sent 1-on-1 welcome SMS to new user ${participantPhone}`);
 
