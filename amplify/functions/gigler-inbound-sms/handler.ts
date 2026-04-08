@@ -898,11 +898,11 @@ async function generateGigTitle(message: string): Promise<string> {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "Generate a short, clear title (3-6 words max) for this gig/task request. Examples: 'Monthly Utility Bills Tracker', 'Austin Birthday Party', 'Website Redesign Project'. Return ONLY the title text, nothing else. No quotes.",
+              text: "Generate a descriptive title (3-6 words) for this task/gig request. The title must describe the ACTIVITY, not just a person or object. NEVER return a single word. Examples: 'Monthly Utility Bills Tracker', 'Saturday Birthday Party Plan', 'Website Redesign Project', 'College Son Bills Tracking', 'Weekly Grocery Shopping List'. Return ONLY the title, no quotes, no explanation.",
             }],
           },
           contents: [{ role: "user", parts: [{ text: message }] }],
-          generationConfig: { maxOutputTokens: 30, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 40, temperature: 0.5 },
         }),
       }
     );
@@ -913,11 +913,12 @@ async function generateGigTitle(message: string): Promise<string> {
     }
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const title = typeof rawText === "string" ? rawText.trim().replace(/^["']|["']$/g, "") : null;
-    if (title && title.length > 2 && title.length < 80) {
-      console.log(`[Gigler] Generated title: "${title}"`);
+    const wordCount = title ? title.split(/\s+/).length : 0;
+    if (title && wordCount >= 2 && title.length < 80) {
+      console.log(`[Gigler] Generated title: "${title}" (${wordCount} words)`);
       return title;
     }
-    console.warn(`[Gigler] Title generation returned unusable result. rawText=${JSON.stringify(rawText)}, candidates=${JSON.stringify(data?.candidates?.[0]?.finishReason)}`);
+    console.warn(`[Gigler] Title generation unusable. rawText=${JSON.stringify(rawText)}, words=${wordCount}, finishReason=${JSON.stringify(data?.candidates?.[0]?.finishReason)}`);
   } catch (err) {
     console.error("[Gigler] Title generation failed:", err);
   }
