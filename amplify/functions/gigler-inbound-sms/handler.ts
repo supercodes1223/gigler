@@ -229,6 +229,29 @@ async function updateUserState(
   );
 }
 
+async function conditionalSetMessageSid(userId: string, messageSid: string): Promise<boolean> {
+  try {
+    await ddb.send(
+      new UpdateCommand({
+        TableName: USER_TABLE_NAME,
+        Key: { id: userId },
+        UpdateExpression: "SET lastInboundMessageSid = :newSid, updatedAt = :now",
+        ConditionExpression: "attribute_not_exists(lastInboundMessageSid) OR lastInboundMessageSid <> :newSid",
+        ExpressionAttributeValues: {
+          ":newSid": messageSid,
+          ":now": new Date().toISOString(),
+        },
+      })
+    );
+    return true;
+  } catch (err: unknown) {
+    const errName = (err as { name?: string })?.name;
+    if (errName === "ConditionalCheckFailedException") return false;
+    console.error("[Gigler] conditionalSetMessageSid failed:", err);
+    return true;
+  }
+}
+
 async function sendVcardToNewUser(phone: string): Promise<{ success: boolean; messageSid?: string }> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return { success: false };
   const params: Record<string, string> = {
@@ -1077,8 +1100,16 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       mediaCount: mediaUrls.length, messageSid: webhook.MessageSid,
     });
 
+    let cachedParticipations: Array<Record<string, unknown>> | null = null;
+    const getCachedParticipations = async () => {
+      if (cachedParticipations === null) {
+        cachedParticipations = await lookupGuestParticipation(fromPhone);
+      }
+      return cachedParticipations;
+    };
+
     if (hasOtherRecipients(webhook)) {
-      const participations = await lookupGuestParticipation(fromPhone);
+      const participations = await getCachedParticipations();
       if (participations.length > 0) {
         log.info("Ignoring mirrored group MMS on SMS webhook (Conversations webhook handles it)", {
           phone: maskPhone(fromPhone),
@@ -1095,7 +1126,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
 
     // Step 2: Brand new user -- never seen before
     if (!user) {
-      const participations = await lookupGuestParticipation(fromPhone);
+      const participations = await getCachedParticipations();
       if (participations.length > 0) {
         log.info("Known participant texting in — creating user (skip onboarding)", { phone: maskPhone(fromPhone), gigCount: participations.length });
         const participantName = (participations[0].name as string) || undefined;
@@ -1123,7 +1154,11 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       return twimlResponse("");
     }
     if (webhook.MessageSid) {
-      await updateUserState(user.id, { lastInboundMessageSid: webhook.MessageSid });
+      const deduped = await conditionalSetMessageSid(user.id, webhook.MessageSid);
+      if (!deduped) {
+        ulog.info("Conditional dedup write failed — concurrent duplicate", { messageSid: webhook.MessageSid });
+        return twimlResponse("");
+      }
     }
 
     // Step 3: User exists but hasn't completed onboarding (waiting for name)
@@ -1134,7 +1169,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     }
 
     // Step 4: Check for guest participation and handle viral conversion
-    const guestParticipations = await lookupGuestParticipation(fromPhone);
+    const guestParticipations = await getCachedParticipations();
     const isKnownGuest = guestParticipations.some((p) => p.isGuest === true);
     if (isKnownGuest) {
       ulog.info("Linking guest participations", { guestCount: guestParticipations.length });

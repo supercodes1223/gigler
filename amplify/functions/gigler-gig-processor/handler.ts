@@ -21,6 +21,7 @@ import {
   GetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { createHash } from "crypto";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -185,6 +186,189 @@ async function invokeLambdaSync(
   }
 }
 
+// ── Message Deduplication ─────────────────────────────────────────────────────
+
+function computeMessageHash(sender: string, body: string, hasMedia: boolean): string {
+  const normalized = `${sender}|${body.trim().substring(0, 100).toLowerCase()}|${hasMedia}`;
+  return createHash("sha256").update(normalized).digest("hex").substring(0, 16);
+}
+
+function isDuplicateMessage(metadata: Record<string, unknown>, hash: string): boolean {
+  if (metadata.lastProcessedHash !== hash) return false;
+  const lastTime = metadata.lastProcessedAt as string | undefined;
+  if (!lastTime) return false;
+  const elapsed = Date.now() - new Date(lastTime).getTime();
+  return elapsed < 60_000;
+}
+
+// ── Image Analysis (Gemini Vision) ───────────────────────────────────────────
+
+interface ImageAnalysisResult {
+  imageType: "bill" | "receipt" | "invoice" | "document" | "photo" | "screenshot" | "other";
+  extractedInfo: {
+    hasAmounts: boolean;
+    hasDates: boolean;
+    totalAmount?: string;
+    lineItems?: string;
+    dueDate?: string;
+    fromEntity?: string;
+    billType?: string;
+    description: string;
+  };
+  suggestedAction?: string;
+}
+
+interface DownloadedMedia {
+  base64: string;
+  mimeType: string;
+}
+
+async function downloadConversationMedia(mediaSid: string): Promise<DownloadedMedia | null> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_CONVERSATIONS_SERVICE_SID) return null;
+  try {
+    const mediaUrl = `https://mcs.us1.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Media/${mediaSid}`;
+    const response = await fetch(mediaUrl, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+      },
+    });
+    if (!response.ok) {
+      console.error(`[GigProcessor] Failed to download conversation media ${mediaSid}: ${response.status}`);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    return {
+      base64: Buffer.from(buffer).toString("base64"),
+      mimeType: response.headers.get("content-type") || "image/jpeg",
+    };
+  } catch (err) {
+    console.error(`[GigProcessor] Error downloading conversation media ${mediaSid}:`, err);
+    return null;
+  }
+}
+
+async function downloadTwilioMedia(mediaUrl: string): Promise<DownloadedMedia | null> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return null;
+  try {
+    const response = await fetch(mediaUrl, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
+      },
+      redirect: "follow",
+    });
+    if (!response.ok) {
+      console.error(`[GigProcessor] Failed to download Twilio media: ${response.status}`);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    return {
+      base64: Buffer.from(buffer).toString("base64"),
+      mimeType: response.headers.get("content-type") || "image/jpeg",
+    };
+  } catch (err) {
+    console.error("[GigProcessor] Error downloading Twilio media:", err);
+    return null;
+  }
+}
+
+async function analyzeImageWithGemini(
+  media: DownloadedMedia,
+  gigContext: { type: string; title: string; description?: string }
+): Promise<ImageAnalysisResult | null> {
+  if (!GEMINI_API_KEY) return null;
+
+  const prompt = `Analyze this image sent by a user in a "${gigContext.title}" gig (type: ${gigContext.type}).
+${gigContext.description ? `Gig description: ${gigContext.description}` : ""}
+
+Determine what type of image this is and extract all relevant information.
+
+Respond in JSON format ONLY:
+{
+  "imageType": "bill" | "receipt" | "invoice" | "document" | "photo" | "screenshot" | "other",
+  "extractedInfo": {
+    "hasAmounts": true/false,
+    "hasDates": true/false,
+    "totalAmount": "extracted total if visible, e.g., '$142.50'",
+    "lineItems": "extracted line items if visible",
+    "dueDate": "due date if visible",
+    "fromEntity": "who issued this (company name, utility provider, etc.)",
+    "billType": "power | water | gas | internet | trash | rent | phone | insurance | other",
+    "description": "brief description of what's in the image"
+  },
+  "suggestedAction": "What to do with this info, e.g., 'Log power bill of $142.50 due May 1'"
+}`;
+
+  try {
+    console.log("[GigProcessor] Calling Gemini Vision for image analysis");
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: media.mimeType, data: media.base64 } },
+            ],
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 4096,
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) {
+      console.error("[GigProcessor] No text in Gemini Vision response");
+      return null;
+    }
+
+    const text = rawText.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("[GigProcessor] No JSON found in vision response");
+      return null;
+    }
+
+    try {
+      return JSON.parse(jsonMatch[0]) as ImageAnalysisResult;
+    } catch {
+      const partial = text.match(/\{[\s\S]*/)?.[0] || "";
+      const repaired = partial.replace(/,\s*"[^"]*$/, "").replace(/,\s*$/, "");
+      const openCount = (repaired.match(/\{/g) || []).length;
+      const closeCount = (repaired.match(/\}/g) || []).length;
+      const closed = repaired + "}".repeat(Math.max(0, openCount - closeCount));
+      try {
+        return JSON.parse(closed) as ImageAnalysisResult;
+      } catch {
+        console.error("[GigProcessor] Could not parse vision JSON even after repair");
+        return null;
+      }
+    }
+  } catch (err) {
+    console.error("[GigProcessor] Gemini Vision error:", err);
+    return null;
+  }
+}
+
+function formatVisionResultForPrompt(result: ImageAnalysisResult): string {
+  const info = result.extractedInfo;
+  const parts: string[] = [`Image type: ${result.imageType}`];
+  if (info.description) parts.push(`Description: ${info.description}`);
+  if (info.fromEntity) parts.push(`From: ${info.fromEntity}`);
+  if (info.billType) parts.push(`Bill type: ${info.billType}`);
+  if (info.totalAmount) parts.push(`Amount: ${info.totalAmount}`);
+  if (info.dueDate) parts.push(`Due: ${info.dueDate}`);
+  if (info.lineItems) parts.push(`Items: ${info.lineItems}`);
+  if (result.suggestedAction) parts.push(`Suggested action: ${result.suggestedAction}`);
+  return parts.join(". ");
+}
+
 // ── AI Response Extraction (Native Function Calling) ─────────────────────────
 
 function extractFromGeminiResponse(response: GeminiResponse): { userText: string; actions: GigAction[] } {
@@ -302,6 +486,34 @@ function mapFunctionCallToAction(name: string, args: Record<string, unknown>): G
   }
 }
 
+function actionsFromVisionResult(
+  visionResult: ImageAnalysisResult,
+  gigType: string,
+  existingActions: GigAction[]
+): GigAction[] {
+  const extra: GigAction[] = [];
+  const hasBillAction = existingActions.some(a => a.type === "update_bill_status");
+  if (hasBillAction) return extra;
+
+  const isBillGig = gigType === "household" || gigType === "bills";
+  const isBillImage = ["bill", "receipt", "invoice"].includes(visionResult.imageType);
+
+  if (isBillGig && isBillImage && visionResult.extractedInfo.billType) {
+    const info = visionResult.extractedInfo;
+    const amount = info.totalAmount ? parseFloat(info.totalAmount.replace(/[^0-9.]/g, "")) : undefined;
+    extra.push({
+      type: "update_bill_status",
+      billType: info.billType,
+      vendor: info.fromEntity,
+      amount: Number.isFinite(amount) ? amount : undefined,
+      dueDate: info.dueDate,
+      billStatus: "submitted",
+    });
+    console.log(`[GigProcessor] Auto-generated update_bill_status from vision: ${info.billType} ${info.totalAmount || "unknown amount"}`);
+  }
+  return extra;
+}
+
 // ── Action Execution ─────────────────────────────────────────────────────────
 
 async function executeActions(
@@ -321,9 +533,15 @@ async function executeActions(
         break;
 
       case "create_deliverable": {
+        const delType = action.deliverableType || "website";
+        const alreadyExists = await deliverableExistsRecently(ctx.gigId, delType);
+        if (alreadyExists) {
+          console.log(`[GigProcessor] Skipping duplicate deliverable (${delType}) for gig ${ctx.gigId}`);
+          break;
+        }
         const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
           gigId: ctx.gigId, userId: ctx.userId,
-          type: action.deliverableType || "website",
+          type: delType,
           title: action.title || "Untitled",
           content: action.content || "", phone: ctx.phone,
           _trace: trace,
@@ -381,11 +599,14 @@ async function executeActions(
         break;
 
       case "add_participant":
-        if (action.phone && action.name) {
+        if (action.phone && action.name && action.name !== "Participant") {
           await handleAddParticipant(
             ctx.gigId, ctx.userId, ctx.phone,
             action.name, action.phone, trace
           );
+        } else if (action.phone && (!action.name || action.name === "Participant")) {
+          console.warn(`[GigProcessor] Participant name is placeholder — asking owner for real name`);
+          await sendSms(ctx.phone, `I have the number (${action.phone}) but I need a real first name before adding them to the group. What's their name?`);
         }
         break;
 
@@ -928,7 +1149,7 @@ User: "Power 15th, water 10th, gas 20th, internet 1st"
 You: "Locked in. Want me to add Jordan to the group? Drop their number and I'll loop them in."
 
 Once setup info is collected, use set_reminder with recurrence "monthly" for each bill, and switch to ongoing tracking mode.
-When bill photos arrive with extracted data (shown as [Bill detected: ...]), use update_bill_status to record them.`,
+When bill photos arrive with extracted data (shown as [Attached image analysis: ...] or [Sent an image. Analysis: ...]), use update_bill_status to record the bill type, amount, vendor, and due date from the analysis.`,
 };
 
 // ── GitHub Repo Creation ─────────────────────────────────────────────────────
@@ -1286,6 +1507,51 @@ async function updateGigMetadata(
   );
 }
 
+async function reminderExists(gigId: string, recurrence?: string, recurrenceDay?: number): Promise<boolean> {
+  if (!REMINDER_TABLE_NAME || !recurrence) return false;
+  try {
+    const result = await ddb.send(
+      new QueryCommand({
+        TableName: REMINDER_TABLE_NAME,
+        IndexName: "byGig",
+        KeyConditionExpression: "gigId = :gid",
+        ExpressionAttributeValues: { ":gid": gigId },
+      })
+    );
+    return (result.Items || []).some((r) => {
+      const rec = r as Record<string, unknown>;
+      return rec.recurrence === recurrence
+        && (recurrenceDay === undefined || rec.recurrenceDay === recurrenceDay);
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function deliverableExistsRecently(gigId: string, type: string): Promise<boolean> {
+  if (!DELIVERABLE_TABLE_NAME) return false;
+  try {
+    const result = await ddb.send(
+      new QueryCommand({
+        TableName: DELIVERABLE_TABLE_NAME,
+        IndexName: "byGig",
+        KeyConditionExpression: "gigId = :gid",
+        ExpressionAttributeValues: { ":gid": gigId },
+      })
+    );
+    const now = Date.now();
+    return (result.Items || []).some((d) => {
+      const del = d as Record<string, unknown>;
+      if (del.type !== type) return false;
+      const created = del.createdAt as string | undefined;
+      if (!created) return false;
+      return now - new Date(created).getTime() < 120_000;
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function createReminder(params: {
   gigId: string;
   userId: string;
@@ -1297,6 +1563,14 @@ async function createReminder(params: {
   recurrence?: string;
   recurrenceDay?: number;
 }): Promise<void> {
+  if (params.recurrence) {
+    const exists = await reminderExists(params.gigId, params.recurrence, params.recurrenceDay);
+    if (exists) {
+      console.log(`[GigProcessor] Skipping duplicate reminder for gig ${params.gigId} (${params.recurrence} day=${params.recurrenceDay})`);
+      return;
+    }
+  }
+
   const id = `rem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   await ddb.send(
     new PutCommand({
@@ -1626,10 +1900,10 @@ ${TOOL_USE_GUIDANCE}`;
 
 function parseFormBody(body: string): Record<string, string> {
   const params: Record<string, string> = {};
-  for (const pair of body.split("&")) {
-    const [key, value] = pair.split("=").map(decodeURIComponent);
-    if (key) params[key] = value || "";
-  }
+  const parsed = new URLSearchParams(body);
+  parsed.forEach((value, key) => {
+    params[key] = value;
+  });
   return params;
 }
 
@@ -1692,6 +1966,12 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { /* ignore */ }
 
+  const msgHash = computeMessageHash(author || "", messageBody, hasMedia);
+  if (isDuplicateMessage(metadata, msgHash)) {
+    console.log(`[GigProcessor] Duplicate group message detected (hash=${msgHash}), skipping`);
+    return { statusCode: 200, body: "Duplicate" };
+  }
+
   const participants = await getGigParticipants(gigId);
   const senderParticipant = participants.find(p => p.phone === author);
   const senderName = (senderParticipant?.name as string) || author || "Someone";
@@ -1714,7 +1994,36 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     : undefined;
 
   let userMessage = messageBody;
-  if (hasMedia && !messageBody) {
+  let visionAnalysis: ImageAnalysisResult | null = null;
+  if (hasMedia) {
+    try {
+      const mediaItems = JSON.parse(mediaPayload || "[]");
+      if (Array.isArray(mediaItems) && mediaItems.length > 0) {
+        const firstMedia = mediaItems[0];
+        const mediaSid = firstMedia.sid || firstMedia.Sid;
+        if (mediaSid) {
+          const downloaded = await downloadConversationMedia(mediaSid);
+          if (downloaded) {
+            visionAnalysis = await analyzeImageWithGemini(downloaded, {
+              type: gig.type, title: gig.title, description: gig.description,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[GigProcessor] Failed to process media for vision:", e);
+    }
+  }
+
+  if (visionAnalysis) {
+    const visionSummary = formatVisionResultForPrompt(visionAnalysis);
+    if (messageBody) {
+      userMessage = `${messageBody}\n[Attached image analysis: ${visionSummary}]`;
+    } else {
+      userMessage = `[Sent an image. Analysis: ${visionSummary}]`;
+    }
+    console.log("[GigProcessor] Injected vision analysis into group prompt");
+  } else if (hasMedia && !messageBody) {
     userMessage = "[sent a photo/file — the image has been saved to the gig's media collection. Acknowledge receipt and ask if this is a bill or what it's for.]";
   } else if (hasMedia && messageBody) {
     userMessage = `${messageBody}\n[Also attached a photo/file — saved to media collection.]`;
@@ -1725,9 +2034,22 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   const geminiResponse = await callGemini(systemPrompt, `[${senderName}]: ${userMessage}`, history);
   const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse);
 
+  if (visionAnalysis) {
+    const visionActions = actionsFromVisionResult(visionAnalysis, gig.type, actions);
+    if (visionActions.length > 0) actions.push(...visionActions);
+  }
+
   const respondMatch = rawText.match(/^RESPOND:\s*(true|false)\s*\n?([\s\S]*)/i);
-  const shouldRespond = respondMatch ? respondMatch[1].toLowerCase() === "true" : rawText.length > 0;
-  const userText = respondMatch ? (respondMatch[2] || "").trim() : rawText;
+  let shouldRespond: boolean;
+  let userText: string;
+  if (respondMatch) {
+    shouldRespond = respondMatch[1].toLowerCase() === "true";
+    userText = (respondMatch[2] || "").trim();
+  } else {
+    shouldRespond = actions.length > 0;
+    userText = rawText;
+    console.warn("[GigProcessor] RESPOND: prefix missing in group AI response — defaulting to silent unless actions present", { hasActions: actions.length > 0 });
+  }
 
   if (actions.length > 0) {
     const ownerParticipant = participants.find(p => p.role === "owner");
@@ -1737,11 +2059,15 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone, conversationSid }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
   }
 
+  const now = new Date().toISOString();
+  const dedupFields = { lastProcessedHash: msgHash, lastProcessedAt: now };
+
   if (!shouldRespond || !userText) {
     console.log("[GigProcessor] AI decided to stay silent in group thread");
     await updateGigMetadata(gigId, {
       ...metadata,
-      lastInteraction: new Date().toISOString(),
+      ...dedupFields,
+      lastInteraction: now,
       messageCount: ((metadata.messageCount as number) || 0) + 1,
       awaitingReply: false,
       lastRespondent: author || "user",
@@ -1755,7 +2081,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
 
   await updateGigMetadata(gigId, {
     ...metadata,
-    lastInteraction: new Date().toISOString(),
+    ...dedupFields,
+    lastInteraction: now,
     messageCount: ((metadata.messageCount as number) || 0) + 1,
     awaitingReply: true,
     lastRespondent: "gigler",
@@ -1798,10 +2125,18 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
 
+  const directHash = computeMessageHash(phone, message, mediaUrls.length > 0);
+  if (isDuplicateMessage(metadata, directHash)) {
+    log.info("Duplicate direct message detected, skipping", { hash: directHash });
+    return { statusCode: 200, body: "Duplicate" };
+  }
+
   if (gigEvent.skipReply) {
     log.info("skipReply set — updating metadata only");
     await updateGigMetadata(gigId, {
       ...metadata,
+      lastProcessedHash: directHash,
+      lastProcessedAt: new Date().toISOString(),
       lastInteraction: new Date().toISOString(),
       messageCount: ((metadata.messageCount as number) || 0) + 1,
       mediaCount: ((metadata.mediaCount as number) || 0) + (gigEvent.mediaUrls?.length || 0),
@@ -1829,28 +2164,56 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   const systemPrompt = buildDirectPrompt(gig, metadata, senderName || "the user");
 
   let enrichedMessage = message;
+  let directVisionResult: ImageAnalysisResult | null = null;
   if (mediaUrls.length > 0) {
-    const photoCount = mediaUrls.length;
-    const mediaNote = `[User attached ${photoCount} photo${photoCount > 1 ? "s" : ""} via MMS. The photos have been saved to this gig's media collection. You can offer to create a collage/gallery, use them for the gig, or acknowledge receipt.]`;
-    enrichedMessage = message ? `${message}\n\n${mediaNote}` : mediaNote;
-    log.info("Enriched message with media context", { photoCount });
+    try {
+      const downloaded = await downloadTwilioMedia(mediaUrls[0]);
+      if (downloaded) {
+        directVisionResult = await analyzeImageWithGemini(downloaded, {
+          type: gig.type, title: gig.title, description: gig.description,
+        });
+      }
+    } catch (e) {
+      log.warn("Vision analysis failed for direct media", { error: String(e) });
+    }
+
+    if (directVisionResult) {
+      const visionSummary = formatVisionResultForPrompt(directVisionResult);
+      enrichedMessage = message
+        ? `${message}\n[Attached image analysis: ${visionSummary}]`
+        : `[Sent an image. Analysis: ${visionSummary}]`;
+      log.info("Enriched message with vision analysis");
+    } else {
+      const photoCount = mediaUrls.length;
+      const mediaNote = `[User attached ${photoCount} photo${photoCount > 1 ? "s" : ""} via MMS. The photos have been saved to this gig's media collection. You can offer to create a collage/gallery, use them for the gig, or acknowledge receipt.]`;
+      enrichedMessage = message ? `${message}\n\n${mediaNote}` : mediaNote;
+      log.info("Enriched message with media context (no vision)", { photoCount });
+    }
   }
 
   const geminiResponse = await callGemini(systemPrompt, enrichedMessage, history);
   const { userText, actions } = extractFromGeminiResponse(geminiResponse);
 
-  await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
-  await sendSms(phone, userText);
+  if (directVisionResult) {
+    const visionActions = actionsFromVisionResult(directVisionResult, gig.type, actions);
+    if (visionActions.length > 0) actions.push(...visionActions);
+  }
 
   if (actions.length > 0) {
-    log.info("Executing actions from AI response", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
+    log.info("Executing actions BEFORE reply", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
     const gigConvSid = (metadata.conversationSid as string) || undefined;
     await executeActions(actions, { gigId, userId, phone, conversationSid: gigConvSid }, log.tracePayload());
   }
 
+  await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
+  await sendSms(phone, userText);
+
+  const directNow = new Date().toISOString();
   await updateGigMetadata(gigId, {
     ...metadata,
-    lastInteraction: new Date().toISOString(),
+    lastProcessedHash: directHash,
+    lastProcessedAt: directNow,
+    lastInteraction: directNow,
     messageCount: ((metadata.messageCount as number) || 0) + 1,
     mediaCount: ((metadata.mediaCount as number) || 0) + mediaUrls.length,
     awaitingReply: true,
