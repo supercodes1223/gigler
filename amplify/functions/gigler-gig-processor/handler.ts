@@ -567,25 +567,32 @@ async function handleAddParticipant(
   try {
     let conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
     await addGiglerProjectedAddress(conversationSid);
-    await addSmsParticipantToConversation(conversationSid, ownerPhone);
-    const finalSid = await addSmsParticipantToConversation(conversationSid, participantPhone);
 
-    if (finalSid !== conversationSid) {
-      console.log(`[GigProcessor] Switching to existing Twilio conversation ${finalSid}`);
-      conversationSid = finalSid;
+    const ownerSid = await addSmsParticipantToConversation(conversationSid, ownerPhone);
+    if (ownerSid !== conversationSid) {
+      console.log(`[GigProcessor] Owner add redirected to existing conversation ${ownerSid}`);
+      conversationSid = ownerSid;
       await addGiglerProjectedAddress(conversationSid).catch(() => {});
-      await ddb.send(
-        new UpdateCommand({
-          TableName: GIG_TABLE_NAME,
-          Key: { id: gigId },
-          UpdateExpression: "SET conversationSid = :csid, updatedAt = :now",
-          ExpressionAttributeValues: {
-            ":csid": conversationSid,
-            ":now": new Date().toISOString(),
-          },
-        })
-      );
     }
+
+    const participantSid = await addSmsParticipantToConversation(conversationSid, participantPhone);
+    if (participantSid !== conversationSid) {
+      console.log(`[GigProcessor] Participant add redirected to existing conversation ${participantSid}`);
+      conversationSid = participantSid;
+      await addGiglerProjectedAddress(conversationSid).catch(() => {});
+    }
+
+    await ddb.send(
+      new UpdateCommand({
+        TableName: GIG_TABLE_NAME,
+        Key: { id: gigId },
+        UpdateExpression: "SET conversationSid = :csid, updatedAt = :now",
+        ExpressionAttributeValues: {
+          ":csid": conversationSid,
+          ":now": new Date().toISOString(),
+        },
+      })
+    );
 
     const groupIntro = isNewToGigler
       ? `Hi ${participantName}! ${ownerName} has added you as a participant on: "${gigTitle}". Welcome to Gigler — I'm your AI assistant and I'll help coordinate everything here. Reply in this thread to collaborate!`
