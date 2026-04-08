@@ -1282,6 +1282,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       ...metadata,
       lastInteraction: new Date().toISOString(),
       messageCount: ((metadata.messageCount as number) || 0) + 1,
+      awaitingReply: false,
+      lastRespondent: author || "user",
     });
     return { statusCode: 200, body: "Silent" };
   }
@@ -1303,6 +1305,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     ...metadata,
     lastInteraction: new Date().toISOString(),
     messageCount: ((metadata.messageCount as number) || 0) + 1,
+    awaitingReply: true,
+    lastRespondent: "gigler",
   });
 
   return { statusCode: 200, body: "Responded" };
@@ -1349,6 +1353,8 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
       lastInteraction: new Date().toISOString(),
       messageCount: ((metadata.messageCount as number) || 0) + 1,
       mediaCount: ((metadata.mediaCount as number) || 0) + (gigEvent.mediaUrls?.length || 0),
+      awaitingReply: true,
+      lastRespondent: "gigler",
     });
     return { statusCode: 200, body: "Metadata updated (skipReply)" };
   }
@@ -1381,6 +1387,8 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
     lastInteraction: new Date().toISOString(),
     messageCount: ((metadata.messageCount as number) || 0) + 1,
     mediaCount: ((metadata.mediaCount as number) || 0) + mediaUrls.length,
+    awaitingReply: true,
+    lastRespondent: "gigler",
   });
 
   return { statusCode: 200, body: "Processed" };

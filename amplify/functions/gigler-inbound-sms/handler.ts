@@ -840,6 +840,23 @@ Do NOT ask multiple questions at once. One question per message — you'll ask m
   const aiResponse = await callGemini(systemPrompt, message);
   await logMessage(gig.id, "gigler", "Gigler", aiResponse, "outbound", "ai");
 
+  await ddb.send(
+    new UpdateCommand({
+      TableName: GIG_TABLE_NAME,
+      Key: { id: gig.id },
+      UpdateExpression: "SET metadata = :meta, updatedAt = :now",
+      ExpressionAttributeValues: {
+        ":meta": JSON.stringify({
+          lastInteraction: new Date().toISOString(),
+          messageCount: 1,
+          awaitingReply: true,
+          lastRespondent: "gigler",
+        }),
+        ":now": new Date().toISOString(),
+      },
+    })
+  );
+
   await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
     gigId: gig.id,
     userId: user.id,
@@ -1071,30 +1088,56 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       await linkGuestParticipationsToUser(guestParticipations, user.id);
     }
 
-    // Step 4b: Check for a recently active gig (created/interacted in last 10 min).
-    // If found, route directly to it — skip intent detection to avoid misclassifying
-    // follow-up messages as new gig creation requests.
+    // Step 4b: Check for gigs where Gigler is awaiting a reply from this user.
+    // Routes directly to that gig, skipping intent detection which can misclassify
+    // follow-up messages (e.g. "set two reminders") as new gig creation requests.
     const allGigs = await getAllActiveGigsForUser(user.id, fromPhone);
-    const RECENT_WINDOW_MS = 10 * 60 * 1000;
-    const now = Date.now();
-    const recentGig = allGigs.find((g) => {
-      const meta = (() => { try { return typeof g.metadata === "string" ? JSON.parse(g.metadata as string) : (g.metadata || {}); } catch { return {}; } })();
-      const lastTs = meta.lastInteraction || g.updatedAt || g.createdAt;
-      return lastTs && (now - new Date(lastTs as string).getTime()) < RECENT_WINDOW_MS;
-    });
+    const isExplicitCommand = /^(list|my gigs|show gigs|create|new gig|done|finish|complete|pause|hold|archive|delete|remove|cancel)\b/i.test(body.trim());
 
-    if (recentGig && !/^(list|my gigs|show gigs|create|new gig|done|finish|pause|archive|cancel)\b/i.test(body.trim())) {
-      ulog.info("Auto-routing to recently active gig", { gigId: recentGig.id, title: recentGig.title });
-      await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
-        gigId: recentGig.id as string,
-        userId: user.id,
-        message: body,
-        mediaUrls,
-        phone: fromPhone,
-        senderName: user.name,
-        _trace: ulog.tracePayload(),
+    if (!isExplicitCommand) {
+      const parseMeta = (g: AnnotatedGig): Record<string, unknown> => {
+        try { return typeof g.metadata === "string" ? JSON.parse(g.metadata as string) : ((g.metadata as Record<string, unknown>) || (Object.create(null) as Record<string, unknown>)); } catch { return Object.create(null) as Record<string, unknown>; }
+      };
+      const awaitingGigs = allGigs.filter((g) => {
+        const meta = parseMeta(g);
+        return meta.awaitingReply === true && meta.lastRespondent === "gigler";
       });
-      return twimlResponse("");
+
+      if (awaitingGigs.length === 1) {
+        const targetGig = awaitingGigs[0];
+        ulog.info("Routing to gig awaiting reply", { gigId: targetGig.id, title: targetGig.title });
+        await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+          gigId: targetGig.id as string,
+          userId: user.id,
+          message: body,
+          mediaUrls,
+          phone: fromPhone,
+          senderName: user.name,
+          _trace: ulog.tracePayload(),
+        });
+        return twimlResponse("");
+      }
+
+      if (awaitingGigs.length > 1) {
+        ulog.info("Multiple gigs awaiting reply, using Gemini to pick", { count: awaitingGigs.length });
+        const selection = await selectGigByContext(body, awaitingGigs);
+        if (!("ambiguous" in selection)) {
+          ulog.info("Gemini routed to awaiting gig", { gigId: selection.gig.id, title: selection.gig.title });
+          await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+            gigId: selection.gig.id as string,
+            userId: user.id,
+            message: body,
+            mediaUrls,
+            phone: fromPhone,
+            senderName: user.name,
+            _trace: ulog.tracePayload(),
+          });
+          return twimlResponse("");
+        }
+        ulog.info("Gemini unsure which awaiting gig, showing disambiguation");
+        await sendSms(fromPhone, selection.prompt);
+        return twimlResponse("");
+      }
     }
 
     // Step 5: Intent detection -- classify message before AI response

@@ -670,18 +670,28 @@ test_third_party() {
 create_test_gig() {
   local owner_id=$1
   local title=$2
+  local metadata=${3:-}
   local gig_id="gig_test_$(date +%s)_$(( RANDOM % 10000 ))"
+
+  local item
+  item="{
+    \"id\":{\"S\":\"$gig_id\"},
+    \"ownerId\":{\"S\":\"$owner_id\"},
+    \"title\":{\"S\":\"$title\"},
+    \"status\":{\"S\":\"active\"},
+    \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
+    \"updatedAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+
+  if [ -n "$metadata" ]; then
+    local escaped_meta
+    escaped_meta=$(echo "$metadata" | sed 's/"/\\"/g')
+    item="$item,\"metadata\":{\"S\":\"$escaped_meta\"}"
+  fi
+  item="$item}"
 
   aws dynamodb put-item --region "$AWS_REGION" \
     --table-name "$GIG_TABLE" \
-    --item "{
-      \"id\":{\"S\":\"$gig_id\"},
-      \"ownerId\":{\"S\":\"$owner_id\"},
-      \"title\":{\"S\":\"$title\"},
-      \"status\":{\"S\":\"active\"},
-      \"createdAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},
-      \"updatedAt\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
-    }" 2>/dev/null
+    --item "$item" 2>/dev/null
 
   echo "$gig_id"
 }
@@ -721,7 +731,7 @@ delete_test_participant() {
 }
 
 test_smart_routing() {
-  log_header "Smart Gig Routing Tests"
+  log_header "Smart Gig Routing Tests (awaitingReply state)"
   require_lambda_url
 
   if [ -z "${TEST_USER_ID:-}" ]; then
@@ -733,24 +743,27 @@ test_smart_routing() {
   local ROUTING_GIGS=()
   local ROUTING_PARTICIPANTS=()
 
-  # ── Setup: create 2 owned gigs + 1 participated gig ──
-  log_info "Setting up multi-gig test data..."
+  local AWAITING_META='{"awaitingReply":true,"lastRespondent":"gigler","lastInteraction":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","messageCount":2}'
+  local IDLE_META='{"awaitingReply":false,"lastRespondent":"user","lastInteraction":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","messageCount":4}'
+
+  # ── Setup: create gigs with explicit conversation state ──
+  log_info "Setting up multi-gig test data with awaitingReply state..."
 
   local GIG_A
-  GIG_A=$(create_test_gig "$TEST_USER_ID" "Birthday Party Planning")
+  GIG_A=$(create_test_gig "$TEST_USER_ID" "Birthday Party Planning" "$AWAITING_META")
   ROUTING_GIGS+=("$GIG_A")
-  log_info "  Created gig A (owned): $GIG_A - Birthday Party Planning"
+  log_info "  Created gig A (owned, AWAITING): $GIG_A - Birthday Party Planning"
 
   local GIG_B
-  GIG_B=$(create_test_gig "$TEST_USER_ID" "Website Redesign Project")
+  GIG_B=$(create_test_gig "$TEST_USER_ID" "Website Redesign Project" "$IDLE_META")
   ROUTING_GIGS+=("$GIG_B")
-  log_info "  Created gig B (owned): $GIG_B - Website Redesign Project"
+  log_info "  Created gig B (owned, idle): $GIG_B - Website Redesign Project"
 
   local OTHER_USER_ID="usr_test_other_$(date +%s)"
   local GIG_C
-  GIG_C=$(create_test_gig "$OTHER_USER_ID" "Team Offsite Logistics")
+  GIG_C=$(create_test_gig "$OTHER_USER_ID" "Team Offsite Logistics" "$IDLE_META")
   ROUTING_GIGS+=("$GIG_C")
-  log_info "  Created gig C (other user): $GIG_C - Team Offsite Logistics"
+  log_info "  Created gig C (other user, idle): $GIG_C - Team Offsite Logistics"
 
   create_test_participant "$GIG_C" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
   ROUTING_PARTICIPANTS+=("$GIG_C|$TEST_PHONE")
@@ -758,33 +771,52 @@ test_smart_routing() {
 
   sleep 1
 
-  # ── Scenario 1: Unambiguous routing to "Birthday Party" ──
-  log_info "Scenario 1: Message clearly about birthday party..."
-  send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Scenario 1: Route to Birthday Party" || true
+  # ── Scenario 1: Follow-up routes to the ONE awaiting gig ──
+  log_info "Scenario 1: Follow-up 'lets do two reminders' routes to awaiting gig..."
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Scenario 1: Route to awaiting gig (Birthday Party)" || true
   sleep 3
 
-  # ── Scenario 2: Ambiguous message should trigger disambiguation ──
-  log_info "Scenario 2: Ambiguous message 'What's the status?'..."
-  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 2: Ambiguous routing" || true
+  # ── Scenario 2: Explicit command bypasses awaiting state ──
+  log_info "Scenario 2: Explicit 'list my gigs' bypasses awaiting state..."
+  send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "Scenario 2: Explicit command bypass" || true
   sleep 3
 
-  # ── Scenario 3: Single gig user (remove extra gigs) ──
-  log_info "Scenario 3: Single-gig user auto-routes..."
-  delete_test_gig "$GIG_B" || true
-  ROUTING_GIGS=("$GIG_A" "$GIG_C")
-  delete_test_participant "$GIG_C" "$TEST_PHONE" || true
-  ROUTING_PARTICIPANTS=()
-  delete_test_gig "$GIG_C" || true
-  ROUTING_GIGS=("$GIG_A")
+  # ── Scenario 3: Multiple gigs awaiting -- Gemini picks or disambiguates ──
+  log_info "Scenario 3: Two gigs awaiting -- Gemini-powered disambiguation..."
+  local AWAITING_META_2='{"awaitingReply":true,"lastRespondent":"gigler","lastInteraction":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","messageCount":3}'
+  aws dynamodb update-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$GIG_B\"}}" \
+    --update-expression "SET metadata = :m" \
+    --expression-attribute-values "{\":m\":{\"S\":\"$(echo "$AWAITING_META_2" | sed 's/"/\\"/g')\"}}" 2>/dev/null
+  log_info "  Set gig B to AWAITING too"
   sleep 1
 
-  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 3: Single-gig auto-route" || true
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-party.txt" "Scenario 3: Multi-awaiting, birthday message" || true
   sleep 3
 
-  # ── Scenario 4: Participant-only routing ──
-  log_info "Scenario 4: Participant sends message about their gig..."
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 3b: Multi-awaiting, ambiguous message" || true
+  sleep 3
+
+  # ── Scenario 4: No gigs awaiting -- falls through to intent detection ──
+  log_info "Scenario 4: No gigs awaiting -- normal intent detection..."
+  for gig_id in "$GIG_A" "$GIG_B"; do
+    aws dynamodb update-item --region "$AWS_REGION" \
+      --table-name "$GIG_TABLE" \
+      --key "{\"id\":{\"S\":\"$gig_id\"}}" \
+      --update-expression "SET metadata = :m" \
+      --expression-attribute-values "{\":m\":{\"S\":\"$(echo "$IDLE_META" | sed 's/"/\\"/g')\"}}" 2>/dev/null
+  done
+  log_info "  Set all gigs to idle (no awaitingReply)"
+  sleep 1
+
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-ambiguous.txt" "Scenario 4: No awaiting, normal disambiguation" || true
+  sleep 3
+
+  # ── Scenario 5: Participant-only routing ──
+  log_info "Scenario 5: Participant sends message to their gig..."
   local GIG_D
-  GIG_D=$(create_test_gig "usr_other_owner" "Birthday Party Planning")
+  GIG_D=$(create_test_gig "usr_other_owner" "Birthday Party Planning" "$AWAITING_META")
   ROUTING_GIGS+=("$GIG_D")
 
   local PARTICIPANT_USER
@@ -796,23 +828,20 @@ test_smart_routing() {
   ROUTING_PARTICIPANTS+=("$GIG_D|$TEST_PARTICIPANT_PHONE")
   sleep 1
 
-  send_sms_payload "$PAYLOAD_DIR/smart-routing-participant.txt" "Scenario 4: Participant routing" || true
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-participant.txt" "Scenario 5: Participant routing" || true
   sleep 3
 
-  # ── Scenario 5: List gigs shows both roles ──
-  log_info "Scenario 5: 'list my gigs' shows owned + participated..."
-  local GIG_E
-  GIG_E=$(create_test_gig "$TEST_USER_ID" "Road Trip Planning")
-  ROUTING_GIGS+=("$GIG_E")
-  local GIG_F
-  GIG_F=$(create_test_gig "usr_other_owner_2" "Conference Booth Setup")
-  ROUTING_GIGS+=("$GIG_F")
-  create_test_participant "$GIG_F" "$TEST_USER_ID" "$TEST_PHONE" "TestUser" "collaborator"
-  ROUTING_PARTICIPANTS+=("$GIG_F|$TEST_PHONE")
+  # ── Scenario 6: Explicit 'create new gig' bypasses awaiting state ──
+  log_info "Scenario 6: 'create a new trip gig' bypasses awaiting state..."
+  aws dynamodb update-item --region "$AWS_REGION" \
+    --table-name "$GIG_TABLE" \
+    --key "{\"id\":{\"S\":\"$GIG_A\"}}" \
+    --update-expression "SET metadata = :m" \
+    --expression-attribute-values "{\":m\":{\"S\":\"$(echo "$AWAITING_META" | sed 's/"/\\"/g')\"}}" 2>/dev/null
   sleep 1
 
-  log_info "Sending 'list my gigs'..."
-  send_sms_payload "$PAYLOAD_DIR/sms-list-gigs-multi.txt" "Scenario 5: List gigs multi-role" || true
+  send_sms_payload "$PAYLOAD_DIR/smart-routing-create-bypass.txt" "Scenario 6: Create bypasses awaiting" || true
+  sleep 3
 
   # ── Teardown ──
   log_info "Cleaning up smart routing test data..."

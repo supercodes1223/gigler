@@ -1,0 +1,1 @@
+MessageSid=SMrt006create&AccountSid=ACtest000000000000000000000000&From=%2B12812419268&To=%2B16508351235&Body=create+a+new+gig+for+planning+a+trip+to+California&NumMedia=0&FromCity=Austin&FromState=TX&FromZip=78701&FromCountry=US&ToCity=&ToState=&ToZip=&ToCountry=US&SmsMessageSid=SMrt006create&SmsSid=SMrt006create&SmsStatus=received&ApiVersion=2010-04-01
