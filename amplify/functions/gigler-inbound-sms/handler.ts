@@ -22,6 +22,24 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import {
+  buildDisambiguationList,
+  buildGigDescriptions,
+  buildKnownParticipantWelcomeMessage,
+  classifyGigTypeFallback,
+  deduplicateGigs,
+  extractMediaUrls,
+  getSafeFallbackTitle,
+  hasOtherRecipients,
+  isExplicitCommandMessage,
+  isLikelyGigRequest,
+  isValidGeneratedTitle,
+  parseGigSelection,
+  repairTruncatedJson,
+  type AnnotatedGig,
+  type GigType,
+  type TwilioSmsWebhook,
+} from "./utils";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -82,18 +100,6 @@ function createLogger(ctx: TraceContext & { gigId?: string; userId?: string; pho
   };
 }
 
-interface TwilioSmsWebhook {
-  MessageSid: string;
-  AccountSid: string;
-  From: string;
-  To: string;
-  Body: string;
-  NumMedia: string;
-  FromCity?: string;
-  FromState?: string;
-  [key: string]: string | undefined;
-}
-
 interface User {
   id: string;
   phone: string;
@@ -101,6 +107,8 @@ interface User {
   plan: string;
   onboardingComplete: boolean;
   timezone?: string;
+  vcardStatus?: "pending" | "sent" | "failed";
+  lastInboundMessageSid?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -110,20 +118,6 @@ interface User {
 function parseTwilioWebhook(body: string): TwilioSmsWebhook {
   const params = new URLSearchParams(body);
   return Object.fromEntries(params.entries()) as unknown as TwilioSmsWebhook;
-}
-
-function extractMediaUrls(webhook: TwilioSmsWebhook): string[] {
-  const numMedia = parseInt(webhook.NumMedia || "0", 10);
-  const urls: string[] = [];
-  for (let i = 0; i < numMedia; i++) {
-    const url = webhook[`MediaUrl${i}`];
-    if (url) urls.push(url);
-  }
-  return urls;
-}
-
-function hasOtherRecipients(webhook: TwilioSmsWebhook): boolean {
-  return Object.keys(webhook).some((key) => /^OtherRecipients\d+$/.test(key));
 }
 
 // ── TwiML Response ───────────────────────────────────────────────────────────
@@ -197,8 +191,46 @@ async function sendSms(
 
 const VCARD_URL = "https://gigler.ai/gigler.vcf";
 
-async function sendVcardToNewUser(phone: string): Promise<void> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return;
+async function updateUserState(
+  userId: string,
+  updates: Partial<Pick<User, "vcardStatus" | "lastInboundMessageSid" | "onboardingComplete" | "name">>
+): Promise<void> {
+  const setClauses: string[] = ["updatedAt = :now"];
+  const values: Record<string, unknown> = { ":now": new Date().toISOString() };
+  const names: Record<string, string> = {};
+
+  if (updates.vcardStatus) {
+    setClauses.push("#vcardStatus = :vcardStatus");
+    names["#vcardStatus"] = "vcardStatus";
+    values[":vcardStatus"] = updates.vcardStatus;
+  }
+  if (updates.lastInboundMessageSid) {
+    setClauses.push("lastInboundMessageSid = :lastInboundMessageSid");
+    values[":lastInboundMessageSid"] = updates.lastInboundMessageSid;
+  }
+  if (typeof updates.onboardingComplete === "boolean") {
+    setClauses.push("onboardingComplete = :onboardingComplete");
+    values[":onboardingComplete"] = updates.onboardingComplete;
+  }
+  if (updates.name) {
+    setClauses.push("#name = :name");
+    names["#name"] = "name";
+    values[":name"] = updates.name;
+  }
+
+  await ddb.send(
+    new UpdateCommand({
+      TableName: USER_TABLE_NAME,
+      Key: { id: userId },
+      UpdateExpression: `SET ${setClauses.join(", ")}`,
+      ...(Object.keys(names).length > 0 ? { ExpressionAttributeNames: names } : {}),
+      ExpressionAttributeValues: values,
+    })
+  );
+}
+
+async function sendVcardToNewUser(phone: string): Promise<{ success: boolean; messageSid?: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return { success: false };
   const params: Record<string, string> = {
     To: phone,
     From: GIGLER_NUMBER,
@@ -221,10 +253,19 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
           body: new URLSearchParams(params).toString(),
         }
       );
-      if (response.ok) return;
+      const responseText = await response.text();
+      if (response.ok) {
+        let messageSid: string | undefined;
+        try {
+          messageSid = (JSON.parse(responseText) as { sid?: string }).sid;
+        } catch {
+          messageSid = undefined;
+        }
+        console.log(`[Gigler] vCard sent to ${phone}${messageSid ? ` sid=${messageSid}` : ""}`);
+        return { success: true, messageSid };
+      }
 
-      const errorText = await response.text();
-      console.error(`[Gigler] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${errorText.substring(0, 500)}`);
+      console.error(`[Gigler] Failed to send vCard MMS (attempt ${attempt}) status=${response.status}: ${responseText.substring(0, 500)}`);
     } catch (error) {
       console.error(`[Gigler] Failed to send vCard MMS (attempt ${attempt}):`, error);
     }
@@ -233,6 +274,7 @@ async function sendVcardToNewUser(phone: string): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, attempt * 500));
     }
   }
+  return { success: false };
 }
 
 // ── DynamoDB Operations ──────────────────────────────────────────────────────
@@ -260,6 +302,7 @@ async function createUser(phone: string, fromCity?: string, fromState?: string):
     phone,
     plan: "free",
     onboardingComplete: false,
+    vcardStatus: "pending",
     timezone,
     createdAt: now,
     updatedAt: now,
@@ -427,11 +470,6 @@ async function invokeLambdaAsync(
 
 // ── Active Gig Lookup ────────────────────────────────────────────────────────
 
-interface AnnotatedGig extends Record<string, unknown> {
-  userRole: "owner" | "collaborator";
-  invitedByName?: string;
-}
-
 async function getAllActiveGigsForUser(
   userId: string,
   phone: string
@@ -460,13 +498,9 @@ async function getAllActiveGigsForUser(
     (p) => p.role === "collaborator" || p.role === "viewer"
   );
 
-  const ownedGigIds = new Set(ownedGigs.map((g) => g.id as string));
-
-  const participatedGigs: AnnotatedGig[] = [];
+  const participatedGigsForDedup: Array<{ gigId: string; invitedByName?: string; gigData: Record<string, unknown> }> = [];
   for (const p of participations) {
     const gigId = p.gigId as string;
-    if (ownedGigIds.has(gigId)) continue;
-
     const gigResult = await ddb.send(
       new GetCommand({ TableName: GIG_TABLE_NAME, Key: { id: gigId } })
     );
@@ -479,15 +513,15 @@ async function getAllActiveGigsForUser(
         );
         inviterName = inviterResult.Item?.name as string | undefined;
       }
-      participatedGigs.push({
-        ...gig,
-        userRole: "collaborator" as const,
+      participatedGigsForDedup.push({
+        gigId,
         invitedByName: inviterName,
+        gigData: gig,
       });
     }
   }
 
-  return [...ownedGigs, ...participatedGigs];
+  return deduplicateGigs(ownedGigs, participatedGigsForDedup);
 }
 
 // ── Timezone Guessing ────────────────────────────────────────────────────────
@@ -515,12 +549,7 @@ async function selectGigByContext(
   message: string,
   gigs: AnnotatedGig[]
 ): Promise<{ gig: AnnotatedGig } | { ambiguous: true; prompt: string }> {
-  const gigDescriptions = gigs.map((g, i) => {
-    const meta = typeof g.metadata === "string" ? JSON.parse(g.metadata) : (g.metadata || {});
-    const lastActive = (meta.lastInteraction as string) || (g.updatedAt as string) || "";
-    const role = g.userRole === "owner" ? "owner" : `collaborator${g.invitedByName ? `, invited by ${g.invitedByName}` : ""}`;
-    return `${i + 1}. "${g.title}" (${role}) - ${g.type || "general"}, last active: ${lastActive || "unknown"}`;
-  }).join("\n");
+  const gigDescriptions = buildGigDescriptions(gigs);
 
   const prompt = `Given the user's message and their active gigs, which gig is this message most likely about?
 If the message clearly relates to one gig, respond with ONLY the gig number.
@@ -549,21 +578,15 @@ Respond with ONLY a single number (1, 2, etc.) or "ambiguous".`;
     const data = await response.json();
     const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
 
-    const numMatch = text.match(/^(\d+)/);
-    if (numMatch) {
-      const idx = parseInt(numMatch[1], 10) - 1;
-      if (idx >= 0 && idx < gigs.length) {
-        return { gig: gigs[idx] };
-      }
+    const parsed = parseGigSelection(text, gigs);
+    if ("gig" in parsed) {
+      return parsed;
     }
   } catch (err) {
     console.error("[Gigler] Smart gig selection failed, falling back to disambiguation:", err);
   }
 
-  const disambiguationList = gigs.map((g, i) => {
-    const roleLabel = g.userRole === "owner" ? "" : ` (with ${g.invitedByName || "others"})`;
-    return `${i + 1}. ${g.title}${roleLabel}`;
-  }).join("\n");
+  const disambiguationList = buildDisambiguationList(gigs);
 
   return {
     ambiguous: true,
@@ -619,23 +642,7 @@ async function callGemini(
   }
 }
 
-function repairTruncatedJson(raw: string): Record<string, unknown> | null {
-  const partial = raw.match(/\{[\s\S]*/)?.[0];
-  if (!partial) return null;
-  try {
-    const repaired = partial.replace(/,\s*"[^"]*$/, "").replace(/,\s*$/, "");
-    const openCount = (repaired.match(/\{/g) || []).length;
-    const closeCount = (repaired.match(/\}/g) || []).length;
-    const closed = repaired + "}".repeat(Math.max(0, openCount - closeCount));
-    return JSON.parse(closed);
-  } catch {
-    return null;
-  }
-}
-
 // ── Intent Detection ─────────────────────────────────────────────────────────
-
-type GigType = "coding" | "planning" | "creative" | "professional" | "lifestyle" | "scheduling" | "education" | "business_formation" | "reservations" | "household" | "custom";
 
 interface Intent {
   type: "create_gig" | "list_gigs" | "resume_gig" | "complete_gig" | "pause_gig" | "archive_gig" | "general";
@@ -723,29 +730,10 @@ JSON format: {"type": "create_gig"|"list_gigs"|"general", "gigType": "...", "tit
     : { type: "general" };
 }
 
-function isLikelyGigRequest(msg: string): boolean {
-  const actionWords = ["plan", "build", "create", "organize", "schedule", "book", "form", "make", "set up", "design", "draft", "prepare", "arrange", "coordinate", "remind", "help me", "deploy", "scaffold", "generate"];
-  return actionWords.some((w) => msg.includes(w));
-}
-
 const PRESET_GIG_TYPES: GigType[] = [
   "coding", "planning", "creative", "professional", "lifestyle",
   "scheduling", "education", "business_formation", "reservations", "household",
 ];
-
-function classifyGigTypeFallback(msg: string): GigType {
-  if (/code|website|app|deploy|github|debug|api|database/i.test(msg)) return "coding";
-  if (/llc|business|ein|operating agreement|tax id|bank account/i.test(msg)) return "business_formation";
-  if (/bill|utilit|rent|electric|water|gas bill|expense|household/i.test(msg)) return "household";
-  if (/party|wedding|reunion|trip|event|birthday|graduation/i.test(msg)) return "planning";
-  if (/image|photo|video|collage|flyer|design|graphic/i.test(msg)) return "creative";
-  if (/legal|contract|resume|consult|mediat/i.test(msg)) return "professional";
-  if (/remind|wake|schedule|calendar|habit|meeting/i.test(msg)) return "scheduling";
-  if (/meal|move|home|pet|gift|grocery/i.test(msg)) return "lifestyle";
-  if (/study|learn|tutor|research|college|exam|language/i.test(msg)) return "education";
-  if (/reserv|book|restaurant|hotel|flight|evite|resy|opentable/i.test(msg)) return "reservations";
-  return "planning";
-}
 
 async function classifyGigWithGemini(msg: string): Promise<{ type: GigType; customPrompt: string | null }> {
   if (!GEMINI_API_KEY) {
@@ -897,34 +885,6 @@ Do NOT ask multiple questions at once. One question per message — you'll ask m
   return aiResponse;
 }
 
-function getSafeFallbackTitle(gigType: GigType): string {
-  switch (gigType) {
-    case "coding":
-      return "New Coding Gig";
-    case "planning":
-      return "New Planning Gig";
-    case "creative":
-      return "New Creative Gig";
-    case "professional":
-      return "New Professional Gig";
-    case "lifestyle":
-      return "New Lifestyle Gig";
-    case "scheduling":
-      return "New Scheduling Gig";
-    case "education":
-      return "New Education Gig";
-    case "business_formation":
-      return "New Business Formation Gig";
-    case "reservations":
-      return "New Reservations Gig";
-    case "household":
-      return "New Household Gig";
-    case "custom":
-    default:
-      return "New Gig";
-  }
-}
-
 async function generateGigTitle(message: string, gigType: GigType): Promise<string> {
   const fallbackTitle = getSafeFallbackTitle(gigType);
   if (!GEMINI_API_KEY) {
@@ -958,12 +918,11 @@ async function generateGigTitle(message: string, gigType: GigType): Promise<stri
     }
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const title = typeof rawText === "string" ? rawText.trim().replace(/^["']|["']$/g, "") : null;
-    const wordCount = title ? title.split(/\s+/).length : 0;
-    if (title && wordCount >= 2 && title.length < 80) {
-      console.log(`[Gigler] Generated title: "${title}" (${wordCount} words)`);
+    if (title && isValidGeneratedTitle(title, message)) {
+      console.log(`[Gigler] Generated title: "${title}"`);
       return title;
     }
-    console.warn(`[Gigler] Title generation unusable. rawText=${JSON.stringify(rawText)}, words=${wordCount}, finishReason=${JSON.stringify(data?.candidates?.[0]?.finishReason)}`);
+    console.warn(`[Gigler] Title generation unusable. rawText=${JSON.stringify(rawText)}, finishReason=${JSON.stringify(data?.candidates?.[0]?.finishReason)}`);
   } catch (err) {
     console.error("[Gigler] Title generation failed:", err);
   }
@@ -1061,7 +1020,9 @@ async function handleBrandNewUser(
   const user = await createUser(phone, fromCity, fromState);
   await logMessage(GENERAL_THREAD_ID, user.id, "Gigler", "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?", "outbound", "system");
 
-  sendVcardToNewUser(phone).catch(() => {});
+  void sendVcardToNewUser(phone).then((result) => {
+    void updateUserState(user.id, { vcardStatus: result.success ? "sent" : "failed" });
+  });
 
   return "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?";
 }
@@ -1141,7 +1102,11 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
         if (participantName) await updateUserName(newUser.id, participantName);
         await markOnboardingComplete(newUser.id);
         await linkGuestParticipationsToUser(participations, newUser.id);
-        const response = `Hey${participantName ? ` ${participantName}` : ""}! You're already part of a gig here on Gigler. You can also create your own gigs anytime — just tell me what you need!`;
+        const activeGigs = await getAllActiveGigsForUser(newUser.id, fromPhone);
+        const response = buildKnownParticipantWelcomeMessage(participantName, activeGigs);
+        void sendVcardToNewUser(fromPhone).then((result) => {
+          void updateUserState(newUser.id, { vcardStatus: result.success ? "sent" : "failed" });
+        });
         return twimlResponse(response);
       }
       log.info("New user — starting onboarding", { phone: maskPhone(fromPhone) });
@@ -1151,6 +1116,14 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
 
     // Enrich logger with user context for all subsequent logs
     const ulog = log.child({ userId: user.id, phone: fromPhone });
+
+    if (user.lastInboundMessageSid === webhook.MessageSid) {
+      ulog.info("Ignoring duplicate inbound MessageSid", { messageSid: webhook.MessageSid });
+      return twimlResponse("");
+    }
+    if (webhook.MessageSid) {
+      await updateUserState(user.id, { lastInboundMessageSid: webhook.MessageSid });
+    }
 
     // Step 3: User exists but hasn't completed onboarding (waiting for name)
     if (!user.onboardingComplete) {
@@ -1171,7 +1144,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     // Routes directly to that gig, skipping intent detection which can misclassify
     // follow-up messages (e.g. "set two reminders") as new gig creation requests.
     const allGigs = await getAllActiveGigsForUser(user.id, fromPhone);
-    const isExplicitCommand = /^(list|my gigs|show gigs|create|new gig|done|finish|complete|pause|hold|archive|delete|remove|cancel)\b/i.test(body.trim());
+    const isExplicitCommand = isExplicitCommandMessage(body);
 
     if (!isExplicitCommand) {
       const parseMeta = (g: AnnotatedGig): Record<string, unknown> => {

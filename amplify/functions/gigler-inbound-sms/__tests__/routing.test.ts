@@ -1,85 +1,21 @@
-/**
- * Unit tests for smart gig routing logic.
- *
- * These tests mock DynamoDB and Gemini to verify routing decisions
- * without hitting real AWS or AI services.
- */
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-// ── Types mirroring handler.ts ────────────────────────────────────────────────
-
-interface AnnotatedGig extends Record<string, unknown> {
-  userRole: "owner" | "collaborator";
-  invitedByName?: string;
-}
-
-// ── Extracted pure-logic functions for testing ────────────────────────────────
-
-function buildGigDescriptions(gigs: AnnotatedGig[]): string {
-  return gigs
-    .map((g, i) => {
-      const meta =
-        typeof g.metadata === "string"
-          ? JSON.parse(g.metadata as string)
-          : g.metadata || {};
-      const lastActive =
-        (meta.lastInteraction as string) ||
-        (g.updatedAt as string) ||
-        "";
-      const role =
-        g.userRole === "owner"
-          ? "owner"
-          : `collaborator${g.invitedByName ? `, invited by ${g.invitedByName}` : ""}`;
-      return `${i + 1}. "${g.title}" (${role}) - ${g.type || "general"}, last active: ${lastActive || "unknown"}`;
-    })
-    .join("\n");
-}
-
-function parseGigSelection(
-  text: string,
-  gigs: AnnotatedGig[]
-): { gig: AnnotatedGig } | { ambiguous: true } {
-  const numMatch = text.trim().match(/^(\d+)/);
-  if (numMatch) {
-    const idx = parseInt(numMatch[1], 10) - 1;
-    if (idx >= 0 && idx < gigs.length) {
-      return { gig: gigs[idx] };
-    }
-  }
-  return { ambiguous: true };
-}
-
-function buildDisambiguationList(gigs: AnnotatedGig[]): string {
-  return gigs
-    .map((g, i) => {
-      const roleLabel =
-        g.userRole === "owner"
-          ? ""
-          : ` (with ${g.invitedByName || "others"})`;
-      return `${i + 1}. ${g.title}${roleLabel}`;
-    })
-    .join("\n");
-}
-
-function deduplicateGigs(
-  ownedGigs: AnnotatedGig[],
-  participatedGigs: Array<{ gigId: string; role: string; invitedByName?: string; gigData: Record<string, unknown> }>
-): AnnotatedGig[] {
-  const ownedGigIds = new Set(ownedGigs.map((g) => g.id as string));
-  const deduped: AnnotatedGig[] = [...ownedGigs];
-
-  for (const p of participatedGigs) {
-    if (ownedGigIds.has(p.gigId)) continue;
-    deduped.push({
-      ...p.gigData,
-      userRole: "collaborator" as const,
-      invitedByName: p.invitedByName,
-    });
-  }
-
-  return deduped;
-}
+import { describe, expect, it } from "vitest";
+import {
+  buildDisambiguationList,
+  buildGigDescriptions,
+  buildKnownParticipantWelcomeMessage,
+  classifyGigTypeFallback,
+  deduplicateGigs,
+  extractMediaUrls,
+  getSafeFallbackTitle,
+  hasOtherRecipients,
+  isExplicitCommandMessage,
+  isLikelyGigRequest,
+  isValidGeneratedTitle,
+  parseGigSelection,
+  repairTruncatedJson,
+  type AnnotatedGig,
+  type TwilioSmsWebhook,
+} from "../utils";
 
 // ── Test Data ─────────────────────────────────────────────────────────────────
 
@@ -268,7 +204,6 @@ describe("deduplicateGigs", () => {
     const participated = [
       {
         gigId: "gig_party_001",
-        role: "collaborator",
         gigData: { id: "gig_party_001", title: "Birthday Party Planning", status: "active" },
       },
     ];
@@ -282,7 +217,6 @@ describe("deduplicateGigs", () => {
     const participated = [
       {
         gigId: "gig_offsite_003",
-        role: "collaborator",
         invitedByName: "Albert",
         gigData: { id: "gig_offsite_003", title: "Team Offsite Logistics", status: "active" },
       },
@@ -352,5 +286,134 @@ describe("multi-gig routing scenarios", () => {
     expect(list).toContain("Birthday Party");
     expect(list).toContain("Website Redesign");
     expect(list).toContain("Team Offsite");
+  });
+});
+
+describe("title fallback helpers", () => {
+  it("maps household gigs to a safe fallback title", () => {
+    expect(getSafeFallbackTitle("household")).toBe("New Household Gig");
+  });
+
+  it("maps custom gigs to the generic fallback title", () => {
+    expect(getSafeFallbackTitle("custom")).toBe("New Gig");
+  });
+
+  it("accepts a concise generated title", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Track Monthly Utility Bills",
+        "I need to track my son's monthly utility bills and reminders."
+      )
+    ).toBe(true);
+  });
+
+  it("rejects a generated title that mirrors the original sentence", () => {
+    expect(
+      isValidGeneratedTitle(
+        "I need to track my son's monthly utility bills",
+        "I need to track my son's monthly utility bills"
+      )
+    ).toBe(false);
+  });
+
+  it("rejects imperative prompt-like titles", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Set up reminders for bills",
+        "Set up reminders for bills and dashboard"
+      )
+    ).toBe(false);
+  });
+});
+
+describe("twilio webhook helpers", () => {
+  it("extracts media urls in order", () => {
+    const webhook: TwilioSmsWebhook = {
+      MessageSid: "SM123",
+      AccountSid: "AC123",
+      From: "+15550000001",
+      To: "+15550000002",
+      Body: "photo",
+      NumMedia: "2",
+      MediaUrl0: "https://example.com/0.jpg",
+      MediaUrl1: "https://example.com/1.jpg",
+    };
+
+    expect(extractMediaUrls(webhook)).toEqual([
+      "https://example.com/0.jpg",
+      "https://example.com/1.jpg",
+    ]);
+  });
+
+  it("detects other recipients on mirrored group mms webhooks", () => {
+    const webhook: TwilioSmsWebhook = {
+      MessageSid: "SM123",
+      AccountSid: "AC123",
+      From: "+15550000001",
+      To: "+15550000002",
+      Body: "hello",
+      NumMedia: "0",
+      OtherRecipients0: "+15550000003",
+    };
+
+    expect(hasOtherRecipients(webhook)).toBe(true);
+  });
+
+  it("does not flag normal sms webhooks as group mirrors", () => {
+    const webhook: TwilioSmsWebhook = {
+      MessageSid: "SM123",
+      AccountSid: "AC123",
+      From: "+15550000001",
+      To: "+15550000002",
+      Body: "hello",
+      NumMedia: "0",
+    };
+
+    expect(hasOtherRecipients(webhook)).toBe(false);
+  });
+});
+
+describe("participant onboarding-lite messaging", () => {
+  it("mentions the single active gig by title", () => {
+    const message = buildKnownParticipantWelcomeMessage("Guido", [PARTY_GIG]);
+    expect(message).toContain("Guido");
+    expect(message).toContain("Birthday Party Planning");
+  });
+
+  it("lists multiple active gigs for known participants", () => {
+    const message = buildKnownParticipantWelcomeMessage("Guido", [PARTY_GIG, WEBSITE_GIG, COLLAB_GIG]);
+    expect(message).toContain("Your active gigs:");
+    expect(message).toContain("1. Birthday Party Planning");
+    expect(message).toContain("2. Website Redesign Project");
+  });
+});
+
+describe("intent and command helpers", () => {
+  it("detects explicit command messages", () => {
+    expect(isExplicitCommandMessage("done 1")).toBe(true);
+    expect(isExplicitCommandMessage("my gigs")).toBe(true);
+    expect(isExplicitCommandMessage("can you help with the menu")).toBe(false);
+  });
+
+  it("detects likely gig creation requests", () => {
+    expect(isLikelyGigRequest("please build me a website")).toBe(true);
+    expect(isLikelyGigRequest("hello there")).toBe(false);
+  });
+
+  it("classifies household fallback requests", () => {
+    expect(classifyGigTypeFallback("track utility bills and rent reminders")).toBe("household");
+  });
+});
+
+describe("json repair helper", () => {
+  it("repairs truncated json with missing closing braces", () => {
+    expect(repairTruncatedJson('{"type":"create_gig","gigType":"household"')).toEqual({
+      type: "create_gig",
+      gigType: "household",
+    });
+  });
+
+  it("returns null when repair is impossible", () => {
+    expect(repairTruncatedJson("not json at all")).toBeNull();
   });
 });

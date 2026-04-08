@@ -11,8 +11,15 @@ export function AmplifyProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    configureAmplify();
-    setReady(true);
+    let cancelled = false;
+
+    void configureAmplify().finally(() => {
+      if (!cancelled) setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!ready) return null;
