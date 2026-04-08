@@ -144,6 +144,9 @@ function normalizeTitleText(text: string): string {
     .trim();
 }
 
+const POSSESSIVE_RELATIONSHIP_RE = /^(son'?s?|daughter'?s?|mom'?s?|dad'?s?|wife'?s?|husband'?s?|kid'?s?|brother'?s?|sister'?s?|parent'?s?|roommate'?s?|friend'?s?|partner'?s?)\b/i;
+const RELATIONSHIP_ONLY_RE = /^(son|daughter|mom|dad|wife|husband|kid|brother|sister|parent|roommate|friend|partner)$/i;
+
 export function isValidGeneratedTitle(title: string, sourceMessage: string): boolean {
   const cleanedTitle = title.trim().replace(/^["']|["']$/g, "").replace(/[.!?]+$/g, "");
   const normalizedTitle = normalizeTitleText(cleanedTitle);
@@ -151,11 +154,14 @@ export function isValidGeneratedTitle(title: string, sourceMessage: string): boo
   const wordCount = normalizedTitle ? normalizedTitle.split(/\s+/).length : 0;
 
   if (!normalizedTitle) return false;
-  if (wordCount < 2 || wordCount > 7) return false;
+  if (wordCount < 3 || wordCount > 7) return false;
   if (cleanedTitle.length >= 80) return false;
   if (/^(i need|need to|help me|please|set up|create|build|plan|organize)\b/i.test(cleanedTitle)) {
     return false;
   }
+  if (POSSESSIVE_RELATIONSHIP_RE.test(cleanedTitle)) return false;
+  const words = normalizedTitle.split(/\s+/);
+  if (words.some(w => RELATIONSHIP_ONLY_RE.test(w)) && wordCount <= 3) return false;
   if (normalizedTitle === normalizedSource) return false;
   if (normalizedSource.startsWith(normalizedTitle) && wordCount >= 4) return false;
   if (normalizedSource.includes(normalizedTitle) && normalizedTitle.length >= normalizedSource.length * 0.6) {

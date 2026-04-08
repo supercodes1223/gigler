@@ -324,6 +324,42 @@ describe("title fallback helpers", () => {
       )
     ).toBe(false);
   });
+
+  it("rejects titles starting with possessive relationship words", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Son's Monthly Bills",
+        "I need to track my son's monthly utility bills"
+      )
+    ).toBe(false);
+  });
+
+  it("rejects short titles containing only relationship words", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Son Monthly Bills",
+        "Track my son's bills each month"
+      )
+    ).toBe(false);
+  });
+
+  it("rejects two-word titles (minimum is 3)", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Birthday Party",
+        "Plan a birthday party for next Saturday"
+      )
+    ).toBe(false);
+  });
+
+  it("accepts relationship words in longer activity-focused titles", () => {
+    expect(
+      isValidGeneratedTitle(
+        "Monthly College Utility Bill Tracker",
+        "I need to track my son's monthly utility bills"
+      )
+    ).toBe(true);
+  });
 });
 
 describe("twilio webhook helpers", () => {
