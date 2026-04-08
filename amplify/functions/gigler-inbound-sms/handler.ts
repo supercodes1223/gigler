@@ -888,21 +888,23 @@ async function generateGigTitle(message: string): Promise<string> {
     return message.substring(0, 50).replace(/[^\w\s]/g, "").trim() || "New Gig";
   }
 
+  const titleModel = "gemini-2.0-flash";
+
   try {
-    console.log(`[Gigler] Calling Gemini model: ${GEMINI_MODEL} (title generation)`);
+    console.log(`[Gigler] Calling Gemini model: ${titleModel} (title generation)`);
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${titleModel}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "Generate a descriptive title (3-6 words) for this task/gig request. The title must describe the ACTIVITY, not just a person or object. NEVER return a single word. Examples: 'Monthly Utility Bills Tracker', 'Saturday Birthday Party Plan', 'Website Redesign Project', 'College Son Bills Tracking', 'Weekly Grocery Shopping List'. Return ONLY the title, no quotes, no explanation.",
+              text: "Create a short concise title (3-6 words) from this gig description. The title must describe the ACTIVITY, not just a person or object. NEVER return a single word. Examples: 'Monthly Utility Bills Tracker', 'Saturday Birthday Party Plan', 'Website Redesign Project', 'Weekly Grocery Shopping List'. Return ONLY the title, no quotes, no explanation.",
             }],
           },
           contents: [{ role: "user", parts: [{ text: message }] }],
-          generationConfig: { maxOutputTokens: 40, temperature: 0.5 },
+          generationConfig: { maxOutputTokens: 100, temperature: 0.5 },
         }),
       }
     );
