@@ -1146,7 +1146,7 @@ When a user sends photos/images (indicated by "[User attached N photo(s) via MMS
 
 Only include actions when the user explicitly requests something actionable. Do NOT include actions for general conversation.`;
 
-function buildDirectPrompt(gig: Gig, metadata: Record<string, unknown>): string {
+function buildDirectPrompt(gig: Gig, metadata: Record<string, unknown>, ownerName: string): string {
   let typePrompt: string;
   if (gig.type === "custom" && metadata.customPrompt) {
     typePrompt = metadata.customPrompt as string;
@@ -1159,6 +1159,8 @@ ${typePrompt}
 
 Current gig metadata: ${JSON.stringify(metadata)}
 
+IMPORTANT: You are in a PRIVATE 1-on-1 SMS conversation with ${ownerName}. Only ${ownerName} can see your messages here. Do NOT address other people in this thread — they cannot see it. If you are adding a participant, confirm the action to ${ownerName} only (e.g. "Done, I added Guido to the group!") but save any messages directed at the new person for the group thread where they can actually read them.
+
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
 When the user says to add someone (e.g. "Add Sarah 555-123-4567"), use the add_participant action. Convert the phone to E.164 format (+15551234567).
 If the gig seems complete, suggest marking it done.
@@ -1170,7 +1172,8 @@ function buildGroupPrompt(
   metadata: Record<string, unknown>,
   participants: Array<Record<string, unknown>>,
   senderName: string,
-  senderPhone: string
+  senderPhone: string,
+  setupContext?: string
 ): string {
   const typePrompt = GIG_TYPE_PROMPTS[gig.type] || GIG_TYPE_PROMPTS.planning;
   const roster = participants.map(p => {
@@ -1180,12 +1183,16 @@ function buildGroupPrompt(
     return `- ${name} (${role})${phone === senderPhone ? " [sender of this message]" : ""}`;
   }).join("\n");
 
+  const setupSection = setupContext
+    ? `\nPRIOR 1-ON-1 SETUP CONTEXT (discussed before this group was created):\n${setupContext}\n\nUse this context — do NOT re-ask questions that were already answered above.\n`
+    : "";
+
   return `You are Gigler, an AI assistant participating in a GROUP TEXT thread for a gig called "${gig.title}".
 
 ${typePrompt}
 
 Current gig metadata: ${JSON.stringify(metadata)}
-
+${setupSection}
 PARTICIPANTS IN THIS GROUP THREAD:
 ${roster}
 
@@ -1292,7 +1299,12 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       return { role: m.author === GIGLER_NUMBER ? "ai" : "user", content: `[${name}]: ${m.body}` };
     });
 
-  const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "");
+  const setupHistory = await fetchConversationHistory(gigId, 15);
+  const setupContext = setupHistory.length > 0
+    ? setupHistory.map(m => `[${m.role === "ai" ? "Gigler" : "Owner"}]: ${m.content}`).join("\n")
+    : undefined;
+
+  const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext);
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
   const rawResponse = await callGemini(systemPrompt, `[${senderName}]: ${messageBody}`, history);
 
@@ -1385,7 +1397,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   const history = await fetchConversationHistory(gigId, 30);
 
-  const systemPrompt = buildDirectPrompt(gig, metadata);
+  const systemPrompt = buildDirectPrompt(gig, metadata, senderName || "the user");
 
   let enrichedMessage = message;
   if (mediaUrls.length > 0) {
