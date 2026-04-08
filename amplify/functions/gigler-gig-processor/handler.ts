@@ -1245,11 +1245,11 @@ async function handleUpdateBillStatus(gigId: string, entry: {
 const GIGLER_FUNCTION_DECLARATIONS = [
   {
     name: "add_participant",
-    description: "Add a person to this gig as a collaborator and create a group SMS thread. Use when the user says 'Add [name] [phone]' or asks to invite someone. If the user provides only a phone number without a name, use the name they mentioned earlier in conversation (e.g. 'my son Jeff' -> name is 'Jeff'). If no name was ever mentioned, set name to 'Participant'.",
+    description: "Add a person to this gig as a collaborator and create a group SMS thread. IMPORTANT: Only call this when you have BOTH a real first name AND a phone number. If the user gives a phone number but you don't know their actual name (only a relationship like 'my son', 'my roommate'), do NOT call this tool yet — ask for the person's name first, then call the tool once you have it.",
     parameters: {
       type: "OBJECT",
       properties: {
-        name: { type: "STRING", description: "The participant's actual first name. Must be a real name, NOT a relationship like 'Son', 'Mom', 'Dad'. If unknown, use 'Participant'." },
+        name: { type: "STRING", description: "The participant's actual first name (e.g. 'Jeff', 'Sarah'). Must be a real name, NOT a relationship like 'Son', 'Mom', 'Dad'." },
         phone: { type: "STRING", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
       },
       required: ["name", "phone"],
@@ -1394,7 +1394,7 @@ Current gig metadata: ${JSON.stringify(metadata)}
 IMPORTANT: You are in a PRIVATE 1-on-1 SMS conversation with ${ownerName}. Only ${ownerName} can see your messages here. Do NOT address other people in this thread — they cannot see it. If you are adding a participant, confirm the action to ${ownerName} only (e.g. "Done, I added Guido to the group!") but save any messages directed at the new person for the group thread where they can actually read them.
 
 Keep responses concise and SMS-friendly. Be action-oriented and proactive.
-When the user says to add someone (e.g. "Add Sarah 555-123-4567"), call the add_participant tool with the phone in E.164 format (+15551234567).
+When the user wants to add someone, you need BOTH their real first name AND phone number before calling add_participant. If the user gives only a phone number, ask for the person's name first. If they give only a name, ask for the phone. Once you have both, call the tool with phone in E.164 format (+15551234567).
 If the gig seems complete, suggest marking it done.
 ${TOOL_USE_GUIDANCE}`;
 }
