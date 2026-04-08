@@ -1077,10 +1077,10 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       mediaCount: mediaUrls.length, messageSid: webhook.MessageSid,
     });
 
-    if (hasOtherRecipients(webhook)) {
+    if (hasOtherRecipients(webhook) && mediaUrls.length === 0) {
       const participations = await lookupGuestParticipation(fromPhone);
       if (participations.length > 0) {
-        log.info("Ignoring mirrored group MMS on SMS webhook", {
+        log.info("Ignoring mirrored group text on SMS webhook (no media)", {
           phone: maskPhone(fromPhone),
           participantGigCount: participations.length,
           messageSid: webhook.MessageSid,
