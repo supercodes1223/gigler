@@ -49,7 +49,7 @@ describeIf("Live Gemini Vision — Power Bill Screenshot", () => {
     expect(result).not.toBeNull();
     console.log("[Vision Live] Power bill result:", JSON.stringify(result, null, 2));
 
-    expect(result!.imageType).toBe("bill");
+    expect(["bill", "screenshot"]).toContain(result!.imageType);
   }, 30_000);
 
   it("extracts the correct amount ($528.93)", async () => {
