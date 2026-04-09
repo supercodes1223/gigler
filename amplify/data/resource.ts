@@ -170,7 +170,7 @@ const schema = a.schema({
       gigId: a.id().required(),
       userId: a.string().required(),
       scheduledAt: a.datetime().required(),
-      type: a.enum(["reminder", "wake_up_call", "check_in", "countdown", "nudge"]),
+      type: a.enum(["reminder", "wake_up_call", "check_in", "countdown", "nudge", "participant_nudge"]),
       message: a.string(),
       channel: a.enum(["sms", "voice"]),
       recipients: a.string().array(),

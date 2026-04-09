@@ -105,11 +105,13 @@ grantTableAccess("Reminder", gigProcessorLambda, "REMINDER_TABLE_NAME");
 grantTableAccess("User", gigProcessorLambda, "USER_TABLE_NAME");
 grantTableAccess("GigParticipant", gigProcessorLambda, "GIG_PARTICIPANT_TABLE_NAME");
 
-// ── gigler-reminder-scheduler: needs Reminder, User, Gig ─────────────────
+// ── gigler-reminder-scheduler: Reminder, User, Gig + Message/GigParticipant for smart nudges
 const reminderLambda = backend.giglerReminderScheduler;
 grantTableAccess("Reminder", reminderLambda, "REMINDER_TABLE_NAME");
 grantTableAccess("User", reminderLambda, "USER_TABLE_NAME", true);
 grantTableAccess("Gig", reminderLambda, "GIG_TABLE_NAME", true);
+grantTableAccess("Message", reminderLambda, "MESSAGE_TABLE_NAME", true);
+grantTableAccess("GigParticipant", reminderLambda, "GIG_PARTICIPANT_TABLE_NAME", true);
 
 // ── gigler-media-processor: needs Media, S3 ──────────────────────────────
 const mediaLambda = backend.giglerMediaProcessor;

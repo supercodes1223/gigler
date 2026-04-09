@@ -9,13 +9,13 @@ import type { Handler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
-  QueryCommand,
   UpdateCommand,
   GetCommand,
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { processStaleGigsSmart } from "./stale-nudge";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -26,14 +26,14 @@ const REMINDER_TABLE_NAME = process.env.REMINDER_TABLE_NAME || "";
 const USER_TABLE_NAME = process.env.USER_TABLE_NAME || "";
 const GIG_TABLE_NAME = process.env.GIG_TABLE_NAME || "";
 const MESSAGE_TABLE_NAME = process.env.MESSAGE_TABLE_NAME || "";
+const GIG_PARTICIPANT_TABLE_NAME = process.env.GIG_PARTICIPANT_TABLE_NAME || "";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const VOICE_BRIDGE_FUNCTION_NAME = process.env.VOICE_BRIDGE_FUNCTION_NAME || "";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
-
-const STALE_GIG_THRESHOLD_HOURS = 48;
-const NUDGE_COOLDOWN_HOURS = 48;
 
 // ── Structured Tracing ───────────────────────────────────────────────────────
 
@@ -137,48 +137,6 @@ async function getUserNameAndPhone(userId: string): Promise<{ name: string; phon
   return { name: (result.Item.name as string) || "there", phone: result.Item.phone as string };
 }
 
-async function hasRecentNudge(gigId: string): Promise<boolean> {
-  if (!REMINDER_TABLE_NAME) return false;
-  const cutoff = new Date(Date.now() - NUDGE_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-  const result = await ddb.send(
-    new QueryCommand({
-      TableName: REMINDER_TABLE_NAME,
-      IndexName: "byGig",
-      KeyConditionExpression: "gigId = :gid AND scheduledAt > :cutoff",
-      FilterExpression: "#t = :nudge",
-      ExpressionAttributeNames: { "#t": "type" },
-      ExpressionAttributeValues: {
-        ":gid": gigId,
-        ":cutoff": cutoff,
-        ":nudge": "nudge",
-      },
-      Limit: 1,
-    })
-  );
-  return (result.Items?.length || 0) > 0;
-}
-
-async function recordNudge(gigId: string, userId: string): Promise<void> {
-  if (!REMINDER_TABLE_NAME) return;
-  const now = new Date().toISOString();
-  await ddb.send(
-    new PutCommand({
-      TableName: REMINDER_TABLE_NAME,
-      Item: {
-        id: `nudge_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        gigId,
-        userId,
-        type: "nudge",
-        message: "Stale gig nudge",
-        channel: "sms",
-        scheduledAt: now,
-        sent: true,
-        sentAt: now,
-      },
-    })
-  );
-}
-
 async function createNextRecurrence(
   reminder: Record<string, unknown>,
   log: ReturnType<typeof createLogger>
@@ -235,60 +193,6 @@ async function createNextRecurrence(
     nextScheduledAt: nextDate.toISOString(),
     gigId: reminder.gigId as string,
   });
-}
-
-async function checkStaleGigs(log: ReturnType<typeof createLogger>): Promise<number> {
-  if (!GIG_TABLE_NAME) return 0;
-
-  const result = await ddb.send(
-    new ScanCommand({
-      TableName: GIG_TABLE_NAME,
-      FilterExpression: "#s = :active",
-      ExpressionAttributeNames: { "#s": "status" },
-      ExpressionAttributeValues: { ":active": "active" },
-      ProjectionExpression: "id, ownerId, title, metadata, updatedAt",
-    })
-  );
-
-  const gigs = result.Items || [];
-  const cutoff = Date.now() - STALE_GIG_THRESHOLD_HOURS * 60 * 60 * 1000;
-  let nudged = 0;
-
-  for (const gig of gigs) {
-    const gigId = gig.id as string;
-    const ownerId = gig.ownerId as string;
-    const title = (gig.title as string) || "Untitled";
-
-    let lastActive: number;
-    try {
-      const meta = typeof gig.metadata === "string" ? JSON.parse(gig.metadata) : (gig.metadata || {});
-      const dateStr = (meta.lastInteraction as string) || (gig.updatedAt as string);
-      lastActive = dateStr ? new Date(dateStr).getTime() : 0;
-    } catch {
-      lastActive = gig.updatedAt ? new Date(gig.updatedAt as string).getTime() : 0;
-    }
-
-    if (lastActive === 0 || lastActive > cutoff) continue;
-
-    const alreadyNudged = await hasRecentNudge(gigId);
-    if (alreadyNudged) continue;
-
-    const user = await getUserNameAndPhone(ownerId);
-    if (!user) continue;
-
-    const daysIdle = Math.floor((Date.now() - lastActive) / (1000 * 60 * 60 * 24));
-    const dayWord = daysIdle === 1 ? "day" : "days";
-    const msg = `Hey ${user.name}! Your gig "${title}" hasn't had activity in ${daysIdle} ${dayWord}. Need help? Just text back!`;
-
-    const sent = await sendSms(user.phone, msg);
-    if (sent) {
-      await recordNudge(gigId, ownerId);
-      nudged++;
-      log.info("Sent stale gig nudge", { gigId, ownerId, daysIdle, phone: maskPhone(user.phone) });
-    }
-  }
-
-  return nudged;
 }
 
 export const handler: Handler = async (_event, context) => {
@@ -369,15 +273,35 @@ export const handler: Handler = async (_event, context) => {
 
   log.info("Reminder batch complete", { sent, total: reminders.length });
 
-  let nudged = 0;
+  let ownerNudges = 0;
+  let participantNudges = 0;
   try {
-    nudged = await checkStaleGigs(log);
-    if (nudged > 0) {
-      log.info("Stale gig nudges sent", { nudged });
+    const nudgeResult = await processStaleGigsSmart({
+      ddb,
+      gigTableName: GIG_TABLE_NAME,
+      reminderTableName: REMINDER_TABLE_NAME,
+      messageTableName: MESSAGE_TABLE_NAME,
+      gigParticipantTableName: GIG_PARTICIPANT_TABLE_NAME,
+      userTableName: USER_TABLE_NAME,
+      geminiApiKey: GEMINI_API_KEY,
+      geminiModel: GEMINI_MODEL,
+      nowMs: Date.now(),
+      sendSms,
+      fetch: globalThis.fetch,
+      log,
+      maskPhone,
+    });
+    ownerNudges = nudgeResult.ownerNudges;
+    participantNudges = nudgeResult.participantNudges;
+    if (ownerNudges > 0 || participantNudges > 0) {
+      log.info("Stale nudges sent", { ownerNudges, participantNudges });
     }
   } catch (error) {
     log.error("Stale gig check failed", { error: String(error) });
   }
 
-  return { statusCode: 200, body: `Processed ${sent} reminders, ${nudged} nudges` };
+  return {
+    statusCode: 200,
+    body: `Processed ${sent} reminders, ${ownerNudges} owner nudges, ${participantNudges} participant nudges`,
+  };
 };
