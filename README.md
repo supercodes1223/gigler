@@ -29,6 +29,22 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Testing
+
+Run the full Vitest suite (includes Lambda unit tests):
+
+```bash
+npx vitest run
+```
+
+Reminder scheduler (smart stale nudges: Gemini + participant nudges + gig-type cadence):
+
+```bash
+npx vitest run amplify/functions/gigler-reminder-scheduler/
+```
+
+Post-deploy, stale nudges are **not** covered by automated SMS E2E. To verify manually: set a test gig’s `metadata.lastInteraction` older than that gig type’s stale window (see `amplify/functions/gigler-reminder-scheduler/cadence.ts`), clear recent `Reminder` rows with `type` `nudge` / `participant_nudge` for that gig, wait for the 5-minute EventBridge schedule or invoke `gigler-reminder-scheduler` in the AWS console. Set `GEMINI_API_KEY` on the function for contextual copy; without it, template fallbacks are used.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
