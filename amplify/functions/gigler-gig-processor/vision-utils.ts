@@ -68,7 +68,7 @@ export function actionsFromVisionResult(
   if (hasBillAction) return extra;
 
   const isBillGig = gigType === "household" || gigType === "bills";
-  const isBillImage = ["bill", "receipt", "invoice"].includes(visionResult.imageType);
+  const isBillImage = ["bill", "receipt", "invoice", "screenshot"].includes(visionResult.imageType);
 
   if (isBillGig && isBillImage && visionResult.extractedInfo.billType) {
     const info = visionResult.extractedInfo;

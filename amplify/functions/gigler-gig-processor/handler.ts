@@ -503,7 +503,7 @@ function actionsFromVisionResult(
   if (hasBillAction) return extra;
 
   const isBillGig = gigType === "household" || gigType === "bills";
-  const isBillImage = ["bill", "receipt", "invoice"].includes(visionResult.imageType);
+  const isBillImage = ["bill", "receipt", "invoice", "screenshot"].includes(visionResult.imageType);
 
   if (isBillGig && isBillImage && visionResult.extractedInfo.billType) {
     const info = visionResult.extractedInfo;
@@ -2008,7 +2008,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       const mediaItems = JSON.parse(mediaPayload || "[]");
       if (Array.isArray(mediaItems) && mediaItems.length > 0) {
         const firstMedia = mediaItems[0];
-        const mediaSid = firstMedia.sid || firstMedia.Sid;
+        const mediaSid = firstMedia.MediaSid || firstMedia.mediaSid || firstMedia.sid || firstMedia.Sid;
+        console.log(`[GigProcessor] Media payload keys: ${Object.keys(firstMedia).join(", ")}; resolved mediaSid: ${mediaSid || "NONE"}`);
         if (mediaSid) {
           const downloaded = await downloadConversationMedia(mediaSid);
           if (downloaded) {

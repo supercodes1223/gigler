@@ -99,6 +99,16 @@ describe("actionsFromVisionResult", () => {
     expect(actions).toHaveLength(0);
   });
 
+  it("generates action for screenshot image type in household gig (screenshots of bills are common)", () => {
+    const screenshotResult: ImageAnalysisResult = {
+      ...baseBillResult,
+      imageType: "screenshot",
+    };
+    const actions = actionsFromVisionResult(screenshotResult, "household", []);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].type).toBe("update_bill_status");
+  });
+
   it("does NOT generate action for photo image type in household gig", () => {
     const actions = actionsFromVisionResult(photoResult, "household", []);
     expect(actions).toHaveLength(0);
