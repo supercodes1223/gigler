@@ -16,9 +16,10 @@ let _client: DynamoDBDocumentClient | null = null;
 
 export function getDynamoClient(): DynamoDBDocumentClient {
   if (!_client) {
-    _client = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-      marshallOptions: { removeUndefinedValues: true },
-    });
+    _client = DynamoDBDocumentClient.from(
+      new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-2" }),
+      { marshallOptions: { removeUndefinedValues: true } }
+    );
   }
   return _client;
 }
