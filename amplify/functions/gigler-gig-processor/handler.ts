@@ -226,20 +226,27 @@ interface DownloadedMedia {
 async function downloadConversationMedia(mediaSid: string): Promise<DownloadedMedia | null> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_CONVERSATIONS_SERVICE_SID) return null;
   try {
-    const mediaUrl = `https://mcs.us1.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Media/${mediaSid}`;
-    const response = await fetch(mediaUrl, {
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`,
-      },
+    const contentUrl = `https://mcs.us1.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Media/${mediaSid}/Content`;
+    const authHeader = `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64")}`;
+    const response = await fetch(contentUrl, {
+      headers: { Authorization: authHeader },
+      redirect: "follow",
     });
     if (!response.ok) {
-      console.error(`[GigProcessor] Failed to download conversation media ${mediaSid}: ${response.status}`);
+      console.error(`[GigProcessor] Failed to download conversation media ${mediaSid}: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    if (contentType.includes("application/json") || contentType.includes("text/html")) {
+      console.error(`[GigProcessor] MCS returned non-image content-type: ${contentType} for ${mediaSid}`);
       return null;
     }
     const buffer = await response.arrayBuffer();
+    const sizeKb = Math.round(buffer.byteLength / 1024);
+    console.log(`[GigProcessor] Downloaded conversation media ${mediaSid}: ${contentType}, ${sizeKb}KB`);
     return {
       base64: Buffer.from(buffer).toString("base64"),
-      mimeType: response.headers.get("content-type") || "image/jpeg",
+      mimeType: contentType,
     };
   } catch (err) {
     console.error(`[GigProcessor] Error downloading conversation media ${mediaSid}:`, err);
