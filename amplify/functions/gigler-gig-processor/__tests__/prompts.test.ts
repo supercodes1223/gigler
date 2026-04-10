@@ -51,6 +51,14 @@ describe("TOOL_USE_GUIDANCE", () => {
   it("mentions create_collage", () => {
     expect(TOOL_USE_GUIDANCE).toContain("create_collage");
   });
+
+  it("contains anti-hallucination rule for add_participant", () => {
+    expect(TOOL_USE_GUIDANCE).toContain("Do NOT call add_participant unless the user's CURRENT message");
+  });
+
+  it("warns against inferring add_participant from history", () => {
+    expect(TOOL_USE_GUIDANCE).toContain("Never infer add_participant from conversation history alone");
+  });
 });
 
 describe("GIGLER_FUNCTION_DECLARATIONS", () => {
