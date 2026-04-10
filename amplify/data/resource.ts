@@ -165,6 +165,19 @@ const schema = a.schema({
         .queryField("getDeliverableByShortCode"),
     ]),
 
+  DeliverableAccess: a
+    .model({
+      shortCode: a.string().required(),
+      phone: a.string().required(),
+      code: a.string().required(),
+      expiresAt: a.integer().required(),
+      verified: a.boolean().default(false),
+    })
+    .identifier(["shortCode", "phone"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
+
   Reminder: a
     .model({
       gigId: a.id().required(),
