@@ -277,6 +277,43 @@ query_third_party_by_gig() {
     --output json 2>/dev/null
 }
 
+# ── Verify Short Code URL ─────────────────────────────────────────────────────
+
+verify_short_code_url() {
+  local short_code=$1
+  if [ -z "$short_code" ]; then
+    log_fail "No short code provided to verify"
+    return
+  fi
+
+  local url="https://gigler.ai/api/d/${short_code}"
+  log_info "Verifying deliverable URL: $url"
+
+  local http_code
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+
+  if [ "$http_code" = "401" ]; then
+    log_pass "Deliverable link reachable (HTTP 401 AUTH_REQUIRED — verification gate working)"
+
+    local response_body
+    response_body=$(curl -s "$url" 2>/dev/null || echo "{}")
+    local resp_code
+    resp_code=$(echo "$response_body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code',''))" 2>/dev/null || echo "")
+
+    if [ "$resp_code" = "AUTH_REQUIRED" ]; then
+      log_pass "Deliverable API returns AUTH_REQUIRED with metadata"
+    else
+      log_fail "Deliverable API did not return AUTH_REQUIRED code (got: $resp_code)"
+    fi
+  elif [ "$http_code" = "200" ]; then
+    log_pass "Deliverable link reachable (HTTP 200 — content served directly)"
+  elif [ "$http_code" = "404" ]; then
+    log_fail "Deliverable link returned 404 NOT FOUND (short code: $short_code)"
+  else
+    log_fail "Deliverable link returned unexpected HTTP $http_code (short code: $short_code)"
+  fi
+}
+
 # ── Send SMS via Lambda Function URL ─────────────────────────────────────────
 
 send_sms_payload() {
@@ -597,9 +634,14 @@ test_deliverable() {
       log_pass "Deliverable record created ($del_count found)"
       local short_code
       short_code=$(echo "$del_result" | python3 -c "import sys,json; items=json.load(sys.stdin)['Items']; print(items[-1].get('shortCode',{}).get('S',''))" 2>/dev/null || echo "")
-      log_info "Short code: $short_code"
+      if [ -n "$short_code" ]; then
+        log_pass "Deliverable has short code: $short_code"
+        verify_short_code_url "$short_code"
+      else
+        log_fail "Deliverable record exists but has no short code"
+      fi
     else
-      log_info "No deliverables found for gig $TEST_GIG_ID"
+      log_fail "No deliverables found for gig $TEST_GIG_ID (expected at least 1)"
     fi
   fi
 
@@ -1580,6 +1622,9 @@ test_bills_dashboard() {
       if [ -n "$short_code" ]; then
         log_pass "Short code: $short_code"
         log_info "Dashboard URL: $url"
+        verify_short_code_url "$short_code"
+      else
+        log_fail "Bills dashboard created but no short code returned"
       fi
     else
       log_fail "Deliverable generator returned status: $status_code"
@@ -1672,6 +1717,7 @@ case "${1:-help}" in
     test_group_webhook
     test_list_gigs
     test_deliverable
+    test_bills_dashboard
     test_reminder
     test_media
     test_voice

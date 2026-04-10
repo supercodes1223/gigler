@@ -23,6 +23,7 @@ import {
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { createHash } from "crypto";
 import { isValidE164, validateActions } from "./action-validator";
+import { executeActions as executeActionsImpl, type ActionDeps } from "./execute-actions";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -573,166 +574,31 @@ function actionsFromVisionResult(
   return extra;
 }
 
-// ── Action Execution ─────────────────────────────────────────────────────────
+// ── Action Execution (delegates to extracted, testable module) ───────────────
+
+function buildActionDeps(): ActionDeps {
+  return {
+    invokeLambdaAsync,
+    invokeLambdaSync,
+    sendSms,
+    sendConversationMessage,
+    getExistingDeliverable,
+    handleUpdateBillStatus,
+    handleAddParticipant,
+    handleCreateGitHubRepo,
+    createReminder,
+    mediaProcessorFunctionName: MEDIA_PROCESSOR_FUNCTION_NAME,
+    deliverableGeneratorFunctionName: DELIVERABLE_GENERATOR_FUNCTION_NAME,
+    thirdPartyActionsFunctionName: THIRD_PARTY_ACTIONS_FUNCTION_NAME,
+  };
+}
 
 async function executeActions(
   actions: GigAction[],
   ctx: { gigId: string; userId: string; phone: string; conversationSid?: string; gigType?: string },
   trace: TraceContext
 ): Promise<void> {
-  for (const action of actions) {
-    switch (action.type) {
-      case "generate_image":
-        await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
-          action: "generate_image",
-          gigId: ctx.gigId, userId: ctx.userId,
-          prompt: action.prompt || "", phone: ctx.phone,
-          _trace: trace,
-        });
-        break;
-
-      case "create_deliverable": {
-        const delType = action.deliverableType || "website";
-        const existing = await getExistingDeliverable(ctx.gigId, delType);
-        if (existing) {
-          const existingUrl = `https://gigler.ai/${existing.shortCode}`;
-          console.log(`[GigProcessor] Reusing existing ${delType} deliverable for gig ${ctx.gigId}: ${existingUrl}`);
-          const linkMsg = `Here's your tracking page: ${existingUrl}`;
-          if (ctx.conversationSid) {
-            await sendConversationMessage(ctx.conversationSid, linkMsg);
-            console.log(`[GigProcessor] Sent existing deliverable link to group ${ctx.conversationSid}: ${existingUrl}`);
-          } else if (ctx.phone) {
-            await sendSms(ctx.phone, linkMsg);
-            console.log(`[GigProcessor] Sent existing deliverable link to ${ctx.phone}: ${existingUrl}`);
-          }
-          break;
-        }
-        const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
-          gigId: ctx.gigId, userId: ctx.userId,
-          type: delType,
-          title: action.title || "Untitled",
-          content: action.content || "", phone: ctx.phone,
-          _trace: trace,
-        });
-        if (delResult?.url) {
-          const linkMsg = `Here's your tracking page: ${delResult.url}`;
-          if (ctx.conversationSid) {
-            await sendConversationMessage(ctx.conversationSid, linkMsg);
-            console.log(`[GigProcessor] Sent deliverable link to group ${ctx.conversationSid}: ${delResult.url}`);
-          } else if (ctx.phone) {
-            await sendSms(ctx.phone, linkMsg);
-            console.log(`[GigProcessor] Sent deliverable link to ${ctx.phone}: ${delResult.url}`);
-          }
-        }
-        break;
-      }
-
-      case "set_reminder":
-        if (action.scheduledAt) {
-          await createReminder({
-            gigId: ctx.gigId, userId: ctx.userId,
-            scheduledAt: action.scheduledAt, type: "reminder",
-            message: action.reminderMessage || "Reminder from your gig",
-            channel: action.channel || "sms",
-            recipients: [ctx.phone],
-            recurrence: action.recurrence,
-            recurrenceDay: action.recurrenceDay,
-          });
-        }
-        break;
-
-      case "update_bill_status":
-        if (action.billType) {
-          await handleUpdateBillStatus(ctx.gigId, {
-            billType: action.billType,
-            vendor: action.vendor,
-            amount: action.amount,
-            dueDate: action.dueDate,
-            billingPeriod: action.billingPeriod,
-            status: action.billStatus || "submitted",
-            submittedBy: ctx.phone,
-            paidBy: action.paidBy || ctx.phone,
-            mediaId: action.mediaId,
-          });
-
-          const isBillGig = ctx.gigType === "household" || ctx.gigType === "bills";
-          if (isBillGig) {
-            const existing = await getExistingDeliverable(ctx.gigId, "bills_dashboard");
-            if (existing) {
-              const dashUrl = `https://gigler.ai/${existing.shortCode}`;
-              console.log(`[GigProcessor] Auto-sending existing bills dashboard: ${dashUrl}`);
-              const dashMsg = `Here's your tracking page: ${dashUrl}`;
-              if (ctx.conversationSid) {
-                await sendConversationMessage(ctx.conversationSid, dashMsg);
-              } else if (ctx.phone) {
-                await sendSms(ctx.phone, dashMsg);
-              }
-            } else {
-              console.log(`[GigProcessor] Auto-creating bills_dashboard for gig ${ctx.gigId}`);
-              const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
-                gigId: ctx.gigId, userId: ctx.userId,
-                type: "bills_dashboard",
-                title: "Bills Dashboard",
-                content: "", phone: ctx.phone,
-                _trace: trace,
-              });
-              if (delResult?.url) {
-                const dashMsg = `Here's your tracking page: ${delResult.url}`;
-                if (ctx.conversationSid) {
-                  await sendConversationMessage(ctx.conversationSid, dashMsg);
-                  console.log(`[GigProcessor] Sent auto-created dashboard to group: ${delResult.url}`);
-                } else if (ctx.phone) {
-                  await sendSms(ctx.phone, dashMsg);
-                  console.log(`[GigProcessor] Sent auto-created dashboard to ${ctx.phone}: ${delResult.url}`);
-                }
-              }
-            }
-          }
-        }
-        break;
-
-      case "book_reservation":
-        await invokeLambdaAsync(THIRD_PARTY_ACTIONS_FUNCTION_NAME, {
-          gigId: ctx.gigId, userId: ctx.userId,
-          platform: action.platform || "opentable",
-          actionType: "search", params: action.params || {},
-          phone: ctx.phone, _trace: trace,
-        });
-        break;
-
-      case "add_participant":
-        if (action.phone && action.name && action.name !== "Participant") {
-          await handleAddParticipant(
-            ctx.gigId, ctx.userId, ctx.phone,
-            action.name, action.phone, trace
-          );
-        } else if (action.phone && (!action.name || action.name === "Participant")) {
-          console.warn(`[GigProcessor] Participant name is placeholder — asking owner for real name`);
-          await sendSms(ctx.phone, `I have the number (${action.phone}) but I need a real first name before adding them to the group. What's their name?`);
-        }
-        break;
-
-      case "create_github_repo":
-        if (action.name && action.files?.length) {
-          await handleCreateGitHubRepo(
-            ctx.gigId, ctx.userId, ctx.phone,
-            action.name, action.description || "",
-            action.files, trace
-          );
-        }
-        break;
-
-      case "create_collage":
-        await invokeLambdaAsync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
-          gigId: ctx.gigId, userId: ctx.userId,
-          type: "collage",
-          title: action.title || "Photo Gallery",
-          content: action.content || "",
-          phone: ctx.phone, _trace: trace,
-        });
-        break;
-    }
-  }
+  await executeActionsImpl(actions, ctx, trace, buildActionDeps());
 }
 
 // ── Add Participant ──────────────────────────────────────────────────────────
