@@ -415,11 +415,18 @@ function extractFromGeminiResponse(response: GeminiResponse, userMessage?: strin
   return { userText, actions };
 }
 
+const GENERIC_FALLBACK = "On it!";
+
 function generateFallbackText(actions: GigAction[]): string {
   const types = actions.map(a => a.type);
   if (types.includes("add_participant")) {
     const p = actions.find(a => a.type === "add_participant");
     return `On it! Adding ${p?.name || "them"} to the group now.`;
+  }
+  if (types.includes("update_bill_status")) {
+    const b = actions.find(a => a.type === "update_bill_status");
+    const vendor = b?.vendor || b?.billType || "bill";
+    return `Got it! ${vendor} bill logged.`;
   }
   if (types.includes("set_reminder")) {
     return "Done! I've set up the reminders for you.";
@@ -433,7 +440,7 @@ function generateFallbackText(actions: GigAction[]): string {
   if (types.includes("create_collage")) {
     return "Building your gallery page now!";
   }
-  return "On it!";
+  return GENERIC_FALLBACK;
 }
 
 function mapFunctionCallToAction(name: string, args: Record<string, unknown>): GigAction | null {
@@ -2119,8 +2126,9 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       console.log("[GigProcessor] Overriding RESPOND:false — actions were executed, user must be notified");
       shouldRespond = true;
     }
-    if (!userText) {
-      userText = buildActionConfirmation(actions, visionAnalysis);
+    const richerConfirmation = buildActionConfirmation(actions, visionAnalysis);
+    if (!userText || richerConfirmation !== "Done!") {
+      userText = richerConfirmation;
       console.log(`[GigProcessor] Generated action confirmation: ${userText}`);
     }
   }
