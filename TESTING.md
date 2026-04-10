@@ -119,6 +119,7 @@ export TBL_GIG_PARTICIPANT=<GigParticipant-table-name>
 export TBL_MESSAGE=<Message-table-name>
 export TBL_MEDIA=<Media-table-name>
 export TBL_DELIVERABLE=<Deliverable-table-name>
+export TBL_DELIVERABLE_ACCESS=<DeliverableAccess-table-name>
 export TBL_REMINDER=<Reminder-table-name>
 export TBL_THIRD_PARTY_ACTION=<ThirdPartyAction-table-name>
 export TBL_USER_INTEGRATION=<UserIntegration-table-name>
@@ -959,7 +960,63 @@ curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" "https://gigler.ai/$SHORT_
 **Expected outcome:**
 - Deliverable record with `type: "website"`, `shortCode`, and `publicUrl`
 - HTML file in S3 at `deliverables/test-gig-001/`
-- `https://gigler.ai/<shortCode>` returns HTTP 200
+- `https://gigler.ai/<shortCode>` shows the verification form (not the content directly)
+
+### Scenario 4b: Deliverable Access Verification
+
+Deliverable links are gated by SMS code verification. Only phone numbers that are participants on the gig can access the content.
+
+```bash
+# Step 1: Visit the short URL — should see phone verification form
+curl -s "https://gigler.ai/$SHORT_CODE" | grep -o "verification\|phone\|Enter"
+
+# Step 2: Request a verification code (use a phone that is a participant on the gig)
+curl -s -X POST "https://gigler.ai/api/d/$SHORT_CODE/verify" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+15551234567"}'
+
+# Expected: {"ok":true,"message":"Verification code sent"}
+# The phone receives a 6-digit SMS code
+
+# Step 3: Submit the code to get an access cookie
+curl -s -X POST "https://gigler.ai/api/d/$SHORT_CODE/confirm" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+15551234567", "code": "123456"}' \
+  -c /tmp/gigler-cookies.txt
+
+# Expected: {"ok":true,"message":"Verified"} + Set-Cookie: gigler_access=...
+
+# Step 4: Access the deliverable content with the cookie
+curl -s -b /tmp/gigler-cookies.txt "https://gigler.ai/api/d/$SHORT_CODE" \
+  -o /tmp/deliverable-content.html
+
+# Step 5: Verify unauthorized phone is rejected
+curl -s -X POST "https://gigler.ai/api/d/$SHORT_CODE/verify" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+19999999999"}'
+
+# Expected: {"error":"This phone number is not associated with this gig"} (403)
+
+# Step 6: Verify accessing without cookie returns 401
+curl -s "https://gigler.ai/api/d/$SHORT_CODE" | grep -o "AUTH_REQUIRED"
+```
+
+**Expected outcome:**
+- Non-participant phones get 403 on `/verify`
+- Participant phones receive a 6-digit SMS code
+- Correct code sets an `httpOnly` cookie (7-day TTL)
+- Cookie grants access to deliverable content
+- No cookie returns 401 with `AUTH_REQUIRED`
+- Cookie works for 7 days without re-verification
+
+**DeliverableAccess record in DynamoDB:**
+
+```bash
+aws dynamodb get-item \
+  --table-name $TBL_DELIVERABLE_ACCESS \
+  --key '{"shortCode": {"S": "<SHORT_CODE>"}, "phone": {"S": "+15551234567"}}' \
+  --query 'Item.{code: code.S, expiresAt: expiresAt.N, verified: verified.BOOL}'
+```
 
 ---
 
@@ -1817,7 +1874,7 @@ Run through these manually after each deploy.
 | `https://gigler.ai/examples` | Categories render, anchor links work, example conversations display |
 | `https://gigler.ai/pricing` | All 4 tiers display (Free, Pro, Team, Enterprise), prices correct |
 | `https://gigler.ai/dashboard` | Redirects to login page (unauthenticated) |
-| `https://gigler.ai/<shortCode>` | Deliverable page loads with correct content (after creating one) |
+| `https://gigler.ai/<shortCode>` | Shows phone verification form (title visible, content gated). After entering phone + SMS code, content loads. Cookie persists for 7 days. |
 
 ### SEO Verification
 
@@ -1861,11 +1918,13 @@ for k in ['performance','accessibility','best-practices','seo']:
 After creating a deliverable in Scenario 4:
 
 ```bash
-# Verify redirect / page load
-curl -sL -o /dev/null -w "Final URL: %{url_effective}\nHTTP: %{http_code}\n" "https://gigler.ai/<SHORT_CODE>"
+# Verify the page loads with verification form (not content)
+curl -s "https://gigler.ai/<SHORT_CODE>" | grep -o "verification\|Send verification"
 
-# Verify OG tags on deliverable page
-curl -s "https://gigler.ai/<SHORT_CODE>" | grep -E 'og:title|og:description|og:image'
+# Verify unauthenticated API access returns 401
+curl -s "https://gigler.ai/api/d/<SHORT_CODE>" | grep "AUTH_REQUIRED"
+
+# Full verification flow (see Scenario 4b for step-by-step)
 ```
 
 ---
@@ -1914,6 +1973,7 @@ aws lambda get-function-configuration \
 # voice-bridge:   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, GEMINI_API_KEY
 # email-handler:  GEMINI_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
 # deliverable:    S3_BUCKET, CLOUDFRONT_DOMAIN
+# Next.js SSR:    STORAGE_AMPLIFYGENFILES_BUCKETNAME (for /api/d/[shortCode] S3 proxy)
 ```
 
 ### Twilio Webhook Returns 502
@@ -2245,41 +2305,92 @@ npm test
 
 ## 14. Unit Tests
 
-Local unit tests run with Vitest. No AWS or Twilio credentials needed.
+Local unit tests run with Vitest. No AWS or Twilio credentials needed. **Current count: 411 passing, 14 skipped (live Vision tests).**
 
 ### 14.1 Running Tests
 
 ```bash
 npm test              # single run
 npm run test:watch    # watch mode
+npx vitest run --reporter=verbose   # verbose output with test names
 ```
 
-### 14.2 Test Coverage
+### 14.2 Test Inventory
 
-**`amplify/functions/gigler-inbound-sms/__tests__/routing.test.ts`** (27 tests):
+#### gigler-inbound-sms (27 tests)
 
-| Suite | Tests | What it covers |
-|-------|-------|---------------|
-| `buildGigDescriptions` | 5 | Gig description formatting for Gemini prompt (roles, metadata, numbering) |
-| `parseGigSelection` | 9 | AI response parsing (valid numbers, ambiguous, edge cases) |
-| `buildDisambiguationList` | 4 | User-facing gig list with role labels |
-| `deduplicateGigs` | 4 | Merging owned + participated gigs without duplicates |
-| `single-gig auto-routing` | 1 | Single gig bypasses AI selection |
-| `multi-gig routing scenarios` | 4 | End-to-end routing decision flow |
+| File | Tests | What it covers |
+|------|-------|---------------|
+| `routing.test.ts` | 27 | Gig description formatting, AI response parsing, disambiguation lists, gig deduplication, single/multi-gig routing |
 
-### 14.3 Adding New Tests
+#### gigler-gig-processor (384 tests passing, 14 skipped)
 
-Tests live alongside the Lambda handlers:
+| File | Tests | What it covers |
+|------|-------|---------------|
+| `action-validator.test.ts` | 78 | E.164 phone validation, participant name validation, user message intent detection, add_participant hallucination filtering, full action validation pipeline |
+| `action-parser.test.ts` | 49 | Function call mapping for all action types, fallback text generation for every known action, extractFromGeminiResponse with validation, hallucinated action filtering, buildActionConfirmation with/without vision data |
+| `response-flow-integration.test.ts` | 18 | **Full handler flow simulation**: Gemini response → extractFromGeminiResponse → group handler override logic → final message. Covers the "On it!" bug scenario, RESPOND:false override, vision-based confirmations, all action types, edge cases |
+| `prompts.test.ts` | 41 | System prompt content, tool-use guidance anti-hallucination rules, function declarations, gig-type-specific prompts |
+| `vision.test.ts` | 46 | Vision response parsing, bill/receipt/photo classification, extracted info validation |
+| `vision-utils.test.ts` | 32 | formatVisionResultForPrompt, actionsFromVisionResult, GigAction type coverage |
+| `vision-live.test.ts` | 14 (skipped) | Real Gemini Vision API calls against S3-hosted test images. Skipped by default (API cost). Run with `npx vitest run vision-live` |
+| `dedup.test.ts` | 20 | Message deduplication logic, hash generation, TTL checks |
+| `twilio-helpers.test.ts` | 30 | SMS sending, Conversations API helpers, media download, phone formatting |
+| `db.test.ts` | 70 | DynamoDB put/get/update/query helpers, GSI queries, metadata updates |
+
+### 14.3 Key Test Categories
+
+**Action Validation (Carmen-inspired 3-layer defense):**
+- Layer 1: E.164 phone format validation (`isValidE164`)
+- Layer 2: User message relevance check (`userMessageSupportsAddParticipant`)
+- Layer 3: Prompt-level anti-hallucination rules (tested in `prompts.test.ts`)
+
+**Response Flow Integration (prevents "On it!" regression):**
+- Simulates the exact code path: Gemini returns function call only → `extractFromGeminiResponse` → `generateFallbackText` → group handler override → `buildActionConfirmation`
+- Every known action type verified to produce a specific message (not generic "On it!")
+- Vision data confirmed to override fallback text with rich details (vendor, amount, due date)
+
+**Vision Pipeline:**
+- Unit tests validate parsing and classification
+- Live tests (skipped) validate real Gemini Vision against uploaded bill photos in S3
+
+### 14.4 Running Specific Test Suites
+
+```bash
+# All tests
+npx vitest run
+
+# Single file
+npx vitest run action-validator
+npx vitest run response-flow-integration
+npx vitest run vision
+
+# Live Vision tests (requires GEMINI_API_KEY, hits real API)
+npx vitest run vision-live
+
+# Watch a specific file
+npx vitest watch action-parser
+```
+
+### 14.5 Test File Locations
 
 ```
 amplify/functions/
   gigler-inbound-sms/
-    handler.ts
     __tests__/
-      routing.test.ts    <-- smart routing logic
+      routing.test.ts
   gigler-gig-processor/
-    handler.ts
-    __tests__/           <-- add group MMS tests here
+    __tests__/
+      action-validator.test.ts
+      action-parser.test.ts
+      response-flow-integration.test.ts
+      prompts.test.ts
+      vision.test.ts
+      vision-utils.test.ts
+      vision-live.test.ts
+      dedup.test.ts
+      twilio-helpers.test.ts
+      db.test.ts
 ```
 
 Test files are matched by `vitest.config.ts`:
