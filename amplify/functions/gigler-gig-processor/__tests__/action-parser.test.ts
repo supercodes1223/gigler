@@ -7,25 +7,45 @@ import {
 } from "../action-parser";
 
 describe("mapFunctionCallToAction", () => {
-  it("maps add_participant with name and phone", () => {
+  it("maps add_participant with name and valid E.164 phone", () => {
     const action = mapFunctionCallToAction("add_participant", { name: "Sarah", phone: "+14155551234" });
     expect(action).toEqual({ type: "add_participant", name: "Sarah", phone: "+14155551234" });
   });
 
+  it("returns null for add_participant with invalid phone", () => {
+    const action = mapFunctionCallToAction("add_participant", { name: "Sarah", phone: "+1" });
+    expect(action).toBeNull();
+  });
+
+  it("returns null for add_participant with missing phone", () => {
+    const action = mapFunctionCallToAction("add_participant", { name: "Sarah" });
+    expect(action).toBeNull();
+  });
+
+  it("returns null for add_participant with undefined phone", () => {
+    const action = mapFunctionCallToAction("add_participant", { name: "Sarah", phone: undefined });
+    expect(action).toBeNull();
+  });
+
+  it("returns null for add_participant with non-string phone", () => {
+    const action = mapFunctionCallToAction("add_participant", { name: "Sarah", phone: 14155551234 });
+    expect(action).toBeNull();
+  });
+
   it("replaces relationship words with 'Participant'", () => {
     for (const word of ["son", "daughter", "mom", "dad", "mother", "father", "brother", "sister", "wife", "husband", "kid", "child", "parent", "roommate"]) {
-      const action = mapFunctionCallToAction("add_participant", { name: word, phone: "+1" });
+      const action = mapFunctionCallToAction("add_participant", { name: word, phone: "+14155551234" });
       expect(action?.name).toBe("Participant");
     }
   });
 
   it("is case-insensitive for relationship words", () => {
-    const action = mapFunctionCallToAction("add_participant", { name: "Son", phone: "+1" });
+    const action = mapFunctionCallToAction("add_participant", { name: "Son", phone: "+14155551234" });
     expect(action?.name).toBe("Participant");
   });
 
   it("defaults name to 'Participant' when missing", () => {
-    const action = mapFunctionCallToAction("add_participant", { phone: "+1" });
+    const action = mapFunctionCallToAction("add_participant", { phone: "+14155551234" });
     expect(action?.name).toBe("Participant");
   });
 
@@ -133,12 +153,12 @@ describe("mapFunctionCallToAction", () => {
 
 describe("generateFallbackText", () => {
   it("mentions participant name for add_participant", () => {
-    const text = generateFallbackText([{ type: "add_participant", name: "Sarah", phone: "+1" }]);
+    const text = generateFallbackText([{ type: "add_participant", name: "Sarah", phone: "+14155551234" }]);
     expect(text).toContain("Sarah");
   });
 
   it("uses 'them' when participant name is missing", () => {
-    const text = generateFallbackText([{ type: "add_participant", phone: "+1" }]);
+    const text = generateFallbackText([{ type: "add_participant", phone: "+14155551234" }]);
     expect(text).toContain("them");
   });
 
@@ -170,7 +190,7 @@ describe("generateFallbackText", () => {
   it("prioritizes add_participant over other actions", () => {
     const text = generateFallbackText([
       { type: "set_reminder", scheduledAt: "tomorrow", reminderMessage: "test" },
-      { type: "add_participant", name: "Bob", phone: "+1" },
+      { type: "add_participant", name: "Bob", phone: "+14155551234" },
     ]);
     expect(text).toContain("Bob");
   });
@@ -212,10 +232,10 @@ describe("extractFromGeminiResponse", () => {
     const response: GeminiResponse = {
       parts: [
         { text: "I'll add them now!" },
-        { functionCall: { name: "add_participant", args: { name: "Sarah", phone: "+1" } } },
+        { functionCall: { name: "add_participant", args: { name: "Sarah", phone: "+14155551234" } } },
       ],
     };
-    const { userText, actions } = extractFromGeminiResponse(response);
+    const { userText, actions } = extractFromGeminiResponse(response, "add Sarah 4155551234");
     expect(userText).toBe("I'll add them now!");
     expect(actions).toHaveLength(1);
     expect(actions[0].type).toBe("add_participant");
@@ -254,12 +274,56 @@ describe("extractFromGeminiResponse", () => {
       parts: [
         { functionCall: { name: "set_reminder", args: { scheduledAt: "d1", reminderMessage: "m1" } } },
         { functionCall: { name: "set_reminder", args: { scheduledAt: "d2", reminderMessage: "m2" } } },
-        { functionCall: { name: "add_participant", args: { name: "Alice", phone: "+1" } } },
+        { functionCall: { name: "add_participant", args: { name: "Alice", phone: "+14155551234" } } },
       ],
     };
-    const { actions } = extractFromGeminiResponse(response);
+    const { actions } = extractFromGeminiResponse(response, "add Alice 4155551234 and set two reminders");
     expect(actions).toHaveLength(3);
     expect(actions.filter(a => a.type === "set_reminder")).toHaveLength(2);
     expect(actions.filter(a => a.type === "add_participant")).toHaveLength(1);
+  });
+
+  it("filters hallucinated add_participant when userMessage is unrelated", () => {
+    const response: GeminiResponse = {
+      parts: [
+        { text: "On it! Adding Jonny to the group now." },
+        { functionCall: { name: "add_participant", args: { name: "Jonny", phone: "+14154049816" } } },
+      ],
+    };
+    const { userText, actions } = extractFromGeminiResponse(response, "gig");
+    expect(userText).toBe("On it! Adding Jonny to the group now.");
+    expect(actions).toHaveLength(0);
+  });
+
+  it("keeps add_participant when userMessage explicitly mentions adding", () => {
+    const response: GeminiResponse = {
+      parts: [
+        { functionCall: { name: "add_participant", args: { name: "Jonny", phone: "+14154049816" } } },
+      ],
+    };
+    const { actions } = extractFromGeminiResponse(response, "add Jonny 4154049816");
+    expect(actions).toHaveLength(1);
+    expect(actions[0].type).toBe("add_participant");
+  });
+
+  it("drops add_participant with invalid phone at mapFunctionCallToAction level", () => {
+    const response: GeminiResponse = {
+      parts: [
+        { functionCall: { name: "add_participant", args: { name: "Jonny", phone: "Jonny" } } },
+      ],
+    };
+    const { actions } = extractFromGeminiResponse(response, "add Jonny");
+    expect(actions).toHaveLength(0);
+  });
+
+  it("falls back to 'I'm working on that!' when hallucinated action is only action and no text", () => {
+    const response: GeminiResponse = {
+      parts: [
+        { functionCall: { name: "add_participant", args: { name: "Jonny", phone: "+14154049816" } } },
+      ],
+    };
+    const { userText, actions } = extractFromGeminiResponse(response, "what's the status?");
+    expect(actions).toHaveLength(0);
+    expect(userText).toBe("I'm working on that!");
   });
 });

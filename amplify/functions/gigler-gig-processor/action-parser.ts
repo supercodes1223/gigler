@@ -1,4 +1,5 @@
 import type { GigAction } from "./vision-utils";
+import { isValidE164, validateActions } from "./action-validator";
 
 export type { GigAction };
 
@@ -15,9 +16,12 @@ export interface GeminiResponse {
   finishReason?: string;
 }
 
-export function extractFromGeminiResponse(response: GeminiResponse): { userText: string; actions: GigAction[] } {
+export function extractFromGeminiResponse(
+  response: GeminiResponse,
+  userMessage?: string,
+): { userText: string; actions: GigAction[] } {
   const textParts: string[] = [];
-  const actions: GigAction[] = [];
+  const rawActions: GigAction[] = [];
 
   for (const part of response.parts) {
     if (part.text) {
@@ -27,10 +31,12 @@ export function extractFromGeminiResponse(response: GeminiResponse): { userText:
       const fc = part.functionCall;
       const action = mapFunctionCallToAction(fc.name, fc.args);
       if (action) {
-        actions.push(action);
+        rawActions.push(action);
       }
     }
   }
+
+  const { valid: actions } = validateActions(rawActions, userMessage || "");
 
   let userText = textParts.join("").trim();
 
@@ -69,11 +75,15 @@ const RELATIONSHIP_WORDS = ["son", "daughter", "mom", "dad", "mother", "father",
 export function mapFunctionCallToAction(name: string, args: Record<string, unknown>): GigAction | null {
   switch (name) {
     case "add_participant": {
+      if (!isValidE164(args.phone)) {
+        console.warn(`[ActionParser] add_participant rejected: invalid phone "${String(args.phone ?? "")}"`);
+        return null;
+      }
       let participantName = (args.name as string) || "Participant";
       if (RELATIONSHIP_WORDS.includes(participantName.toLowerCase())) {
         participantName = "Participant";
       }
-      return { type: "add_participant", name: participantName, phone: args.phone as string };
+      return { type: "add_participant", name: participantName, phone: args.phone };
     }
     case "set_reminder":
       return {

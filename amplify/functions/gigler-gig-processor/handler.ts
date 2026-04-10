@@ -22,6 +22,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { createHash } from "crypto";
+import { isValidE164, validateActions } from "./action-validator";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -378,9 +379,9 @@ function formatVisionResultForPrompt(result: ImageAnalysisResult): string {
 
 // ── AI Response Extraction (Native Function Calling) ─────────────────────────
 
-function extractFromGeminiResponse(response: GeminiResponse): { userText: string; actions: GigAction[] } {
+function extractFromGeminiResponse(response: GeminiResponse, userMessage?: string): { userText: string; actions: GigAction[] } {
   const textParts: string[] = [];
-  const actions: GigAction[] = [];
+  const rawActions: GigAction[] = [];
 
   for (const part of response.parts) {
     if (part.text) {
@@ -390,9 +391,14 @@ function extractFromGeminiResponse(response: GeminiResponse): { userText: string
       const fc = part.functionCall;
       const action = mapFunctionCallToAction(fc.name, fc.args);
       if (action) {
-        actions.push(action);
+        rawActions.push(action);
       }
     }
+  }
+
+  const { valid: actions, dropped } = validateActions(rawActions, userMessage || "");
+  if (dropped.length > 0) {
+    console.warn(`[GigProcessor] Validation dropped ${dropped.length} action(s) from Gemini response`);
   }
 
   let userText = textParts.join("").trim();
@@ -404,7 +410,7 @@ function extractFromGeminiResponse(response: GeminiResponse): { userText: string
   }
 
   if (actions.length > 0) {
-    console.log(`[GigProcessor] Extracted ${actions.length} action(s) via function calling: ${actions.map(a => a.type).join(", ")}`);
+    console.log(`[GigProcessor] Extracted ${actions.length} valid action(s) via function calling: ${actions.map(a => a.type).join(", ")}`);
   }
   return { userText, actions };
 }
@@ -433,12 +439,16 @@ function generateFallbackText(actions: GigAction[]): string {
 function mapFunctionCallToAction(name: string, args: Record<string, unknown>): GigAction | null {
   switch (name) {
     case "add_participant": {
+      if (!isValidE164(args.phone)) {
+        console.warn(`[GigProcessor] add_participant rejected: invalid phone "${String(args.phone ?? "")}"`);
+        return null;
+      }
       let participantName = (args.name as string) || "Participant";
       const relationshipWords = ["son", "daughter", "mom", "dad", "mother", "father", "brother", "sister", "wife", "husband", "kid", "child", "parent", "roommate"];
       if (relationshipWords.includes(participantName.toLowerCase())) {
         participantName = "Participant";
       }
-      return { type: "add_participant", name: participantName, phone: args.phone as string };
+      return { type: "add_participant", name: participantName, phone: args.phone };
     }
     case "set_reminder":
       return {
@@ -1815,6 +1825,8 @@ const TOOL_USE_GUIDANCE = `You have tools available for taking actions. Use them
 When adding a participant, call the add_participant tool. When setting reminders, call the set_reminder tool. And so on.
 Only call tools when the user explicitly requests something actionable. Do NOT call tools for general conversation.
 
+CRITICAL: Do NOT call add_participant unless the user's CURRENT message contains a phone number or explicitly asks to add someone (e.g. "add", "invite", "include"). Never infer add_participant from conversation history alone. If the user's message is unrelated to adding people, do NOT call add_participant even if participants were discussed earlier.
+
 When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
 - Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")
 - If the gig context makes it relevant, proactively suggest what to do with them (create a gallery, use for invitations, etc.)
@@ -2040,8 +2052,9 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
 
   const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext);
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
-  const geminiResponse = await callGemini(systemPrompt, `[${senderName}]: ${userMessage}`, history);
-  const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse);
+  const geminiInput = `[${senderName}]: ${userMessage}`;
+  const geminiResponse = await callGemini(systemPrompt, geminiInput, history);
+  const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse, userMessage);
 
   if (visionAnalysis) {
     const visionActions = actionsFromVisionResult(visionAnalysis, gig.type, actions);
@@ -2201,7 +2214,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   }
 
   const geminiResponse = await callGemini(systemPrompt, enrichedMessage, history);
-  const { userText, actions } = extractFromGeminiResponse(geminiResponse);
+  const { userText, actions } = extractFromGeminiResponse(geminiResponse, enrichedMessage);
 
   if (directVisionResult) {
     const visionActions = actionsFromVisionResult(directVisionResult, gig.type, actions);

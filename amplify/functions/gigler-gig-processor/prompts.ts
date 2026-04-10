@@ -128,6 +128,8 @@ export const TOOL_USE_GUIDANCE = `You have tools available for taking actions. U
 When adding a participant, call the add_participant tool. When setting reminders, call the set_reminder tool. And so on.
 Only call tools when the user explicitly requests something actionable. Do NOT call tools for general conversation.
 
+CRITICAL: Do NOT call add_participant unless the user's CURRENT message contains a phone number or explicitly asks to add someone (e.g. "add", "invite", "include"). Never infer add_participant from conversation history alone. If the user's message is unrelated to adding people, do NOT call add_participant even if participants were discussed earlier.
+
 When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
 - Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")
 - If the gig context makes it relevant, proactively suggest what to do with them (create a gallery, use for invitations, etc.)
