@@ -2079,6 +2079,16 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     const ownerUserId = (ownerParticipant?.userId as string) || "";
     console.log(`[GigProcessor] Executing ${actions.length} action(s) from group context: ${actions.map(a => a.type).join(", ")}`);
     await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone, conversationSid }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
+
+    if (!shouldRespond) {
+      console.log("[GigProcessor] Overriding RESPOND:false — actions were executed, user must be notified");
+      shouldRespond = true;
+    }
+    if (!userText) {
+      const actionSummary = actions.map(a => a.type).join(", ");
+      userText = `Done! (${actionSummary})`;
+      console.log(`[GigProcessor] Generated action confirmation: ${userText}`);
+    }
   }
 
   const now = new Date().toISOString();
@@ -2094,7 +2104,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       awaitingReply: false,
       lastRespondent: author || "user",
     });
-    return { statusCode: 200, body: actions.length > 0 ? "Silent (actions executed)" : "Silent" };
+    return { statusCode: 200, body: "Silent" };
   }
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "group-mms-ai");
