@@ -577,7 +577,7 @@ function actionsFromVisionResult(
 
 async function executeActions(
   actions: GigAction[],
-  ctx: { gigId: string; userId: string; phone: string; conversationSid?: string },
+  ctx: { gigId: string; userId: string; phone: string; conversationSid?: string; gigType?: string },
   trace: TraceContext
 ): Promise<void> {
   for (const action of actions) {
@@ -654,6 +654,40 @@ async function executeActions(
             paidBy: action.paidBy || ctx.phone,
             mediaId: action.mediaId,
           });
+
+          const isBillGig = ctx.gigType === "household" || ctx.gigType === "bills";
+          if (isBillGig) {
+            const existing = await getExistingDeliverable(ctx.gigId, "bills_dashboard");
+            if (existing) {
+              const dashUrl = `https://gigler.ai/${existing.shortCode}`;
+              console.log(`[GigProcessor] Auto-sending existing bills dashboard: ${dashUrl}`);
+              const dashMsg = `Here's your tracking page: ${dashUrl}`;
+              if (ctx.conversationSid) {
+                await sendConversationMessage(ctx.conversationSid, dashMsg);
+              } else if (ctx.phone) {
+                await sendSms(ctx.phone, dashMsg);
+              }
+            } else {
+              console.log(`[GigProcessor] Auto-creating bills_dashboard for gig ${ctx.gigId}`);
+              const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
+                gigId: ctx.gigId, userId: ctx.userId,
+                type: "bills_dashboard",
+                title: "Bills Dashboard",
+                content: "", phone: ctx.phone,
+                _trace: trace,
+              });
+              if (delResult?.url) {
+                const dashMsg = `Here's your tracking page: ${delResult.url}`;
+                if (ctx.conversationSid) {
+                  await sendConversationMessage(ctx.conversationSid, dashMsg);
+                  console.log(`[GigProcessor] Sent auto-created dashboard to group: ${delResult.url}`);
+                } else if (ctx.phone) {
+                  await sendSms(ctx.phone, dashMsg);
+                  console.log(`[GigProcessor] Sent auto-created dashboard to ${ctx.phone}: ${delResult.url}`);
+                }
+              }
+            }
+          }
         }
         break;
 
@@ -2138,7 +2172,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     const ownerPhone = (ownerParticipant?.phone as string) || "";
     const ownerUserId = (ownerParticipant?.userId as string) || "";
     console.log(`[GigProcessor] Executing ${actions.length} action(s) from group context: ${actions.map(a => a.type).join(", ")}`);
-    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone, conversationSid }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
+    await executeActions(actions, { gigId, userId: ownerUserId, phone: ownerPhone, conversationSid, gigType: gig.type }, { traceId: generateTraceId(), requestId: "group-webhook", source: "gigler-gig-processor" });
 
     if (!shouldRespond) {
       console.log("[GigProcessor] Overriding RESPOND:false — actions were executed, user must be notified");
@@ -2294,7 +2328,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   if (actions.length > 0) {
     log.info("Executing actions BEFORE reply", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
     const gigConvSid = (metadata.conversationSid as string) || undefined;
-    await executeActions(actions, { gigId, userId, phone, conversationSid: gigConvSid }, log.tracePayload());
+    await executeActions(actions, { gigId, userId, phone, conversationSid: gigConvSid, gigType: gig.type }, log.tracePayload());
   }
 
   await logMessage(gigId, "gigler", "Gigler", userText, "outbound", "ai");
