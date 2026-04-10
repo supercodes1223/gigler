@@ -19,6 +19,19 @@ interface Deliverable {
   s3Key: string;
   publicUrl: string;
   type: string;
+  title: string;
+  createdAt: string;
+}
+
+async function lookupDeliverable(shortCode: string): Promise<Deliverable | null> {
+  const results = await queryByGsi<Deliverable>(
+    DELIVERABLE_TABLE,
+    "byShortCode",
+    "shortCode",
+    shortCode,
+    { limit: 1 },
+  );
+  return results[0] || null;
 }
 
 export async function GET(
@@ -27,26 +40,25 @@ export async function GET(
 ) {
   const { shortCode } = await params;
 
-  const cookieStore = await cookies();
-  const accessCookie = cookieStore.get(COOKIE_NAME)?.value;
-  if (!accessCookie || !verifyCookie(accessCookie, shortCode)) {
-    return NextResponse.json(
-      { error: "Verification required", code: "AUTH_REQUIRED" },
-      { status: 401 },
-    );
-  }
-
   try {
-    const results = await queryByGsi<Deliverable>(
-      DELIVERABLE_TABLE,
-      "byShortCode",
-      "shortCode",
-      shortCode,
-      { limit: 1 },
-    );
-    const deliverable = results[0];
+    const deliverable = await lookupDeliverable(shortCode);
     if (!deliverable) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const cookieStore = await cookies();
+    const accessCookie = cookieStore.get(COOKIE_NAME)?.value;
+    if (!accessCookie || !verifyCookie(accessCookie, shortCode)) {
+      return NextResponse.json(
+        {
+          error: "Verification required",
+          code: "AUTH_REQUIRED",
+          title: deliverable.title,
+          type: deliverable.type,
+          createdAt: deliverable.createdAt,
+        },
+        { status: 401 },
+      );
     }
 
     if (deliverable.publicUrl && deliverable.publicUrl.startsWith("http")) {
