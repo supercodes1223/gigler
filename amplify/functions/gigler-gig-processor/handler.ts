@@ -593,9 +593,18 @@ async function executeActions(
 
       case "create_deliverable": {
         const delType = action.deliverableType || "website";
-        const alreadyExists = await deliverableExistsRecently(ctx.gigId, delType);
-        if (alreadyExists) {
-          console.log(`[GigProcessor] Skipping duplicate deliverable (${delType}) for gig ${ctx.gigId}`);
+        const existing = await getExistingDeliverable(ctx.gigId, delType);
+        if (existing) {
+          const existingUrl = `https://gigler.ai/${existing.shortCode}`;
+          console.log(`[GigProcessor] Reusing existing ${delType} deliverable for gig ${ctx.gigId}: ${existingUrl}`);
+          const linkMsg = `Here's your tracking page: ${existingUrl}`;
+          if (ctx.conversationSid) {
+            await sendConversationMessage(ctx.conversationSid, linkMsg);
+            console.log(`[GigProcessor] Sent existing deliverable link to group ${ctx.conversationSid}: ${existingUrl}`);
+          } else if (ctx.phone) {
+            await sendSms(ctx.phone, linkMsg);
+            console.log(`[GigProcessor] Sent existing deliverable link to ${ctx.phone}: ${existingUrl}`);
+          }
           break;
         }
         const delResult = await invokeLambdaSync(DELIVERABLE_GENERATOR_FUNCTION_NAME, {
@@ -1587,27 +1596,36 @@ async function reminderExists(gigId: string, recurrence?: string, recurrenceDay?
   }
 }
 
-async function deliverableExistsRecently(gigId: string, type: string): Promise<boolean> {
-  if (!DELIVERABLE_TABLE_NAME) return false;
+interface ExistingDeliverable {
+  shortCode: string;
+  publicUrl: string;
+  s3Key: string;
+}
+
+async function getExistingDeliverable(gigId: string, type: string): Promise<ExistingDeliverable | null> {
+  if (!DELIVERABLE_TABLE_NAME) return null;
   try {
     const result = await ddb.send(
       new QueryCommand({
         TableName: DELIVERABLE_TABLE_NAME,
-        IndexName: "byGig",
         KeyConditionExpression: "gigId = :gid",
         ExpressionAttributeValues: { ":gid": gigId },
       })
     );
-    const now = Date.now();
-    return (result.Items || []).some((d) => {
+    const match = (result.Items || []).find((d) => {
       const del = d as Record<string, unknown>;
-      if (del.type !== type) return false;
-      const created = del.createdAt as string | undefined;
-      if (!created) return false;
-      return now - new Date(created).getTime() < 120_000;
+      return del.type === type && del.shortCode;
     });
-  } catch {
-    return false;
+    if (!match) return null;
+    const del = match as Record<string, unknown>;
+    return {
+      shortCode: del.shortCode as string,
+      publicUrl: del.publicUrl as string || "",
+      s3Key: del.s3Key as string || "",
+    };
+  } catch (err) {
+    console.warn("[GigProcessor] Failed to check existing deliverable:", err);
+    return null;
   }
 }
 
