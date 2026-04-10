@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { queryByGsi } from "@/lib/dynamo";
+import { verifyCookie, COOKIE_NAME } from "@/lib/deliverable-auth";
 
 const s3 = new S3Client({ region: process.env.AWS_REGION || "us-east-2" });
 
@@ -21,9 +23,18 @@ interface Deliverable {
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ shortCode: string }> }
+  { params }: { params: Promise<{ shortCode: string }> },
 ) {
   const { shortCode } = await params;
+
+  const cookieStore = await cookies();
+  const accessCookie = cookieStore.get(COOKIE_NAME)?.value;
+  if (!accessCookie || !verifyCookie(accessCookie, shortCode)) {
+    return NextResponse.json(
+      { error: "Verification required", code: "AUTH_REQUIRED" },
+      { status: 401 },
+    );
+  }
 
   try {
     const results = await queryByGsi<Deliverable>(
@@ -31,17 +42,14 @@ export async function GET(
       "byShortCode",
       "shortCode",
       shortCode,
-      { limit: 1 }
+      { limit: 1 },
     );
     const deliverable = results[0];
     if (!deliverable) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (
-      deliverable.publicUrl &&
-      deliverable.publicUrl.startsWith("http")
-    ) {
+    if (deliverable.publicUrl && deliverable.publicUrl.startsWith("http")) {
       return NextResponse.redirect(deliverable.publicUrl, 302);
     }
 
@@ -49,12 +57,12 @@ export async function GET(
     if (!s3Key || !S3_BUCKET) {
       return NextResponse.json(
         { error: "Content not available" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const obj = await s3.send(
-      new GetObjectCommand({ Bucket: S3_BUCKET, Key: s3Key })
+      new GetObjectCommand({ Bucket: S3_BUCKET, Key: s3Key }),
     );
     const rawBody = await obj.Body?.transformToByteArray();
     if (!rawBody) {
@@ -69,14 +77,14 @@ export async function GET(
     return new NextResponse(Buffer.from(rawBody), {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=300, s-maxage=3600",
+        "Cache-Control": "private, max-age=300",
       },
     });
   } catch (err) {
     console.error("[API/d] Failed to serve deliverable:", err);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

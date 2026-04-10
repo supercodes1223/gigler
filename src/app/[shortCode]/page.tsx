@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { queryByGsi } from "@/lib/dynamo";
+import { verifyCookie, COOKIE_NAME } from "@/lib/deliverable-auth";
+import { VerifyForm } from "./verify-form";
 
 interface PageProps {
   params: Promise<{ shortCode: string }>;
@@ -33,7 +36,7 @@ async function getDeliverableByShortCode(shortCode: string): Promise<Deliverable
       "byShortCode",
       "shortCode",
       shortCode,
-      { limit: 1 }
+      { limit: 1 },
     );
     return results[0] || null;
   } catch (err) {
@@ -52,17 +55,13 @@ export default async function ShortCodePage({ params }: PageProps) {
   if (!deliverable) {
     return (
       <main className="flex-1 pt-24">
-        <div className="mx-auto max-w-3xl px-6 pb-24">
+        <div className="mx-auto max-w-sm px-6 pb-24">
           <div className="mb-8">
-            <Link
-              href="/"
-              className="text-sm text-brand-muted hover:text-foreground transition"
-            >
+            <Link href="/" className="text-sm text-brand-muted hover:text-foreground transition">
               &larr; gigler.ai
             </Link>
           </div>
           <div className="rounded-xl border border-brand-border p-8 text-center">
-            <div className="text-5xl mb-4">🔍</div>
             <h1 className="text-2xl font-bold mb-2">Not Found</h1>
             <p className="text-brand-muted">
               This link doesn&apos;t match any deliverable. It may have expired or the code is incorrect.
@@ -76,43 +75,37 @@ export default async function ShortCodePage({ params }: PageProps) {
     );
   }
 
-  const hasValidHttpUrl =
-    deliverable.publicUrl && deliverable.publicUrl.startsWith("http");
+  const cookieStore = await cookies();
+  const accessCookie = cookieStore.get(COOKIE_NAME)?.value;
+  const isVerified = accessCookie ? verifyCookie(accessCookie, shortCode) : false;
 
-  if (hasValidHttpUrl) {
-    redirect(deliverable.publicUrl);
-  }
-
-  if (deliverable.s3Key) {
-    redirect(`/api/d/${shortCode}`);
+  if (isVerified) {
+    const hasValidHttpUrl = deliverable.publicUrl?.startsWith("http");
+    if (hasValidHttpUrl) {
+      redirect(deliverable.publicUrl);
+    }
+    if (deliverable.s3Key) {
+      redirect(`/api/d/${shortCode}`);
+    }
   }
 
   return (
     <main className="flex-1 pt-24">
-      <div className="mx-auto max-w-3xl px-6 pb-24">
+      <div className="mx-auto max-w-sm px-6 pb-24">
         <div className="mb-8">
-          <Link
-            href="/"
-            className="text-sm text-brand-muted hover:text-foreground transition"
-          >
+          <Link href="/" className="text-sm text-brand-muted hover:text-foreground transition">
             &larr; gigler.ai
           </Link>
         </div>
         <div className="rounded-xl border border-brand-border p-8">
-          <h1 className="text-2xl font-bold mb-2">{deliverable.title}</h1>
-          <p className="text-brand-muted text-sm mb-4">
-            {deliverable.type.replace(/_/g, " ")} &middot; Created {new Date(deliverable.createdAt).toLocaleDateString()}
+          <h1 className="text-xl font-bold mb-1">{deliverable.title}</h1>
+          <p className="text-brand-muted text-sm mb-6">
+            {deliverable.type.replace(/_/g, " ")}
+            {deliverable.createdAt && (
+              <> &middot; {new Date(deliverable.createdAt).toLocaleDateString()}</>
+            )}
           </p>
-          {deliverable.publicUrl && (
-            <a
-              href={deliverable.publicUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block rounded-lg bg-brand-primary px-4 py-2 text-sm text-white font-medium hover:opacity-90 transition"
-            >
-              View Deliverable
-            </a>
-          )}
+          <VerifyForm shortCode={shortCode} />
         </div>
       </div>
     </main>
