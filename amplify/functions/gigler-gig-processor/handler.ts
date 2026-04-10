@@ -503,6 +503,41 @@ function mapFunctionCallToAction(name: string, args: Record<string, unknown>): G
   }
 }
 
+function buildActionConfirmation(actions: GigAction[], visionResult?: ImageAnalysisResult | null): string {
+  const parts: string[] = [];
+
+  const billAction = actions.find(a => a.type === "update_bill_status");
+  if (billAction && visionResult?.extractedInfo) {
+    const info = visionResult.extractedInfo;
+    const vendor = info.fromEntity || billAction.vendor || billAction.billType || "bill";
+    const amount = info.totalAmount || (billAction.amount ? `$${billAction.amount}` : "");
+    const due = info.dueDate || billAction.dueDate || "";
+    parts.push(`Got it! ${vendor}${amount ? `, ${amount}` : ""}${due ? ` due ${due}` : ""}. Logged!`);
+  } else if (billAction) {
+    const vendor = billAction.vendor || billAction.billType || "bill";
+    parts.push(`Got it! ${vendor} bill logged.`);
+  }
+
+  const reminder = actions.find(a => a.type === "set_reminder");
+  if (reminder) parts.push("Reminders set.");
+
+  const addP = actions.find(a => a.type === "add_participant");
+  if (addP) parts.push(`Added ${addP.name || "them"} to the group.`);
+
+  const deliverable = actions.find(a => a.type === "create_deliverable");
+  if (deliverable) parts.push("Creating that now.");
+
+  const image = actions.find(a => a.type === "generate_image");
+  if (image) parts.push("Generating that image.");
+
+  const collage = actions.find(a => a.type === "create_collage");
+  if (collage) parts.push("Building your gallery page.");
+
+  if (parts.length === 0) parts.push("Done!");
+
+  return parts.join(" ");
+}
+
 function actionsFromVisionResult(
   visionResult: ImageAnalysisResult,
   gigType: string,
@@ -2085,8 +2120,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
       shouldRespond = true;
     }
     if (!userText) {
-      const actionSummary = actions.map(a => a.type).join(", ");
-      userText = `Done! (${actionSummary})`;
+      userText = buildActionConfirmation(actions, visionAnalysis);
       console.log(`[GigProcessor] Generated action confirmation: ${userText}`);
     }
   }
