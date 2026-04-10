@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractFromGeminiResponse,
   generateFallbackText,
+  buildActionConfirmation,
   mapFunctionCallToAction,
   type GeminiResponse,
 } from "../action-parser";
@@ -182,6 +183,18 @@ describe("generateFallbackText", () => {
     expect(text).toContain("gallery");
   });
 
+  it("returns bill-specific text for update_bill_status with vendor", () => {
+    const text = generateFallbackText([{ type: "update_bill_status", billType: "power", vendor: "PG&E", billStatus: "submitted" }]);
+    expect(text).toContain("PG&E");
+    expect(text).not.toBe("On it!");
+  });
+
+  it("returns bill-specific text for update_bill_status without vendor", () => {
+    const text = generateFallbackText([{ type: "update_bill_status", billType: "water", billStatus: "submitted" }]);
+    expect(text).toContain("water");
+    expect(text).not.toBe("On it!");
+  });
+
   it("returns generic 'On it!' for other action types", () => {
     const text = generateFallbackText([{ type: "book_reservation" }]);
     expect(text).toBe("On it!");
@@ -325,5 +338,60 @@ describe("extractFromGeminiResponse", () => {
     const { userText, actions } = extractFromGeminiResponse(response, "what's the status?");
     expect(actions).toHaveLength(0);
     expect(userText).toBe("I'm working on that!");
+  });
+
+  it("uses bill-specific fallback (not On it!) when Gemini returns only update_bill_status function call", () => {
+    const response: GeminiResponse = {
+      parts: [{
+        functionCall: {
+          name: "update_bill_status",
+          args: { billType: "power", vendor: "PG&E", billStatus: "submitted" },
+        },
+      }],
+    };
+    const { userText, actions } = extractFromGeminiResponse(response);
+    expect(actions).toHaveLength(1);
+    expect(userText).toContain("PG&E");
+    expect(userText).not.toBe("On it!");
+  });
+});
+
+describe("buildActionConfirmation", () => {
+  it("includes vision data (vendor, amount, due date) for update_bill_status", () => {
+    const actions = [{ type: "update_bill_status" as const, billType: "power", vendor: "Austin Energy", amount: 142.5, billStatus: "submitted" }];
+    const vision = {
+      imageType: "bill" as const,
+      extractedInfo: {
+        hasAmounts: true, hasDates: true,
+        totalAmount: "$142.50", dueDate: "May 1st", fromEntity: "Austin Energy", billType: "power", description: "Power bill",
+      },
+    };
+    const text = buildActionConfirmation(actions, vision);
+    expect(text).toContain("Austin Energy");
+    expect(text).toContain("$142.50");
+    expect(text).toContain("May 1st");
+    expect(text).toContain("Logged!");
+  });
+
+  it("falls back to vendor from action when no vision data", () => {
+    const actions = [{ type: "update_bill_status" as const, billType: "gas", vendor: "SoCalGas", billStatus: "submitted" }];
+    const text = buildActionConfirmation(actions, null);
+    expect(text).toContain("SoCalGas");
+    expect(text).toContain("bill logged");
+  });
+
+  it("returns 'Done!' for unknown action types", () => {
+    const text = buildActionConfirmation([{ type: "book_reservation" as const }]);
+    expect(text).toBe("Done!");
+  });
+
+  it("combines multiple action confirmations", () => {
+    const actions = [
+      { type: "update_bill_status" as const, billType: "power", vendor: "PG&E", billStatus: "submitted" },
+      { type: "set_reminder" as const, scheduledAt: "tomorrow", reminderMessage: "test" },
+    ];
+    const text = buildActionConfirmation(actions);
+    expect(text).toContain("PG&E");
+    expect(text).toContain("Reminders set");
   });
 });
