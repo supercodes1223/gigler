@@ -112,17 +112,31 @@ export async function putDeliverableAccess(
   expiresAt: number,
 ): Promise<void> {
   const mutation = `
-    mutation CreateDeliverableAccess($input: CreateDeliverableAccessInput!) {
-      createDeliverableAccess(input: $input) {
+    mutation UpdateDeliverableAccess($input: UpdateDeliverableAccessInput!) {
+      updateDeliverableAccess(input: $input) {
         shortCode
         phone
       }
     }
   `;
 
-  await appsyncQuery(mutation, {
+  const result = await appsyncQuery(mutation, {
     input: { shortCode, phone, code, expiresAt, verified: false },
   });
+
+  if (result.errors?.length) {
+    const createMutation = `
+      mutation CreateDeliverableAccess($input: CreateDeliverableAccessInput!) {
+        createDeliverableAccess(input: $input) {
+          shortCode
+          phone
+        }
+      }
+    `;
+    await appsyncQuery(createMutation, {
+      input: { shortCode, phone, code, expiresAt, verified: false },
+    });
+  }
 }
 
 // ── GigParticipant queries ──────────────────────────────────────────────────
