@@ -1,38 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { queryByGsi } from "@/lib/dynamo";
+import { getDeliverableByShortCode } from "@/lib/appsync";
 import { verifyCookie, COOKIE_NAME } from "@/lib/deliverable-auth";
-
-const s3 = new S3Client({ region: process.env.AWS_REGION || "us-east-2" });
-
-const DELIVERABLE_TABLE =
-  process.env.DELIVERABLE_TABLE_NAME ||
-  "Deliverable-v7rrpmhbmbgzjmwqpeflaw2rra-NONE";
-
-const S3_BUCKET =
-  process.env.STORAGE_AMPLIFYGENFILES_BUCKETNAME ||
-  process.env.S3_BUCKET_NAME ||
-  "";
-
-interface Deliverable {
-  s3Key: string;
-  publicUrl: string;
-  type: string;
-  title: string;
-  createdAt: string;
-}
-
-async function lookupDeliverable(shortCode: string): Promise<Deliverable | null> {
-  const results = await queryByGsi<Deliverable>(
-    DELIVERABLE_TABLE,
-    "byShortCode",
-    "shortCode",
-    shortCode,
-    { limit: 1 },
-  );
-  return results[0] || null;
-}
 
 export async function GET(
   _request: Request,
@@ -41,7 +10,7 @@ export async function GET(
   const { shortCode } = await params;
 
   try {
-    const deliverable = await lookupDeliverable(shortCode);
+    const deliverable = await getDeliverableByShortCode(shortCode);
     if (!deliverable) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -66,6 +35,11 @@ export async function GET(
     }
 
     const s3Key = deliverable.s3Key;
+    const S3_BUCKET =
+      process.env.STORAGE_AMPLIFYGENFILES_BUCKETNAME ||
+      process.env.S3_BUCKET_NAME ||
+      "";
+
     if (!s3Key || !S3_BUCKET) {
       return NextResponse.json(
         { error: "Content not available" },
@@ -73,6 +47,8 @@ export async function GET(
       );
     }
 
+    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({ region: process.env.AWS_REGION || "us-east-2" });
     const obj = await s3.send(
       new GetObjectCommand({ Bucket: S3_BUCKET, Key: s3Key }),
     );
