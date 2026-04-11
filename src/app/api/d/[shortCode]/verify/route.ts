@@ -11,8 +11,11 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 
-async function sendSmsCode(to: string, code: string): Promise<boolean> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return false;
+async function sendSmsCode(to: string, code: string): Promise<{ ok: boolean; error?: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    console.error("[Verify] Twilio credentials missing — SID empty:", !TWILIO_ACCOUNT_SID, "Token empty:", !TWILIO_AUTH_TOKEN);
+    return { ok: false, error: "SMS service not configured" };
+  }
   try {
     const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
     const body = new URLSearchParams({
@@ -28,10 +31,15 @@ async function sendSmsCode(to: string, code: string): Promise<boolean> {
       },
       body: body.toString(),
     });
-    return resp.ok;
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      console.error(`[Verify] Twilio API error ${resp.status}: ${errBody}`);
+      return { ok: false, error: `SMS delivery failed (${resp.status})` };
+    }
+    return { ok: true };
   } catch (err) {
-    console.error("[Verify] SMS send failed:", err);
-    return false;
+    console.error("[Verify] SMS send exception:", err);
+    return { ok: false, error: "SMS service error" };
   }
 }
 
@@ -67,11 +75,19 @@ export async function POST(
   }
 
   const code = generateCode();
-  await storeVerificationCode(shortCode, phone, code);
+  try {
+    await storeVerificationCode(shortCode, phone, code);
+  } catch (err) {
+    console.error("[Verify] Failed to store verification code:", err);
+    return NextResponse.json({ error: "Failed to prepare verification" }, { status: 500 });
+  }
 
-  const sent = await sendSmsCode(phone, code);
-  if (!sent) {
-    return NextResponse.json({ error: "Failed to send verification code" }, { status: 500 });
+  const smsResult = await sendSmsCode(phone, code);
+  if (!smsResult.ok) {
+    return NextResponse.json(
+      { error: smsResult.error || "Failed to send verification code" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true, message: "Verification code sent" });
