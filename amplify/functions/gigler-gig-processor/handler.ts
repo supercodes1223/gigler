@@ -421,8 +421,13 @@ const GENERIC_FALLBACK = "On it!";
 function generateFallbackText(actions: GigAction[]): string {
   const types = actions.map(a => a.type);
   if (types.includes("add_participant")) {
-    const p = actions.find(a => a.type === "add_participant");
-    return `On it! Adding ${p?.name || "them"} to the group now.`;
+    const participants = actions.filter(a => a.type === "add_participant");
+    const names = participants.map(p => p.name || "them");
+    if (names.length === 1) {
+      return `On it! Adding ${names[0]} to the group now.`;
+    }
+    const last = names.pop();
+    return `On it! Adding ${names.join(", ")} and ${last} to the group now.`;
   }
   if (types.includes("update_bill_status")) {
     const b = actions.find(a => a.type === "update_bill_status");
@@ -527,8 +532,15 @@ function buildActionConfirmation(actions: GigAction[], visionResult?: ImageAnaly
     return `Got it! ${vendor} bill logged.`;
   }
 
-  const addP = actions.find(a => a.type === "add_participant");
-  if (addP) return `Added ${addP.name || "them"} to the group.`;
+  const addPs = actions.filter(a => a.type === "add_participant");
+  if (addPs.length === 1) {
+    return `Added ${addPs[0].name || "them"} to the group.`;
+  }
+  if (addPs.length > 1) {
+    const names = addPs.map(p => p.name || "them");
+    const last = names.pop();
+    return `Added ${names.join(", ")} and ${last} to the group.`;
+  }
 
   const reminder = actions.find(a => a.type === "set_reminder");
   if (reminder && !hasBill) return "Done! I've set up the reminders for you.";
@@ -1785,6 +1797,8 @@ When adding a participant, call the add_participant tool. When setting reminders
 Only call tools when the user explicitly requests something actionable. Do NOT call tools for general conversation.
 
 CRITICAL: Do NOT call add_participant unless the user's CURRENT message contains a phone number or explicitly asks to add someone (e.g. "add", "invite", "include"). Never infer add_participant from conversation history alone. If the user's message is unrelated to adding people, do NOT call add_participant even if participants were discussed earlier.
+
+MULTIPLE PARTICIPANTS: If the user asks to add multiple people in one message (e.g. "add Johnny 4154049816 and Sabrina (281) 241-9268"), you MUST emit a SEPARATE add_participant function call for EACH person. Do not skip anyone or combine them into one call.
 
 When a user sends photos/images (indicated by "[User attached N photo(s) via MMS]"):
 - Acknowledge the photos naturally ("Got your photos!" or "Nice, I saved those")

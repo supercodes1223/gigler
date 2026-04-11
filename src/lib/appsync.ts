@@ -233,3 +233,39 @@ export async function getGig(gigId: string): Promise<GigRecord | null> {
 
   return result.data?.getGig || null;
 }
+
+// ── Media queries ──────────────────────────────────────────────────────────
+
+export interface MediaRecord {
+  gigId: string;
+  mediaId: string;
+  s3Key: string;
+  type: string | null;
+  uploadedBy: string | null;
+  caption: string | null;
+}
+
+export async function listMediaByGigId(
+  gigId: string,
+): Promise<MediaRecord[]> {
+  const query = `
+    query ListMedia($gigId: ID!) {
+      listMedia(filter: { gigId: { eq: $gigId } }) {
+        items {
+          gigId
+          mediaId
+          s3Key
+          type
+          uploadedBy
+          caption
+        }
+      }
+    }
+  `;
+
+  const result = await appsyncQuery<{
+    listMedia: { items: MediaRecord[] };
+  }>(query, { gigId });
+
+  return result.data?.listMedia?.items || [];
+}

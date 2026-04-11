@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { VerifyForm } from "./verify-form";
 import { BillsDashboard } from "./bills-dashboard";
+import { MediaGallery } from "./media-gallery";
 
 const RESERVED_PATHS = new Set([
   "dashboard", "settings", "pricing", "login", "signup",
@@ -15,6 +16,14 @@ interface DeliverableMeta {
   title: string;
   type: string;
   createdAt: string;
+}
+
+interface MediaItem {
+  mediaId: string;
+  s3Key: string;
+  type: string | null;
+  uploadedBy: string | null;
+  caption: string | null;
 }
 
 interface DeliverableData {
@@ -28,6 +37,7 @@ interface DeliverableData {
   };
   gig: { title: string; type: string } | null;
   metadata: Record<string, unknown>;
+  media: MediaItem[];
 }
 
 type PageState =
@@ -146,21 +156,30 @@ export default function ShortCodePage() {
   const { data } = state;
   const delType = data.deliverable.type;
 
+  const mediaItems = data.media || [];
+
   if (delType === "bills_dashboard") {
     const bills = (data.metadata.bills as Record<string, Array<Record<string, unknown>>>) || {};
     const monthlyTotals = (data.metadata.monthlyTotals as Record<string, number>) || {};
     return (
-      <BillsDashboard
-        title={data.deliverable.title}
-        bills={bills as Record<string, Array<{ billType: string; vendor?: string; amount?: number; dueDate?: string; status: string }>>}
-        monthlyTotals={monthlyTotals}
-      />
+      <>
+        <BillsDashboard
+          title={data.deliverable.title}
+          bills={bills as Record<string, Array<{ billType: string; vendor?: string; amount?: number; dueDate?: string; status: string }>>}
+          monthlyTotals={monthlyTotals}
+        />
+        {mediaItems.length > 0 && (
+          <div className="mx-auto max-w-3xl px-6 pb-12">
+            <MediaGallery media={mediaItems} />
+          </div>
+        )}
+      </>
     );
   }
 
   return (
     <main className="flex-1 pt-24">
-      <div className="mx-auto max-w-sm px-6 pb-24">
+      <div className="mx-auto max-w-3xl px-6 pb-24">
         <div className="mb-8">
           <Link href="/" className="text-sm text-brand-muted hover:text-foreground transition">
             &larr; gigler.ai
@@ -176,6 +195,7 @@ export default function ShortCodePage() {
             This deliverable type is not yet viewable in the browser. Please check back soon.
           </p>
         </div>
+        {mediaItems.length > 0 && <MediaGallery media={mediaItems} />}
       </div>
     </main>
   );
