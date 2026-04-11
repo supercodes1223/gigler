@@ -191,3 +191,31 @@ export async function listGigsByOwner(
 
   return result.data?.listGigsByOwner?.items || [];
 }
+
+// ── Gig queries ─────────────────────────────────────────────────────────────
+
+export interface GigRecord {
+  id: string;
+  title: string;
+  type: string | null;
+  metadata: string | null;
+}
+
+export async function getGig(gigId: string): Promise<GigRecord | null> {
+  const query = `
+    query GetGig($id: ID!) {
+      getGig(id: $id) {
+        id
+        title
+        type
+        metadata
+      }
+    }
+  `;
+
+  const result = await appsyncQuery<{
+    getGig: GigRecord | null;
+  }>(query, { id: gigId });
+
+  return result.data?.getGig || null;
+}
