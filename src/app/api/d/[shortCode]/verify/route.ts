@@ -7,9 +7,9 @@ import {
   storeVerificationCode,
 } from "@/lib/deliverable-auth";
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
-const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "AC7b5c64bb04339909eb26c2905f976508";
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "f03a5e37fa4c0682eef262acf436376a";
+const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "MG27e17138d6d84ebef25d06ccc562756e";
 
 async function sendSmsCode(to: string, code: string): Promise<{ ok: boolean; error?: string }> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
