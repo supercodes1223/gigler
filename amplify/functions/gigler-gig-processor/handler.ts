@@ -2053,13 +2053,18 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   const now = new Date().toISOString();
   const dedupFields = { lastProcessedHash: msgHash, lastProcessedAt: now };
 
+  const freshGig = await getGig(gigId);
+  const freshMeta: Record<string, unknown> = freshGig?.metadata
+    ? (() => { try { return JSON.parse(freshGig.metadata); } catch { return metadata; } })()
+    : metadata;
+
   if (!shouldRespond || !userText) {
     console.log("[GigProcessor] AI decided to stay silent in group thread");
     await updateGigMetadata(gigId, {
-      ...metadata,
+      ...freshMeta,
       ...dedupFields,
       lastInteraction: now,
-      messageCount: ((metadata.messageCount as number) || 0) + 1,
+      messageCount: ((freshMeta.messageCount as number) || 0) + 1,
       awaitingReply: false,
       lastRespondent: author || "user",
     });
@@ -2071,10 +2076,10 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   console.log(`[GigProcessor] Sent group reply in ${conversationSid}`);
 
   await updateGigMetadata(gigId, {
-    ...metadata,
+    ...freshMeta,
     ...dedupFields,
     lastInteraction: now,
-    messageCount: ((metadata.messageCount as number) || 0) + 1,
+    messageCount: ((freshMeta.messageCount as number) || 0) + 1,
     awaitingReply: true,
     lastRespondent: "gigler",
   });
@@ -2200,13 +2205,18 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   await sendSms(phone, userText);
 
   const directNow = new Date().toISOString();
+  const freshDirectGig = await getGig(gigId);
+  const freshDirectMeta: Record<string, unknown> = freshDirectGig?.metadata
+    ? (() => { try { return JSON.parse(freshDirectGig.metadata); } catch { return metadata; } })()
+    : metadata;
+
   await updateGigMetadata(gigId, {
-    ...metadata,
+    ...freshDirectMeta,
     lastProcessedHash: directHash,
     lastProcessedAt: directNow,
     lastInteraction: directNow,
-    messageCount: ((metadata.messageCount as number) || 0) + 1,
-    mediaCount: ((metadata.mediaCount as number) || 0) + mediaUrls.length,
+    messageCount: ((freshDirectMeta.messageCount as number) || 0) + 1,
+    mediaCount: ((freshDirectMeta.mediaCount as number) || 0) + mediaUrls.length,
     awaitingReply: true,
     lastRespondent: "gigler",
   });
