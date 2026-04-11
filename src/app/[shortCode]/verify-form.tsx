@@ -86,7 +86,7 @@ export function VerifyForm({ shortCode }: VerifyFormProps) {
         <button
           type="submit"
           disabled={loading || phone.replace(/\D/g, "").length < 10}
-          className="w-full rounded-lg bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
+          className="w-full rounded-lg bg-brand-accent px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
         >
           {loading ? "Sending..." : "Send verification code"}
         </button>
@@ -116,7 +116,7 @@ export function VerifyForm({ shortCode }: VerifyFormProps) {
       <button
         type="submit"
         disabled={loading || code.length !== 6}
-        className="w-full rounded-lg bg-brand-primary px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
+        className="w-full rounded-lg bg-brand-accent px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
       >
         {loading ? "Verifying..." : "Verify & view"}
       </button>

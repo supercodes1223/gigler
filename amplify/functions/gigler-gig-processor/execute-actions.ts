@@ -109,6 +109,10 @@ export async function executeActions(
         break;
 
       case "create_deliverable": {
+        if (result.deliverableLinkSent) {
+          console.log(`[executeActions] Skipping create_deliverable — link already sent this batch`);
+          break;
+        }
         const delType = action.deliverableType || "website";
         const existing = await deps.getExistingDeliverable(ctx.gigId, delType);
         if (existing) {
