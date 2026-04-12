@@ -844,6 +844,13 @@ async function createGig(
   );
 
   console.log(`[Gigler] Created gig ${id}: "${title}" (${gigType}) for user ${user.id}`);
+
+  void invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
+    action: "setup_conversation",
+    gigId: id,
+    ownerPhone: user.phone,
+  }).catch((err) => console.warn("[Gigler] setup_conversation invocation failed (non-blocking):", err));
+
   return { id, title };
 }
 
