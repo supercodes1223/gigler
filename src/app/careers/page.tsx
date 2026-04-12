@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Careers at Gigler — Build the Future of AI, Over Text",
+  title: "Careers at Gigler — We Believe AI Should Work However You Ask",
   description:
     "Join Gigler and build AI that actually does things. We're hiring engineers, researchers, and designers who ship.",
   alternates: { canonical: "/careers" },
@@ -62,12 +62,12 @@ export default function CareersPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Build the Future of AI, Over Text
+            We Believe AI Should Work However You Ask
           </h1>
           <p className="text-lg text-brand-muted leading-relaxed mb-6">
             The hardest problems in AI are solved by people who ship. At Gigler,
-            we&apos;re building an AI that doesn&apos;t live in an app — it
-            lives in your text messages. Every engineer, researcher, and
+            we&apos;re building an AI that doesn&apos;t wait for you to open an
+            app — it works however you reach it. Every engineer, researcher, and
             designer has massive impact.
           </p>
         </div>
@@ -212,7 +212,7 @@ export default function CareersPage() {
               href="/dashboard"
               className="hover:text-foreground transition"
             >
-              Dashboard
+              Login
             </Link>
           </div>
         </div>
