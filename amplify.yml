@@ -14,6 +14,7 @@ frontend:
         - npm install --cache .npm --prefer-offline
     build:
       commands:
+        - cp amplify_outputs.json src/amplify_outputs.json 2>/dev/null || true
         - npm run build
   artifacts:
     baseDirectory: .next
