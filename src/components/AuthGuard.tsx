@@ -136,7 +136,7 @@ function SignInForm({ onSignIn }: { onSignIn: (user: AuthUser) => void }) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-foreground text-background py-2.5 font-medium hover:opacity-90 transition disabled:opacity-50"
+        className="w-full rounded-lg bg-brand-accent text-white py-2.5 font-medium hover:opacity-90 transition disabled:opacity-50"
       >
         {submitting ? "Signing in..." : "Sign In"}
       </button>
