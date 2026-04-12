@@ -808,11 +808,15 @@ async function addSmsParticipantToConversation(
       });
       if (!retry.ok) {
         const retryData = await retry.json();
-        if (retryData.code !== 50433 && retryData.code !== 50416) {
+        const alreadyIn = retryData.code === 50433 || retryData.code === 50416
+          || /Group MMS participant already exists/i.test(retryData.message || "");
+        if (!alreadyIn) {
           throw new Error(`Failed to add participant after stale cleanup: ${retryData.message || retry.statusText}`);
         }
+        console.log(`[GigProcessor] Participant ${phone} already in current conversation after cleanup`);
+      } else {
+        console.log(`[GigProcessor] Added ${phone} after stale conversation cleanup`);
       }
-      console.log(`[GigProcessor] Added ${phone} after stale conversation cleanup`);
       return;
     }
     throw new Error(`Failed to add participant: ${data.message || response.statusText}`);
