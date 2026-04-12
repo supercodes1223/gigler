@@ -311,7 +311,7 @@ export default function HomePage() {
           ].map((item) => (
             <div
               key={item.title}
-              className="group rounded-xl border border-brand-border bg-background p-4 transition-all duration-300 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5 hover:scale-[1.02]"
+              className="group rounded-xl border border-brand-border bg-background p-4 transition-all duration-300 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5 hover:scale-[1.02] last:col-span-2 last:md:col-span-1"
             >
               <div className="rounded-lg bg-zinc-950 border border-zinc-800 p-3 mb-3 h-24 flex flex-col justify-center overflow-hidden">
                 {item.preview}
