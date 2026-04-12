@@ -350,7 +350,7 @@ export default function HomePage() {
             <Link href="/about" className="hover:text-foreground transition">About</Link>
             <Link href="/pricing" className="hover:text-foreground transition">Pricing</Link>
             <Link href="/careers" className="hover:text-foreground transition">Careers</Link>
-            <Link href="/dashboard" className="hover:text-foreground transition">Dashboard</Link>
+            <Link href="/dashboard" className="hover:text-foreground transition">Login</Link>
           </div>
         </div>
       </footer>
