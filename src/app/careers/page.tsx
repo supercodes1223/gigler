@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Careers at Gigler — We Believe AI Should Work However You Ask",
+  title: "Careers at Gigler — AI Should Get Things Done",
   description:
     "Join Gigler and build AI that actually does things. We're hiring engineers, researchers, and designers who ship.",
   alternates: { canonical: "/careers" },
@@ -62,7 +62,7 @@ export default function CareersPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            We Believe AI Should Work However You Ask
+            AI Should Get Things Done. Regardless Where or How Prompted.
           </h1>
           <p className="text-lg text-brand-muted leading-relaxed mb-6">
             The hardest problems in AI are solved by people who ship. At Gigler,
