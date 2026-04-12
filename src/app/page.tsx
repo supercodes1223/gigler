@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import SmsDemo from "@/components/SmsDemo";
+import GiglerHeroDemo from "@/components/GiglerHeroDemo";
 
 export const metadata: Metadata = {
   title: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
@@ -108,49 +108,145 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right: SMS demo product window with AI glow */}
-          <div className="hidden lg:block">
+          {/* Right (desktop) / Below (mobile): Two-phase demo */}
+          <div className="mt-12 lg:mt-0">
             <div className="ai-glow relative">
-              <SmsDemo />
+              <GiglerHeroDemo />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Showcase — what Gigler does */}
+      {/* Showcase — deliverable types */}
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI that actually does things.
+            Text it. Gigler builds it.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Plan events. Build websites. Form an LLC. Make reservations.
-            Gigler handles it all — over text.
+            From a single text thread, Gigler creates real, shareable deliverables.
           </p>
         </div>
 
-        <div className="mx-auto max-w-5xl grid md:grid-cols-3 gap-8">
+        <div className="mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           {[
             {
-              icon: "💬",
-              title: "Text it",
-              description: "Tell Gigler what you need in plain English. No forms, no menus, no learning curve.",
+              title: "Bills Dashboard",
+              description: "Track and organize utility bills with auto-extraction.",
+              preview: (
+                <div className="space-y-1">
+                  <div className="flex gap-1 text-[7px] uppercase text-zinc-500">
+                    <span className="flex-1">Bill</span><span className="w-10 text-right">Amt</span><span className="w-10 text-right">Status</span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Power</span>
+                    <span className="w-10 text-right text-zinc-400">$528</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-yellow-500/20 text-yellow-500 text-[7px]">Due</span></span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Water</span>
+                    <span className="w-10 text-right text-zinc-400">$87</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Internet</span>
+                    <span className="w-10 text-right text-zinc-400">$65</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
+                  </div>
+                </div>
+              ),
             },
             {
-              icon: "⚡",
-              title: "It gets done",
-              description: "AI manages your gig — coordinates, creates, reminds, and executes. No app needed.",
+              title: "Landing Pages",
+              description: "Full websites from a text description.",
+              preview: (
+                <div className="space-y-1.5">
+                  <div className="h-6 rounded bg-zinc-800 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-zinc-400">Brew & Co.</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="h-3 flex-1 rounded bg-zinc-800" />
+                    <div className="h-3 flex-1 rounded bg-zinc-800" />
+                  </div>
+                  <div className="h-2.5 rounded bg-zinc-800 w-3/4" />
+                </div>
+              ),
             },
             {
-              icon: "📦",
-              title: "Real output",
-              description: "Get deliverables: live websites, PDFs, reservations, photo collages — all from a text thread.",
+              title: "Event Planning",
+              description: "Coordinate parties, meetings, and gatherings.",
+              preview: (
+                <div className="space-y-1 text-[8px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-green-500">✓</span><span className="text-zinc-400">Book venue</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-green-500">✓</span><span className="text-zinc-400">Send invites (40)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-yellow-500">○</span><span className="text-zinc-400">Order catering</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-600">○</span><span className="text-zinc-500">Set up playlist</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "Photo Collages",
+              description: "Organize and share event or project photos.",
+              preview: (
+                <div className="grid grid-cols-3 gap-0.5">
+                  <div className="aspect-square rounded-sm bg-purple-900/40" />
+                  <div className="aspect-square rounded-sm bg-blue-900/40" />
+                  <div className="aspect-square rounded-sm bg-teal-900/40" />
+                  <div className="aspect-square rounded-sm bg-pink-900/40" />
+                  <div className="aspect-square rounded-sm bg-amber-900/40" />
+                  <div className="aspect-square rounded-sm bg-indigo-900/40" />
+                </div>
+              ),
+            },
+            {
+              title: "PDFs & Reports",
+              description: "Generate polished documents and summaries.",
+              preview: (
+                <div className="space-y-1.5 px-1">
+                  <div className="h-1.5 rounded-full bg-zinc-700 w-full" />
+                  <div className="h-1.5 rounded-full bg-zinc-700 w-4/5" />
+                  <div className="h-1.5 rounded-full bg-zinc-800 w-full mt-2" />
+                  <div className="h-1.5 rounded-full bg-zinc-800 w-3/5" />
+                  <div className="h-1.5 rounded-full bg-zinc-800 w-4/5 mt-2" />
+                </div>
+              ),
+            },
+            {
+              title: "Restaurant Menus",
+              description: "Beautiful menus ready to print or share online.",
+              preview: (
+                <div className="flex gap-2 text-[7px]">
+                  <div className="flex-1 space-y-1">
+                    <div className="text-zinc-500 uppercase font-bold text-[6px]">Mains</div>
+                    <div className="text-zinc-400">Burger · $14</div>
+                    <div className="text-zinc-400">Pasta · $16</div>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="text-zinc-500 uppercase font-bold text-[6px]">Drinks</div>
+                    <div className="text-zinc-400">Latte · $5</div>
+                    <div className="text-zinc-400">Juice · $4</div>
+                  </div>
+                </div>
+              ),
             },
           ].map((item) => (
-            <div key={item.title} className="text-center p-8">
-              <div className="text-4xl mb-4">{item.icon}</div>
-              <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-              <p className="text-brand-muted leading-relaxed">{item.description}</p>
+            <div
+              key={item.title}
+              className="group rounded-xl border border-brand-border bg-background p-4 transition-all duration-300 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5 hover:scale-[1.02]"
+            >
+              <div className="rounded-lg bg-zinc-950 border border-zinc-800 p-3 mb-3 h-24 flex flex-col justify-center overflow-hidden">
+                {item.preview}
+              </div>
+              <h3 className="text-sm font-bold mb-1">{item.title}</h3>
+              <p className="text-xs text-brand-muted leading-relaxed">{item.description}</p>
             </div>
           ))}
         </div>
