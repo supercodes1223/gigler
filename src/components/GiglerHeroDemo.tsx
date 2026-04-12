@@ -27,7 +27,7 @@ interface Scenario {
 const SCENARIOS: Scenario[] = [
   {
     conversation: [
-      { from: "user", text: "Track my utility bills", delay: 1000 },
+      { from: "user", text: "Track my utility bills", delay: 200 },
       {
         from: "gigler",
         text: 'On it! I created a gig:\n"Bobby\'s Utility Bills Tracker" 📊\n\nSend me photos of your bills and I\'ll handle the rest.',
@@ -56,7 +56,7 @@ const SCENARIOS: Scenario[] = [
   },
   {
     conversation: [
-      { from: "user", text: "Build me a landing page for my coffee shop", delay: 1000 },
+      { from: "user", text: "Build me a landing page for my coffee shop", delay: 200 },
       {
         from: "gigler",
         text: 'Let\'s do it! I created a gig:\n"Coffee Shop Website" ☕\n\nWhat\'s the shop called?',
