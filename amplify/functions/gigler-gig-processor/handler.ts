@@ -1072,32 +1072,22 @@ async function handleAddParticipant(
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
-    let contextSummary = "";
-    try {
-      const history = await fetchConversationHistory(gigId, 8);
-      if (history.length > 0) {
-        const lines = history.map((msg) => {
-          const sender = msg.role === "inbound" ? ownerName : "Gigler";
-          const truncated = msg.content.length > 120 ? msg.content.slice(0, 117) + "..." : msg.content;
-          return `- ${sender}: ${truncated}`;
-        });
-        contextSummary = `\n\nHere's what's happened so far:\n${lines.join("\n")}`;
-      }
-    } catch (err) {
-      console.warn("[GigProcessor] Failed to fetch context summary, continuing without it:", err);
-    }
+    const shortCode = await getGigTrackingLink(gigId);
+    const trackingLine = shortCode ? `\n\nCheck progress anytime here: https://gigler.ai/${shortCode}` : "";
 
     const groupIntro = isNewToGigler
-      ? `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}". I'm Gigler, your AI assistant for this gig.${actionHint}${contextSummary}`
-      : `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}".${actionHint}${contextSummary}`;
+      ? `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}". I'm Gigler, your AI assistant for this gig.${actionHint}${trackingLine}`
+      : `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}".${actionHint}${trackingLine}`;
 
     await sendConversationMessage(conversationSid, groupIntro);
     console.log(`[GigProcessor] Sent group intro to conversation ${conversationSid}`);
   } catch (err) {
     console.error("[GigProcessor] Conversation setup failed, falling back to direct SMS:", err);
+    const fallbackShortCode = await getGigTrackingLink(gigId);
+    const fallbackTrackingLine = fallbackShortCode ? `\n\nCheck progress anytime here: https://gigler.ai/${fallbackShortCode}` : "";
     const fallbackMsg = isNewToGigler
-      ? `Hi ${participantName}! ${ownerName} has added you to their Gigler gig: "${gigTitle}". I'm Gigler, your AI assistant.${actionHint}`
-      : `Hi ${participantName}! ${ownerName} has added you to their gig: "${gigTitle}".${actionHint}`;
+      ? `Hi ${participantName}! ${ownerName} has added you to their Gigler gig: "${gigTitle}". I'm Gigler, your AI assistant.${actionHint}${fallbackTrackingLine}`
+      : `Hi ${participantName}! ${ownerName} has added you to their gig: "${gigTitle}".${actionHint}${fallbackTrackingLine}`;
     await sendSms(participantPhone, fallbackMsg);
   }
 
@@ -1634,6 +1624,27 @@ async function getExistingDeliverable(gigId: string, type: string): Promise<Exis
     };
   } catch (err) {
     console.warn("[GigProcessor] Failed to check existing deliverable:", err);
+    return null;
+  }
+}
+
+async function getGigTrackingLink(gigId: string): Promise<string | null> {
+  if (!DELIVERABLE_TABLE_NAME) return null;
+  try {
+    const result = await ddb.send(
+      new QueryCommand({
+        TableName: DELIVERABLE_TABLE_NAME,
+        KeyConditionExpression: "gigId = :gid",
+        ExpressionAttributeValues: { ":gid": gigId },
+      })
+    );
+    const match = (result.Items || []).find((d) => {
+      const del = d as Record<string, unknown>;
+      return !!del.shortCode;
+    });
+    if (!match) return null;
+    return (match as Record<string, unknown>).shortCode as string;
+  } catch {
     return null;
   }
 }
