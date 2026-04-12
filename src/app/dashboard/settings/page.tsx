@@ -63,7 +63,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium mb-1">Name</label>
                   <input
                     type="text"
-                    className="w-full rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="Your name"
                   />
                 </div>
@@ -83,13 +83,13 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium mb-1">Email</label>
                   <input
                     type="email"
-                    className="w-full rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="your@email.com"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Timezone</label>
-                  <select className="w-full rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary">
+                  <select className="w-full rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary">
                     <option>America/Chicago</option>
                     <option>America/New_York</option>
                     <option>America/Denver</option>
