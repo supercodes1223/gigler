@@ -187,26 +187,6 @@ body {
 .ai-glow::before {
   content: '';
   position: absolute;
-  inset: -1px;
-  border-radius: 1.75rem;
-  background: conic-gradient(
-    from var(--glow-angle),
-    #4285F4,
-    #34A853,
-    #FBBC05,
-    #EA4335,
-    #9b59b6,
-    #4285F4
-  );
-  animation: glow-rotate 4s linear infinite;
-  filter: blur(3px);
-  opacity: 0.2;
-  z-index: -1;
-}
-
-.ai-glow::after {
-  content: '';
-  position: absolute;
   inset: 0;
   border-radius: 1.75rem;
   background: conic-gradient(
@@ -220,7 +200,7 @@ body {
   );
   animation: glow-rotate 4s linear infinite;
   filter: blur(1.5px);
-  opacity: 0.15;
+  opacity: 0.12;
   z-index: -1;
 }
 

@@ -158,7 +158,7 @@ function WebsitePreview({ step }: { step: number }) {
 
 export default function GiglerHeroDemo() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [phase, setPhase] = useState<"sms" | "transition" | "workspace">("sms");
+  const [phase, setPhase] = useState<"sms" | "workspace">("sms");
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [workspaceStep, setWorkspaceStep] = useState(0);
@@ -169,11 +169,11 @@ export default function GiglerHeroDemo() {
 
   const resetAndAdvance = useCallback(() => {
     setScenarioIndex((prev) => (prev + 1) % SCENARIOS.length);
+    setWorkspaceStep(0);
+    setStatusIndex(0);
     setPhase("sms");
     setVisibleMessages(0);
     setIsTyping(false);
-    setWorkspaceStep(0);
-    setStatusIndex(0);
   }, []);
 
   useEffect(() => {
@@ -204,17 +204,10 @@ export default function GiglerHeroDemo() {
     });
 
     const lastDelay = scenario.conversation[scenario.conversation.length - 1].delay;
-    timers.push(setTimeout(() => setPhase("transition"), lastDelay + 2000));
+    timers.push(setTimeout(() => setPhase("workspace"), lastDelay + 2000));
 
     return () => timers.forEach(clearTimeout);
   }, [phase, scenario, scenarioIndex]);
-
-  // Transition phase
-  useEffect(() => {
-    if (phase !== "transition") return;
-    const t = setTimeout(() => setPhase("workspace"), 800);
-    return () => clearTimeout(t);
-  }, [phase]);
 
   // Phase 2: Workspace animation
   useEffect(() => {
@@ -244,8 +237,8 @@ export default function GiglerHeroDemo() {
   }, [phase, scenario, resetAndAdvance]);
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
-      <div className="relative h-[540px] sm:h-[540px]">
+    <div className="relative w-full max-w-lg mx-auto">
+      <div className="relative h-[560px] sm:h-[580px]">
         {/* Phase 1: SMS view */}
         <div
           className={`absolute inset-0 transition-all duration-700 ease-in-out ${
