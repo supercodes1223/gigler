@@ -17,14 +17,14 @@ const PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: "$20/mo",
+    price: "$25/mo",
     features: ["Unlimited gigs", "Voice calls", "Group gigs (5)", "Unlimited deliverables"],
     current: false,
   },
   {
     id: "team",
     name: "Team",
-    price: "$50/mo",
+    price: "$100/mo",
     features: ["Everything in Pro", "10 users", "Group gigs (20)", "Team dashboard"],
     current: false,
   },

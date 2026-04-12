@@ -12,8 +12,8 @@ const OPEN_ROLES = [
   {
     title: "AI / ML Engineer",
     description:
-      "Build the Gemini-powered brain that understands natural language, detects intent, and executes gigs across 9 categories. You'll work on conversation AI, multi-turn reasoning, and real-time decision making — all delivered over SMS.",
-    tags: ["Gemini", "NLP", "TypeScript", "Lambda"],
+      "Build the AI brain that understands natural language, detects intent, and executes gigs across 9 categories. You'll work on conversation AI, multi-turn reasoning, and real-time decision making — powered by frontier models.",
+    tags: ["AI/ML", "NLP", "TypeScript", "Lambda"],
   },
   {
     title: "Full-Stack Engineer",

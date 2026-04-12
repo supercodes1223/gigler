@@ -106,7 +106,7 @@ function JsonLd() {
       offers: {
         "@type": "AggregateOffer",
         lowPrice: "0",
-        highPrice: "50",
+        highPrice: "100",
         priceCurrency: "USD",
         offerCount: 4,
       },
@@ -131,7 +131,7 @@ function JsonLd() {
         {
           "@type": "Offer",
           name: "Pro",
-          price: "20",
+          price: "25",
           priceCurrency: "USD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",
@@ -143,7 +143,7 @@ function JsonLd() {
         {
           "@type": "Offer",
           name: "Team",
-          price: "50",
+          price: "100",
           priceCurrency: "USD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",

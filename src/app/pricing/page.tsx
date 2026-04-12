@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Pricing — Simple Plans for Every Need",
   description:
-    "Start free with 5 active gigs. Upgrade to Pro ($20/mo) for unlimited gigs and voice calls, or Team ($50/mo) for group workspaces.",
+    "Start free with 5 active gigs. Upgrade to Pro ($25/mo) for unlimited gigs and voice calls, or Team ($100/mo) for group workspaces.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Gigler Pricing — Simple Plans for Every Need",
@@ -33,13 +33,13 @@ const TIERS = [
   },
   {
     name: "Pro",
-    price: "$20",
+    price: "$25",
     period: "/month",
     description: "For power users who want it all.",
     features: [
       "Unlimited active gigs",
       "Voice calls (wake-ups, check-ins, consultations)",
-      "Full Gemini AI (no rate limits)",
+      "Frontier AI models (no rate limits)",
       "Unlimited deliverables",
       "Group gigs (up to 5 participants per gig)",
       "No branding on deliverable pages",
@@ -50,7 +50,7 @@ const TIERS = [
   },
   {
     name: "Team",
-    price: "$50",
+    price: "$100",
     period: "/month",
     description: "For teams that coordinate together.",
     features: [
