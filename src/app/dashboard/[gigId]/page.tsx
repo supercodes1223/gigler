@@ -30,7 +30,7 @@ function ConversationThread() {
           <input
             type="text"
             placeholder="Send a message via the dashboard..."
-            className="flex-1 rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className="flex-1 rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
             disabled
           />
           <button

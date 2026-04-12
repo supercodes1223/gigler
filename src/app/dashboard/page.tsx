@@ -87,7 +87,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Your Gigs</h1>
           <div className="flex gap-3">
-            <select className="rounded-lg border border-brand-border px-3 py-2 text-sm">
+            <select className="rounded-lg border border-brand-border bg-background text-foreground px-3 py-2 text-sm">
               <option>All Types</option>
               <option>Coding</option>
               <option>Planning</option>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
               <option>Business</option>
               <option>Reservations</option>
             </select>
-            <select className="rounded-lg border border-brand-border px-3 py-2 text-sm">
+            <select className="rounded-lg border border-brand-border bg-background text-foreground px-3 py-2 text-sm">
               <option>Active</option>
               <option>All Statuses</option>
               <option>Paused</option>
