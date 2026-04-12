@@ -143,6 +143,45 @@ export default function CareersPage() {
         </div>
       </section>
 
+      {/* Internships */}
+      <section className="py-16 px-6">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-bold mb-4">Internships</h2>
+          <p className="text-brand-muted leading-relaxed mb-8">
+            We offer internships for students and early-career builders who want
+            real-world AI experience — not busywork. Interns at Gigler ship real
+            features, work alongside the founding team, and contribute to
+            production systems from day one.
+          </p>
+          <div className="rounded-xl border border-brand-border bg-brand-surface p-8">
+            <h3 className="text-xl font-bold mb-3">General Internship</h3>
+            <p className="text-brand-muted leading-relaxed mb-4">
+              Whether you&apos;re into AI/ML, full-stack engineering, product
+              design, or something else entirely — we want to hear from you.
+              Tell us what you&apos;re passionate about, what you&apos;ve built,
+              and how you want to contribute. We&apos;ll find the right fit.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              <span className="text-xs font-medium px-3 py-1 rounded-full border border-brand-border text-brand-muted">
+                Remote / On-site
+              </span>
+              <span className="text-xs font-medium px-3 py-1 rounded-full border border-brand-border text-brand-muted">
+                Flexible Duration
+              </span>
+              <span className="text-xs font-medium px-3 py-1 rounded-full border border-brand-border text-brand-muted">
+                All Disciplines
+              </span>
+            </div>
+            <a
+              href="mailto:careers@gigler.ai?subject=Internship Application"
+              className="text-brand-accent font-medium hover:text-foreground transition"
+            >
+              Apply →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-12 border-t border-brand-border">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -175,7 +214,9 @@ export default function CareersPage() {
               Dashboard
             </Link>
           </div>
-          <div className="text-sm text-brand-muted">gigler.ai</div>
+          <div className="text-sm text-brand-muted">
+            Built in Carmel, CA with <span className="text-red-500">&#10084;</span>
+          </div>
         </div>
       </footer>
     </main>

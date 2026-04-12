@@ -86,11 +86,9 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
-              No downloads. No dashboards.
+              <strong className="text-foreground">Gigler builds it.</strong>
               <br />
-              No learning new workflows.
-              <br />
-              <strong className="text-foreground">Just text, and it gets done.</strong>
+              Every gig, delivered.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
@@ -353,7 +351,9 @@ export default function HomePage() {
             <Link href="/careers" className="hover:text-foreground transition">Careers</Link>
             <Link href="/dashboard" className="hover:text-foreground transition">Dashboard</Link>
           </div>
-          <div className="text-sm text-brand-muted">gigler.ai</div>
+          <div className="text-sm text-brand-muted">
+            Built in Carmel, CA with <span className="text-red-500">&#10084;</span>
+          </div>
         </div>
       </footer>
     </main>
