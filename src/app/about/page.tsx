@@ -47,8 +47,8 @@ export default function AboutPage() {
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
             <p>
               Gigler turns any message into a command center. Get real
-              stuff done — plan events, build websites, form an LLC, make
-              reservations — all while you&apos;re on the beach, on vacation, or
+              stuff done — be a programmer, plan events, build websites, form
+              an LLC, make reservations — all while you&apos;re on the beach, on vacation, or
               anywhere you want to be.
             </p>
 
