@@ -21,10 +21,40 @@ interface Scenario {
   workspaceTitle: string;
   statusSteps: string[];
   files: WorkspaceFile[];
-  preview: "bills" | "website";
+  preview: "code" | "bills" | "website";
 }
 
 const SCENARIOS: Scenario[] = [
+  {
+    conversation: [
+      { from: "user", text: "Build me a REST API for my inventory app", delay: 200 },
+      {
+        from: "gigler",
+        text: 'On it! I created a gig:\n"Inventory API" 💻\n\nWhat endpoints do you need?',
+        delay: 3500,
+      },
+      { from: "user", text: "CRUD for products, auth, and search", delay: 5500 },
+      {
+        from: "gigler",
+        text: "Building now — Express + PostgreSQL, JWT auth, full test suite...",
+        delay: 7500,
+      },
+    ],
+    workspaceTitle: "Inventory API",
+    statusSteps: [
+      "Scaffolding project...",
+      "Writing route handlers...",
+      "Adding auth middleware...",
+      "API deployed → gigler.ai/inv-api",
+    ],
+    files: [
+      { name: "server.ts", icon: "📦", delay: 400, status: "done" },
+      { name: "routes/products.ts", icon: "🔗", delay: 1200, status: "done" },
+      { name: "middleware/auth.ts", icon: "🔒", delay: 2000, status: "done" },
+      { name: "tests/api.test.ts", icon: "✅", delay: 2800, status: "done" },
+    ],
+    preview: "code",
+  },
   {
     conversation: [
       { from: "user", text: "Track my utility bills", delay: 200 },
@@ -182,6 +212,28 @@ function WebsitePreview({ step }: { step: number }) {
         className={`h-4 rounded bg-zinc-800 flex items-center justify-center transition-opacity duration-500 ${step >= 4 ? "opacity-100" : "opacity-0"}`}
       >
         <span className="text-zinc-500 text-[8px]">Instagram Feed</span>
+      </div>
+    </div>
+  );
+}
+
+function CodePreview({ step }: { step: number }) {
+  return (
+    <div className="text-[9px] font-mono space-y-1">
+      <div className={`transition-opacity duration-500 ${step >= 1 ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-purple-400">import</span> <span className="text-zinc-400">express</span> <span className="text-purple-400">from</span> <span className="text-green-400">&apos;express&apos;</span>
+      </div>
+      <div className={`transition-opacity duration-500 ${step >= 2 ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-purple-400">const</span> <span className="text-blue-400">app</span> <span className="text-zinc-500">=</span> <span className="text-yellow-400">express</span><span className="text-zinc-500">()</span>
+      </div>
+      <div className={`mt-1 transition-opacity duration-500 ${step >= 3 ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-zinc-500">app.</span><span className="text-yellow-400">use</span><span className="text-zinc-500">(</span><span className="text-blue-400">authMiddleware</span><span className="text-zinc-500">)</span>
+      </div>
+      <div className={`transition-opacity duration-500 ${step >= 3 ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-zinc-500">app.</span><span className="text-yellow-400">use</span><span className="text-zinc-500">(</span><span className="text-green-400">&apos;/api&apos;</span><span className="text-zinc-500">,</span> <span className="text-blue-400">productRoutes</span><span className="text-zinc-500">)</span>
+      </div>
+      <div className={`mt-1 transition-opacity duration-500 ${step >= 4 ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-green-500">✓ 12 tests passed</span>
       </div>
     </div>
   );
@@ -389,11 +441,9 @@ export default function GiglerHeroDemo() {
                   <div className="text-[9px] uppercase tracking-wider text-zinc-600 mb-2">
                     Preview
                   </div>
-                  {scenario.preview === "bills" ? (
-                    <BillsPreview step={workspaceStep} />
-                  ) : (
-                    <WebsitePreview step={workspaceStep} />
-                  )}
+                  {scenario.preview === "code" && <CodePreview step={workspaceStep} />}
+                  {scenario.preview === "bills" && <BillsPreview step={workspaceStep} />}
+                  {scenario.preview === "website" && <WebsitePreview step={workspaceStep} />}
                 </div>
 
                 {/* Status / progress */}
