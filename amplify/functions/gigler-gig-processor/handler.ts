@@ -739,20 +739,47 @@ async function deleteConversation(conversationSid: string): Promise<void> {
   }
 }
 
+async function removePhoneFromStaleConversations(
+  phone: string,
+  currentConversationSid: string
+): Promise<void> {
+  const listUrl = conversationsBase(`/ParticipantConversations?Address=${encodeURIComponent(phone)}`);
+  const resp = await fetch(listUrl, { method: "GET", headers: conversationsAuthHeaders() });
+  if (!resp.ok) {
+    console.warn(`[GigProcessor] Could not list participant conversations for ${phone}: ${resp.status}`);
+    return;
+  }
+  const data = await resp.json();
+  const convos = (data.conversations || []) as Array<{ conversation_sid: string; participant_sid: string }>;
+
+  for (const c of convos) {
+    if (c.conversation_sid === currentConversationSid) continue;
+    console.log(`[GigProcessor] Removing ${phone} from stale conversation ${c.conversation_sid}`);
+    const delResp = await fetch(
+      conversationsBase(`/Conversations/${c.conversation_sid}/Participants/${c.participant_sid}`),
+      { method: "DELETE", headers: conversationsAuthHeaders() }
+    );
+    if (delResp.ok || delResp.status === 404) {
+      console.log(`[GigProcessor] Removed participant from ${c.conversation_sid}`);
+    } else {
+      console.warn(`[GigProcessor] Failed to remove participant: ${delResp.status}, deleting conversation instead`);
+      await deleteConversation(c.conversation_sid);
+    }
+  }
+}
+
 async function addSmsParticipantToConversation(
   conversationSid: string,
   phone: string
 ): Promise<void> {
   const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
-  const bindingParams = {
-    "MessagingBinding.Address": phone,
-    "MessagingBinding.ProxyAddress": GIGLER_NUMBER,
-  };
 
   const response = await fetch(base, {
     method: "POST",
     headers: conversationsAuthHeaders(),
-    body: new URLSearchParams(bindingParams).toString(),
+    body: new URLSearchParams({
+      "MessagingBinding.Address": phone,
+    }).toString(),
   });
 
   if (!response.ok) {
@@ -761,15 +788,23 @@ async function addSmsParticipantToConversation(
       console.log(`[GigProcessor] Participant ${phone} already in conversation`);
       return;
     }
-    const existingMatch = (data.message || "").match(/already exists as Conversation (CH[a-f0-9]+)/i);
-    if (existingMatch) {
-      const staleSid = existingMatch[1];
-      console.log(`[GigProcessor] Stale conversation ${staleSid} conflicts, deleting it and retrying`);
-      await deleteConversation(staleSid);
+
+    const staleSidMatch = (data.message || "").match(/already exists as Conversation (CH[a-f0-9]+)/i);
+    const groupMmsMatch = !staleSidMatch && /Group MMS participant already exists/i.test(data.message || "");
+
+    if (staleSidMatch || groupMmsMatch) {
+      const staleSid = staleSidMatch?.[1];
+      if (staleSid) {
+        console.log(`[GigProcessor] Stale conversation ${staleSid} conflicts, deleting and retrying`);
+        await deleteConversation(staleSid);
+      } else {
+        console.log(`[GigProcessor] Group MMS binding conflict for ${phone}, scanning for stale conversations`);
+        await removePhoneFromStaleConversations(phone, conversationSid);
+      }
       const retry = await fetch(base, {
         method: "POST",
         headers: conversationsAuthHeaders(),
-        body: new URLSearchParams(bindingParams).toString(),
+        body: new URLSearchParams({ "MessagingBinding.Address": phone }).toString(),
       });
       if (!retry.ok) {
         const retryData = await retry.json();
@@ -987,6 +1022,7 @@ async function handleAddParticipant(
 
   try {
     const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
+    await addGiglerProjectedAddress(conversationSid);
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
