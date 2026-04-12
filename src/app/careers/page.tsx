@@ -62,7 +62,7 @@ export default function CareersPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            AI Should Get Things Done. Regardless Where or How Prompted.
+            AI Should Get Things Done. Regardless Where You Are or How Prompted.
           </h1>
           <p className="text-lg text-brand-muted leading-relaxed mb-6">
             The hardest problems in AI are solved by people who ship. At Gigler,
