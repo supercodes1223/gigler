@@ -729,7 +729,10 @@ async function getOrCreateConversation(
 
   let conversationSid: string;
 
-  if (!response.ok && data.code === 50053) {
+  const isAlreadyExists = data.code === 50053
+    || /unique name already exists/i.test(data.message || "");
+
+  if (!response.ok && isAlreadyExists) {
     const fetchResp = await fetch(conversationsBase(`/Conversations/${uniqueName}`), {
       method: "GET",
       headers: conversationsAuthHeaders(),
@@ -990,6 +993,10 @@ async function handleAddParticipant(
   const metadata: Record<string, unknown> = typeof gigItem.metadata === "string"
     ? JSON.parse(gigItem.metadata)
     : (gigItem.metadata as Record<string, unknown>) || {};
+
+  if (!metadata.conversationSid && gigItem.conversationSid) {
+    metadata.conversationSid = gigItem.conversationSid as string;
+  }
 
   let existingUser = await lookupUserByPhone(participantPhone);
   const isNewToGigler = !existingUser;
@@ -2261,6 +2268,11 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
+
+  if (!metadata.conversationSid) {
+    const rawGig = gig as unknown as Record<string, unknown>;
+    if (rawGig.conversationSid) metadata.conversationSid = rawGig.conversationSid;
+  }
 
   const directHash = computeMessageHash(phone, message, mediaUrls.length > 0, mediaUrls[0]);
   if (isDuplicateMessage(metadata, directHash)) {
