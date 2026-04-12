@@ -6,6 +6,7 @@ interface Message {
   from: "user" | "gigler";
   text: string;
   delay: number;
+  image?: "power-bill";
 }
 
 interface WorkspaceFile {
@@ -32,7 +33,7 @@ const SCENARIOS: Scenario[] = [
         text: 'On it! I created a gig:\n"Bobby\'s Utility Bills Tracker" 📊\n\nSend me photos of your bills and I\'ll handle the rest.',
         delay: 3500,
       },
-      { from: "user", text: "Here's my power bill for $528.93", delay: 6000 },
+      { from: "user", text: "Here's my power bill for $528.93", delay: 6000, image: "power-bill" },
       {
         from: "gigler",
         text: "Got it! Extracted:\n✅ Power — $528.93\n\nBuilding your dashboard now...",
@@ -84,6 +85,36 @@ const SCENARIOS: Scenario[] = [
     preview: "website",
   },
 ];
+
+function PowerBillThumbnail() {
+  return (
+    <div className="rounded-lg bg-white/20 border border-white/30 p-2 mb-1.5 w-[140px]">
+      <div className="text-[7px] font-bold text-white/90 uppercase tracking-wider mb-1">
+        City Power Co.
+      </div>
+      <div className="h-px bg-white/20 mb-1" />
+      <div className="space-y-0.5 text-[6px] text-white/70">
+        <div className="flex justify-between">
+          <span>Account</span>
+          <span>...4821</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Period</span>
+          <span>Mar 2026</span>
+        </div>
+        <div className="flex justify-between">
+          <span>kWh Used</span>
+          <span>1,247</span>
+        </div>
+      </div>
+      <div className="h-px bg-white/20 my-1" />
+      <div className="flex justify-between text-[8px] font-bold text-white">
+        <span>Amount Due</span>
+        <span>$528.93</span>
+      </div>
+    </div>
+  );
+}
 
 function TypingDots() {
   return (
@@ -274,6 +305,7 @@ export default function GiglerHeroDemo() {
                           : "bg-[#e8e4de] text-[#1a1816] rounded-bl-md"
                       }`}
                     >
+                      {msg.image === "power-bill" && <PowerBillThumbnail />}
                       {msg.text}
                     </div>
                   </div>
