@@ -190,8 +190,8 @@ async function invokeLambdaSync(
 
 // ── Message Deduplication ─────────────────────────────────────────────────────
 
-function computeMessageHash(sender: string, body: string, hasMedia: boolean): string {
-  const normalized = `${sender}|${body.trim().substring(0, 100).toLowerCase()}|${hasMedia}`;
+function computeMessageHash(sender: string, body: string, hasMedia: boolean, mediaId?: string): string {
+  const normalized = `${sender}|${body.trim().substring(0, 100).toLowerCase()}|${hasMedia}${mediaId ? `|${mediaId}` : ""}`;
   return createHash("sha256").update(normalized).digest("hex").substring(0, 16);
 }
 
@@ -1959,7 +1959,17 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { /* ignore */ }
 
-  const msgHash = computeMessageHash(author || "", messageBody, hasMedia);
+  let firstMediaSid: string | undefined;
+  if (hasMedia) {
+    try {
+      const items = JSON.parse(mediaPayload || "[]");
+      if (Array.isArray(items) && items.length > 0) {
+        firstMediaSid = items[0].MediaSid || items[0].mediaSid || items[0].sid || items[0].Sid || items[0].MessageSid;
+      }
+    } catch { /* ignore */ }
+  }
+
+  const msgHash = computeMessageHash(author || "", messageBody, hasMedia, firstMediaSid);
   if (isDuplicateMessage(metadata, msgHash)) {
     console.log(`[GigProcessor] Duplicate group message detected (hash=${msgHash}), skipping`);
     return { statusCode: 200, body: "Duplicate" };
@@ -2157,7 +2167,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   let metadata: Record<string, unknown> = {};
   try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
 
-  const directHash = computeMessageHash(phone, message, mediaUrls.length > 0);
+  const directHash = computeMessageHash(phone, message, mediaUrls.length > 0, mediaUrls[0]);
   if (isDuplicateMessage(metadata, directHash)) {
     log.info("Duplicate direct message detected, skipping", { hash: directHash });
     return { statusCode: 200, body: "Duplicate" };
