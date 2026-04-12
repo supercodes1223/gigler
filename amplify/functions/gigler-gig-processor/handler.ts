@@ -2003,6 +2003,28 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
             });
           }
         }
+
+        const mediaContentUrls = mediaItems
+          .map((item: Record<string, string>) => {
+            const sid = item.MediaSid || item.mediaSid || item.sid || item.Sid;
+            return sid && TWILIO_CONVERSATIONS_SERVICE_SID
+              ? `https://mcs.us1.twilio.com/v1/Services/${TWILIO_CONVERSATIONS_SERVICE_SID}/Media/${sid}/Content`
+              : null;
+          })
+          .filter((url: string | null): url is string => !!url);
+
+        if (mediaContentUrls.length > 0 && MEDIA_PROCESSOR_FUNCTION_NAME) {
+          const senderId = (senderParticipant?.userId as string) || author || "unknown";
+          console.log(`[GigProcessor] Invoking media-processor for Conversations media download (${mediaContentUrls.length} files)`);
+          await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+            action: "download_mms",
+            gigId,
+            userId: senderId,
+            mediaUrls: mediaContentUrls,
+            phone: author || "",
+            _trace: { traceId: generateTraceId(), requestId: "group-webhook-media", source: "gigler-gig-processor" },
+          });
+        }
       }
     } catch (e) {
       console.error("[GigProcessor] Failed to process media for vision:", e);
