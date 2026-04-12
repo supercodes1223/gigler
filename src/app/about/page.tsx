@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "About Gigler — Smartify Your Life",
   description:
-    "Gigler is an AI that lives in your text messages. Get real stuff done — plan events, build websites, form an LLC — all from a text thread.",
+    "Gigler is an AI that gets real stuff done — plan events, build websites, form an LLC — however you ask, from wherever you are.",
   alternates: { canonical: "/about" },
 };
 
@@ -46,7 +46,7 @@ export default function AboutPage() {
 
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
             <p>
-              Gigler turns your text messages into a command center. Get real
+              Gigler turns any message into a command center. Get real
               stuff done — plan events, build websites, form an LLC, make
               reservations — all while you&apos;re on the beach, on vacation, or
               anywhere you want to be.
@@ -54,7 +54,7 @@ export default function AboutPage() {
 
             <p>
               No app to download. No dashboard to learn. No new workflow to
-              figure out. You already know how to text. That&apos;s all you need.
+              figure out. You already know how to send a message. That&apos;s all you need.
             </p>
 
             <h2 className="text-2xl font-bold text-foreground pt-4">
@@ -62,9 +62,9 @@ export default function AboutPage() {
             </h2>
 
             <p>
-              Gigler is an AI that lives in your text messages. You create{" "}
+              Gigler is an AI that meets you wherever you are. You create{" "}
               <strong className="text-foreground">Gigs</strong> — projects,
-              tasks, anything you need done — by texting. The AI manages,
+              tasks, anything you need done — just by asking. The AI manages,
               coordinates, and actually executes the work.
             </p>
 
@@ -102,12 +102,12 @@ export default function AboutPage() {
             <p>
               We built Gigler because we believe the best interface is no
               interface. The most powerful tool is the one you already have in
-              your pocket. Text messages are universal, instant, and human.
+              your pocket. Messages are universal, instant, and human.
               That&apos;s where AI should live.
             </p>
 
             <p className="text-foreground font-medium text-xl pt-4">
-              Just text, and it gets done.
+              Just ask, and it gets done.
             </p>
           </div>
         </div>
@@ -117,35 +117,15 @@ export default function AboutPage() {
       <footer className="py-12 border-t border-brand-border">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-brand-muted">
-            © {new Date().getFullYear()} Gigler. All rights reserved.
+            &copy; {new Date().getFullYear()} Gigler. All rights reserved.
           </div>
-          <div className="flex gap-6 text-sm text-brand-muted">
-            <Link
-              href="/about"
-              className="hover:text-foreground transition"
-            >
-              About
-            </Link>
-            <Link
-              href="/pricing"
-              className="hover:text-foreground transition"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/careers"
-              className="hover:text-foreground transition"
-            >
-              Careers
-            </Link>
-            <Link
-              href="/dashboard"
-              className="hover:text-foreground transition"
-            >
-              Dashboard
-            </Link>
+          <div className="flex gap-6 text-sm text-brand-muted items-center">
+            <span>Built in Carmel, CA with <span className="text-red-500">&#10084;</span></span>
+            <Link href="/about" className="hover:text-foreground transition">About</Link>
+            <Link href="/pricing" className="hover:text-foreground transition">Pricing</Link>
+            <Link href="/careers" className="hover:text-foreground transition">Careers</Link>
+            <Link href="/dashboard" className="hover:text-foreground transition">Login</Link>
           </div>
-          <div className="text-sm text-brand-muted">gigler.ai</div>
         </div>
       </footer>
     </main>

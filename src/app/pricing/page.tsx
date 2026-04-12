@@ -195,35 +195,15 @@ export default function PricingPage() {
       <footer className="py-12 border-t border-brand-border">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-brand-muted">
-            © {new Date().getFullYear()} Gigler. All rights reserved.
+            &copy; {new Date().getFullYear()} Gigler. All rights reserved.
           </div>
-          <div className="flex gap-6 text-sm text-brand-muted">
-            <Link
-              href="/about"
-              className="hover:text-foreground transition"
-            >
-              About
-            </Link>
-            <Link
-              href="/pricing"
-              className="hover:text-foreground transition"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/careers"
-              className="hover:text-foreground transition"
-            >
-              Careers
-            </Link>
-            <Link
-              href="/dashboard"
-              className="hover:text-foreground transition"
-            >
-              Dashboard
-            </Link>
+          <div className="flex gap-6 text-sm text-brand-muted items-center">
+            <span>Built in Carmel, CA with <span className="text-red-500">&#10084;</span></span>
+            <Link href="/about" className="hover:text-foreground transition">About</Link>
+            <Link href="/pricing" className="hover:text-foreground transition">Pricing</Link>
+            <Link href="/careers" className="hover:text-foreground transition">Careers</Link>
+            <Link href="/dashboard" className="hover:text-foreground transition">Login</Link>
           </div>
-          <div className="text-sm text-brand-muted">gigler.ai</div>
         </div>
       </footer>
     </main>
