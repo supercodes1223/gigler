@@ -1188,11 +1188,11 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     // follow-up messages (e.g. "set two reminders") as new gig creation requests.
     const allGigs = await getAllActiveGigsForUser(user.id, fromPhone);
     const isExplicitCommand = isExplicitCommandMessage(body);
-    const parseMeta = (g: AnnotatedGig): Record<string, unknown> => {
-      try { return typeof g.metadata === "string" ? JSON.parse(g.metadata as string) : ((g.metadata as Record<string, unknown>) || (Object.create(null) as Record<string, unknown>)); } catch { return Object.create(null) as Record<string, unknown>; }
-    };
 
     if (!isExplicitCommand) {
+      const parseMeta = (g: AnnotatedGig): Record<string, unknown> => {
+        try { return typeof g.metadata === "string" ? JSON.parse(g.metadata as string) : ((g.metadata as Record<string, unknown>) || (Object.create(null) as Record<string, unknown>)); } catch { return Object.create(null) as Record<string, unknown>; }
+      };
       const awaitingGigs = allGigs.filter((g) => {
         const meta = parseMeta(g);
         return meta.awaitingReply === true && meta.lastRespondent === "gigler";
@@ -1200,11 +1200,6 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
 
       if (awaitingGigs.length === 1) {
         const targetGig = awaitingGigs[0];
-        const targetMeta = parseMeta(targetGig);
-        if (targetMeta.conversationSid || targetGig.conversationSid) {
-          ulog.info("Skipping — Conversations webhook handles this gig", { gigId: targetGig.id });
-          return twimlResponse("");
-        }
         ulog.info("Routing to gig awaiting reply", { gigId: targetGig.id, title: targetGig.title });
         await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
           gigId: targetGig.id as string,
@@ -1233,11 +1228,6 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
         ulog.info("Multiple gigs awaiting reply, using Gemini to pick", { count: awaitingGigs.length });
         const selection = await selectGigByContext(body, awaitingGigs);
         if (!("ambiguous" in selection)) {
-          const selMeta = parseMeta(selection.gig);
-          if (selMeta.conversationSid || selection.gig.conversationSid) {
-            ulog.info("Skipping — Conversations webhook handles this gig", { gigId: selection.gig.id });
-            return twimlResponse("");
-          }
           ulog.info("Gemini routed to awaiting gig", { gigId: selection.gig.id, title: selection.gig.title });
           await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
             gigId: selection.gig.id as string,
@@ -1322,11 +1312,6 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       const idx = parseInt(gigSelectionMatch[1], 10) - 1;
       if (idx >= 0 && idx < activeGigs.length) {
         const selectedGig = activeGigs[idx];
-        const selGigMeta = parseMeta(selectedGig);
-        if (selGigMeta.conversationSid || selectedGig.conversationSid) {
-          ulog.info("Skipping — Conversations webhook handles this gig", { gigId: selectedGig.id });
-          return twimlResponse("");
-        }
         const glog = ulog.child({ gigId: selectedGig.id as string });
         glog.info("User selected gig from list", { gigIndex: idx + 1, gigTitle: selectedGig.title });
         await invokeLambdaAsync(GIG_PROCESSOR_FUNCTION_NAME, {
@@ -1365,12 +1350,6 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
         ulog.info("Smart selection chose gig", {
           gigId: targetGig.id, gigTitle: targetGig.title, userRole: targetGig.userRole,
         });
-      }
-
-      const routeMeta = parseMeta(targetGig);
-      if (routeMeta.conversationSid || targetGig.conversationSid) {
-        ulog.info("Skipping — Conversations webhook handles this gig", { gigId: targetGig.id });
-        return twimlResponse("");
       }
 
       const glog = ulog.child({ gigId: targetGig.id as string });
