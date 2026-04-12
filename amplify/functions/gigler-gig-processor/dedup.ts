@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 
-export function computeMessageHash(sender: string, body: string, hasMedia: boolean): string {
-  const normalized = `${sender}|${body.trim().substring(0, 100).toLowerCase()}|${hasMedia}`;
+export function computeMessageHash(sender: string, body: string, hasMedia: boolean, mediaId?: string): string {
+  const normalized = `${sender}|${body.trim().substring(0, 100).toLowerCase()}|${hasMedia}${mediaId ? `|${mediaId}` : ""}`;
   return createHash("sha256").update(normalized).digest("hex").substring(0, 16);
 }
 

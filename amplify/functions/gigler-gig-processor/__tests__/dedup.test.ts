@@ -55,6 +55,24 @@ describe("computeMessageHash", () => {
     const hash = computeMessageHash("+1234", "", false);
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
   });
+
+  it("returns different hash for different mediaId", () => {
+    const a = computeMessageHash("+1234", "", true, "ME_image_a");
+    const b = computeMessageHash("+1234", "", true, "ME_image_b");
+    expect(a).not.toBe(b);
+  });
+
+  it("returns same hash when mediaId is the same", () => {
+    const a = computeMessageHash("+1234", "", true, "ME_image_a");
+    const b = computeMessageHash("+1234", "", true, "ME_image_a");
+    expect(a).toBe(b);
+  });
+
+  it("is backward-compatible when mediaId is omitted", () => {
+    const a = computeMessageHash("+1234", "hello", true);
+    const b = computeMessageHash("+1234", "hello", true, undefined);
+    expect(a).toBe(b);
+  });
 });
 
 describe("isDuplicateMessage", () => {
