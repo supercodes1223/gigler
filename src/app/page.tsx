@@ -132,7 +132,7 @@ export default function HomePage() {
           {[
             {
               title: "Gig Programmer",
-              description: "Code, debug, and ship features via text.",
+              description: "Code, debug, and ship features — anytime, anywhere.",
               preview: (
                 <div className="font-mono text-[7px] space-y-0.5">
                   <div><span className="text-purple-400">const</span> <span className="text-blue-400">app</span> <span className="text-zinc-500">=</span> <span className="text-green-400">express</span><span className="text-zinc-500">()</span></div>
