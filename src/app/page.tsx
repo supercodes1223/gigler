@@ -121,10 +121,10 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI gig worker. Gigler.
+            AI gig worker. Always on.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Beach, office, or on the go — just text it and it&apos;s done.
+            Beach, office, or on the go — text it and it&apos;s done.
           </p>
         </div>
 
@@ -139,32 +139,6 @@ export default function HomePage() {
                   <div><span className="text-zinc-500">app.</span><span className="text-yellow-400">get</span><span className="text-zinc-500">(</span><span className="text-green-400">&apos;/api&apos;</span><span className="text-zinc-500">,</span> <span className="text-zinc-400">handler</span><span className="text-zinc-500">)</span></div>
                   <div><span className="text-zinc-500">app.</span><span className="text-yellow-400">listen</span><span className="text-zinc-500">(</span><span className="text-amber-400">3000</span><span className="text-zinc-500">)</span></div>
                   <div className="text-green-500 mt-1">✓ Deployed successfully</div>
-                </div>
-              ),
-            },
-            {
-              title: "Bills Dashboard",
-              description: "Track and organize utility bills with auto-extraction.",
-              preview: (
-                <div className="space-y-1">
-                  <div className="flex gap-1 text-[7px] uppercase text-zinc-500">
-                    <span className="flex-1">Bill</span><span className="w-10 text-right">Amt</span><span className="w-10 text-right">Status</span>
-                  </div>
-                  <div className="flex gap-1 text-[8px]">
-                    <span className="flex-1 text-zinc-400">Power</span>
-                    <span className="w-10 text-right text-zinc-400">$528</span>
-                    <span className="w-10 text-right"><span className="px-1 rounded bg-yellow-500/20 text-yellow-500 text-[7px]">Due</span></span>
-                  </div>
-                  <div className="flex gap-1 text-[8px]">
-                    <span className="flex-1 text-zinc-400">Water</span>
-                    <span className="w-10 text-right text-zinc-400">$87</span>
-                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
-                  </div>
-                  <div className="flex gap-1 text-[8px]">
-                    <span className="flex-1 text-zinc-400">Internet</span>
-                    <span className="w-10 text-right text-zinc-400">$65</span>
-                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
-                  </div>
                 </div>
               ),
             },
@@ -277,6 +251,32 @@ export default function HomePage() {
                     <span className="flex-1 text-center text-zinc-400">Labor</span>
                     <span className="flex-1 text-center text-blue-400">8</span>
                     <span className="flex-1 text-center text-green-400">$320</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "Bills Dashboard",
+              description: "Track and organize utility bills with auto-extraction.",
+              preview: (
+                <div className="space-y-1">
+                  <div className="flex gap-1 text-[7px] uppercase text-zinc-500">
+                    <span className="flex-1">Bill</span><span className="w-10 text-right">Amt</span><span className="w-10 text-right">Status</span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Power</span>
+                    <span className="w-10 text-right text-zinc-400">$528</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-yellow-500/20 text-yellow-500 text-[7px]">Due</span></span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Water</span>
+                    <span className="w-10 text-right text-zinc-400">$87</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
+                  </div>
+                  <div className="flex gap-1 text-[8px]">
+                    <span className="flex-1 text-zinc-400">Internet</span>
+                    <span className="w-10 text-right text-zinc-400">$65</span>
+                    <span className="w-10 text-right"><span className="px-1 rounded bg-green-500/20 text-green-500 text-[7px]">Paid</span></span>
                   </div>
                 </div>
               ),
