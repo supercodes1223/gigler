@@ -114,13 +114,13 @@ function BillsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-brand-border">
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Bill</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Vendor</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Due</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Status</th>
+              <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Bill</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Vendor</th>
+              <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Amount</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Due</th>
+              <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Status</th>
               {hasPhotos && (
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Photo</th>
+                <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-brand-muted">Photo</th>
               )}
             </tr>
           </thead>
@@ -129,13 +129,13 @@ function BillsTable({
               const photo = photos[i];
               return (
                 <tr key={i} className="border-b border-brand-border last:border-b-0">
-                  <td className="px-4 py-3 font-semibold capitalize">{b.billType}</td>
-                  <td className="px-4 py-3">{b.vendor || "\u2014"}</td>
-                  <td className="px-4 py-3 font-semibold tabular-nums">{formatCurrency(b.amount)}</td>
-                  <td className="px-4 py-3">{formatDate(b.dueDate)}</td>
-                  <td className="px-4 py-3"><StatusBadge status={b.status} dueDate={b.dueDate} /></td>
+                  <td className="px-2 sm:px-4 py-3 font-semibold capitalize">{b.billType}</td>
+                  <td className="hidden sm:table-cell px-4 py-3">{b.vendor || "\u2014"}</td>
+                  <td className="px-2 sm:px-4 py-3 font-semibold tabular-nums">{formatCurrency(b.amount)}</td>
+                  <td className="hidden sm:table-cell px-4 py-3">{formatDate(b.dueDate)}</td>
+                  <td className="px-2 sm:px-4 py-3"><StatusBadge status={b.status} dueDate={b.dueDate} /></td>
                   {hasPhotos && (
-                    <td className="px-4 py-2">
+                    <td className="px-2 sm:px-4 py-2">
                       {photo ? (
                         <button
                           onClick={() => setLightbox(photo.s3Key)}
@@ -164,9 +164,10 @@ function BillsTable({
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-brand-border">
-              <td colSpan={2} className="px-4 py-3 font-bold">Total</td>
-              <td className="px-4 py-3 font-bold tabular-nums">{formatCurrency(total)}</td>
-              <td></td>
+              <td className="px-2 sm:px-4 py-3 font-bold">Total</td>
+              <td className="hidden sm:table-cell px-4 py-3"></td>
+              <td className="px-2 sm:px-4 py-3 font-bold tabular-nums">{formatCurrency(total)}</td>
+              <td className="hidden sm:table-cell"></td>
               <td></td>
               {hasPhotos && <td></td>}
             </tr>
