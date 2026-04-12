@@ -744,13 +744,15 @@ async function addSmsParticipantToConversation(
   phone: string
 ): Promise<void> {
   const base = conversationsBase(`/Conversations/${conversationSid}/Participants`);
+  const bindingParams = {
+    "MessagingBinding.Address": phone,
+    "MessagingBinding.ProxyAddress": GIGLER_NUMBER,
+  };
 
   const response = await fetch(base, {
     method: "POST",
     headers: conversationsAuthHeaders(),
-    body: new URLSearchParams({
-      "MessagingBinding.Address": phone,
-    }).toString(),
+    body: new URLSearchParams(bindingParams).toString(),
   });
 
   if (!response.ok) {
@@ -767,7 +769,7 @@ async function addSmsParticipantToConversation(
       const retry = await fetch(base, {
         method: "POST",
         headers: conversationsAuthHeaders(),
-        body: new URLSearchParams({ "MessagingBinding.Address": phone }).toString(),
+        body: new URLSearchParams(bindingParams).toString(),
       });
       if (!retry.ok) {
         const retryData = await retry.json();
@@ -985,7 +987,6 @@ async function handleAddParticipant(
 
   try {
     const conversationSid = await getOrCreateConversation(gigId, gigTitle, metadata);
-    await addGiglerProjectedAddress(conversationSid);
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
