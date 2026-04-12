@@ -162,18 +162,12 @@ export default function ShortCodePage() {
     const bills = (data.metadata.bills as Record<string, Array<Record<string, unknown>>>) || {};
     const monthlyTotals = (data.metadata.monthlyTotals as Record<string, number>) || {};
     return (
-      <>
-        <BillsDashboard
-          title={data.deliverable.title}
-          bills={bills as Record<string, Array<{ billType: string; vendor?: string; amount?: number; dueDate?: string; status: string }>>}
-          monthlyTotals={monthlyTotals}
-        />
-        {mediaItems.length > 0 && (
-          <div className="mx-auto max-w-3xl px-6 pb-12">
-            <MediaGallery media={mediaItems} />
-          </div>
-        )}
-      </>
+      <BillsDashboard
+        title={data.deliverable.title}
+        bills={bills as Record<string, Array<{ billType: string; vendor?: string; amount?: number; dueDate?: string; status: string }>>}
+        monthlyTotals={monthlyTotals}
+        media={mediaItems}
+      />
     );
   }
 
