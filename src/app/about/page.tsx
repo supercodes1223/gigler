@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Gigler — Smartify Your Texts",
+  title: "About Gigler — Smartify Your Life",
   description:
     "Gigler is an AI that lives in your text messages. Get real stuff done — plan events, build websites, form an LLC — all from a text thread.",
   alternates: { canonical: "/about" },
@@ -41,7 +41,7 @@ export default function AboutPage() {
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-8">
-            Smartify Your Texts
+            Smartify Your Life
           </h1>
 
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
