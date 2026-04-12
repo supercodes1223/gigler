@@ -1203,6 +1203,17 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
           senderName: user.name,
           _trace: ulog.tracePayload(),
         });
+        if (mediaUrls.length > 0) {
+          ulog.info("Invoking media-processor for MMS download (awaiting-reply path)", { urlCount: mediaUrls.length });
+          await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+            action: "download_mms",
+            gigId: targetGig.id as string,
+            userId: user.id,
+            mediaUrls,
+            phone: fromPhone,
+            _trace: ulog.tracePayload(),
+          });
+        }
         return twimlResponse("");
       }
 
@@ -1220,6 +1231,17 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
             senderName: user.name,
             _trace: ulog.tracePayload(),
           });
+          if (mediaUrls.length > 0) {
+            ulog.info("Invoking media-processor for MMS download (gemini-routed path)", { urlCount: mediaUrls.length });
+            await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
+              action: "download_mms",
+              gigId: selection.gig.id as string,
+              userId: user.id,
+              mediaUrls,
+              phone: fromPhone,
+              _trace: ulog.tracePayload(),
+            });
+          }
           return twimlResponse("");
         }
         ulog.info("Gemini unsure which awaiting gig, showing disambiguation");
