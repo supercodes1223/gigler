@@ -203,6 +203,27 @@ function isDuplicateMessage(metadata: Record<string, unknown>, hash: string): bo
   return elapsed < 60_000;
 }
 
+async function claimMessage(gigId: string, hash: string): Promise<boolean> {
+  try {
+    await ddb.send(new UpdateCommand({
+      TableName: GIG_TABLE_NAME,
+      Key: { id: gigId },
+      UpdateExpression: "SET processingHash = :hash, processingClaimedAt = :now",
+      ConditionExpression: "attribute_not_exists(processingHash) OR processingHash <> :hash",
+      ExpressionAttributeValues: {
+        ":hash": hash,
+        ":now": new Date().toISOString(),
+      },
+    }));
+    return true;
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "name" in err && err.name === "ConditionalCheckFailedException") {
+      return false;
+    }
+    return true;
+  }
+}
+
 // ── Image Analysis (Gemini Vision) ───────────────────────────────────────────
 
 interface ImageAnalysisResult {
@@ -2084,6 +2105,12 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     return { statusCode: 200, body: "Duplicate" };
   }
 
+  const claimed = await claimMessage(gigId, msgHash);
+  if (!claimed) {
+    console.log(`[GigProcessor] Message already claimed by another handler (hash=${msgHash}), skipping`);
+    return { statusCode: 200, body: "Claimed" };
+  }
+
   const participants = await getGigParticipants(gigId);
   const senderParticipant = participants.find(p => p.phone === author);
   const senderName = (senderParticipant?.name as string) || author || "Someone";
@@ -2289,6 +2316,12 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   if (isDuplicateMessage(metadata, directHash)) {
     log.info("Duplicate direct message detected, skipping", { hash: directHash });
     return { statusCode: 200, body: "Duplicate" };
+  }
+
+  const claimed = await claimMessage(gigId, directHash);
+  if (!claimed) {
+    log.info("Message already claimed by another handler, skipping", { hash: directHash });
+    return { statusCode: 200, body: "Claimed" };
   }
 
   if (gigEvent.skipReply) {
