@@ -107,6 +107,42 @@ export default function CareersPage() {
         </div>
       </section>
 
+      {/* Open Roles */}
+      <section className="py-16 px-6 bg-brand-surface">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-bold mb-10">Open Roles</h2>
+          <div className="space-y-6">
+            {OPEN_ROLES.map((role) => (
+              <div
+                key={role.title}
+                className="rounded-xl border border-brand-border bg-background p-8 hover:border-brand-muted transition"
+              >
+                <h3 className="text-xl font-bold mb-3">{role.title}</h3>
+                <p className="text-brand-muted leading-relaxed mb-4">
+                  {role.description}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {role.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs font-medium px-3 py-1 rounded-full border border-brand-border text-brand-muted"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <a
+                  href={`mailto:careers@gigler.ai?subject=Application: ${role.title}`}
+                  className="text-brand-accent font-medium hover:text-foreground transition"
+                >
+                  Apply →
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Internships */}
       <section className="py-16 px-6 bg-brand-surface">
         <div className="mx-auto max-w-3xl">
@@ -142,42 +178,6 @@ export default function CareersPage() {
             >
               Apply →
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Open Roles */}
-      <section className="py-16 px-6">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-2xl font-bold mb-10">Open Roles</h2>
-          <div className="space-y-6">
-            {OPEN_ROLES.map((role) => (
-              <div
-                key={role.title}
-                className="rounded-xl border border-brand-border bg-brand-surface p-8 hover:border-brand-muted transition"
-              >
-                <h3 className="text-xl font-bold mb-3">{role.title}</h3>
-                <p className="text-brand-muted leading-relaxed mb-4">
-                  {role.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {role.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-xs font-medium px-3 py-1 rounded-full border border-brand-border text-brand-muted"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <a
-                  href={`mailto:careers@gigler.ai?subject=Application: ${role.title}`}
-                  className="text-brand-accent font-medium hover:text-foreground transition"
-                >
-                  Apply →
-                </a>
-              </div>
-            ))}
           </div>
         </div>
       </section>
