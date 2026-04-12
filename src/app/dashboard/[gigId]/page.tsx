@@ -34,7 +34,7 @@ function ConversationThread() {
             disabled
           />
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm text-white font-medium opacity-50 cursor-not-allowed"
+            className="rounded-lg bg-foreground text-background px-4 py-2 text-sm font-medium opacity-50 cursor-not-allowed"
             disabled
           >
             Send
