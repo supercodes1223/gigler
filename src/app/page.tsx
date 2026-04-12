@@ -121,7 +121,7 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Your AI gig worker. Always on.
+            AI gig worker. Gigler.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
             Beach, office, or on the go — just text it and it&apos;s done.
@@ -130,6 +130,18 @@ export default function HomePage() {
 
         <div className="mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
           {[
+            {
+              title: "Gig Programmer",
+              description: "Code, debug, and ship features via text.",
+              preview: (
+                <div className="font-mono text-[7px] space-y-0.5">
+                  <div><span className="text-purple-400">const</span> <span className="text-blue-400">app</span> <span className="text-zinc-500">=</span> <span className="text-green-400">express</span><span className="text-zinc-500">()</span></div>
+                  <div><span className="text-zinc-500">app.</span><span className="text-yellow-400">get</span><span className="text-zinc-500">(</span><span className="text-green-400">&apos;/api&apos;</span><span className="text-zinc-500">,</span> <span className="text-zinc-400">handler</span><span className="text-zinc-500">)</span></div>
+                  <div><span className="text-zinc-500">app.</span><span className="text-yellow-400">listen</span><span className="text-zinc-500">(</span><span className="text-amber-400">3000</span><span className="text-zinc-500">)</span></div>
+                  <div className="text-green-500 mt-1">✓ Deployed successfully</div>
+                </div>
+              ),
+            },
             {
               title: "Bills Dashboard",
               description: "Track and organize utility bills with auto-extraction.",
@@ -233,6 +245,65 @@ export default function HomePage() {
                     <div className="text-zinc-500 uppercase font-bold text-[6px]">Drinks</div>
                     <div className="text-zinc-400">Latte · $5</div>
                     <div className="text-zinc-400">Juice · $4</div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "Excel Sheet Management",
+              description: "Organize, analyze, and share spreadsheet data.",
+              preview: (
+                <div className="text-[7px] font-mono">
+                  <div className="flex border-b border-zinc-700 pb-0.5 mb-0.5">
+                    <span className="w-4 text-zinc-600 text-center shrink-0" />
+                    <span className="flex-1 text-center text-zinc-500 font-bold">A</span>
+                    <span className="flex-1 text-center text-zinc-500 font-bold">B</span>
+                    <span className="flex-1 text-center text-zinc-500 font-bold">C</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-4 text-zinc-600 text-center shrink-0">1</span>
+                    <span className="flex-1 text-center text-zinc-400">Item</span>
+                    <span className="flex-1 text-center text-zinc-400">Qty</span>
+                    <span className="flex-1 text-center text-zinc-400">Cost</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-4 text-zinc-600 text-center shrink-0">2</span>
+                    <span className="flex-1 text-center text-zinc-400">Parts</span>
+                    <span className="flex-1 text-center text-blue-400">24</span>
+                    <span className="flex-1 text-center text-green-400">$480</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-4 text-zinc-600 text-center shrink-0">3</span>
+                    <span className="flex-1 text-center text-zinc-400">Labor</span>
+                    <span className="flex-1 text-center text-blue-400">8</span>
+                    <span className="flex-1 text-center text-green-400">$320</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "Workspace Workflows",
+              description: "Automate team tasks, approvals, and handoffs.",
+              preview: (
+                <div className="space-y-1 text-[7px]">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-green-500/60 shrink-0" />
+                    <span className="text-zinc-400">Request submitted</span>
+                  </div>
+                  <div className="w-px h-1.5 bg-zinc-700 ml-1" />
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-500/60 shrink-0" />
+                    <span className="text-zinc-400">Manager review</span>
+                  </div>
+                  <div className="w-px h-1.5 bg-zinc-700 ml-1" />
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/60 shrink-0" />
+                    <span className="text-zinc-500">Awaiting approval</span>
+                  </div>
+                  <div className="w-px h-1.5 bg-zinc-700 ml-1" />
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-zinc-700 shrink-0" />
+                    <span className="text-zinc-600">Deploy</span>
                   </div>
                 </div>
               ),
