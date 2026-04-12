@@ -493,7 +493,20 @@ function generateBillsDashboardHtml(
     .bar-value { width: 70px; font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .footer { text-align: center; padding: 2rem 0; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 2rem; }
     .footer a { color: var(--accent); text-decoration: none; }
-    @media (max-width: 600px) { .container { padding: 1rem; } .header h1 { font-size: 1.5rem; } }
+    @media (max-width: 600px) {
+      .container { padding: 0.75rem; }
+      .header h1 { font-size: 1.5rem; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .stat-card { padding: 0.75rem; }
+      .stat-card .value { font-size: 1.4rem; }
+      th, td { padding: 0.5rem 0.4rem; font-size: 0.8rem; }
+      th:nth-child(2), td:nth-child(2),
+      th:nth-child(4), td:nth-child(4) { display: none; }
+      tfoot td[colspan="2"] { display: table-cell; }
+      .bar-value { width: 55px; font-size: 0.75rem; }
+      .comparison { padding: 0.75rem; }
+      img { max-width: 48px; max-height: 48px; border-radius: 4px; object-fit: cover; }
+    }
   </style>
 </head>
 <body>
