@@ -673,6 +673,41 @@ async function updateUserState(
   );
 }
 
+async function handleSetupConversation(event: Record<string, unknown>): Promise<{ statusCode: number; body: string }> {
+  const gigId = event.gigId as string;
+  const ownerPhone = event.ownerPhone as string;
+
+  if (!gigId || !ownerPhone) {
+    console.error("[GigProcessor] setup_conversation missing gigId or ownerPhone");
+    return { statusCode: 400, body: "Missing gigId or ownerPhone" };
+  }
+
+  const gig = await getGig(gigId);
+  if (!gig) {
+    console.error(`[GigProcessor] setup_conversation: gig ${gigId} not found`);
+    return { statusCode: 404, body: "Gig not found" };
+  }
+
+  let metadata: Record<string, unknown> = {};
+  try { metadata = gig.metadata ? JSON.parse(gig.metadata) : {}; } catch { metadata = {}; }
+
+  if (metadata.conversationSid) {
+    console.log(`[GigProcessor] setup_conversation: conversation already exists for gig ${gigId}`);
+    return { statusCode: 200, body: "Already exists" };
+  }
+
+  try {
+    const conversationSid = await getOrCreateConversation(gigId, gig.title, metadata);
+    await addGiglerProjectedAddress(conversationSid);
+    await addSmsParticipantToConversation(conversationSid, ownerPhone);
+    console.log(`[GigProcessor] setup_conversation: created ${conversationSid} for gig ${gigId} with owner ${ownerPhone}`);
+    return { statusCode: 200, body: conversationSid };
+  } catch (err) {
+    console.error("[GigProcessor] setup_conversation failed:", err);
+    return { statusCode: 500, body: "Conversation setup failed" };
+  }
+}
+
 async function getOrCreateConversation(
   gigId: string,
   gigTitle: string,
@@ -1030,9 +1065,24 @@ async function handleAddParticipant(
     await addSmsParticipantToConversation(conversationSid, ownerPhone);
     await addSmsParticipantToConversation(conversationSid, participantPhone);
 
+    let contextSummary = "";
+    try {
+      const history = await fetchConversationHistory(gigId, 8);
+      if (history.length > 0) {
+        const lines = history.map((msg) => {
+          const sender = msg.role === "inbound" ? ownerName : "Gigler";
+          const truncated = msg.content.length > 120 ? msg.content.slice(0, 117) + "..." : msg.content;
+          return `- ${sender}: ${truncated}`;
+        });
+        contextSummary = `\n\nHere's what's happened so far:\n${lines.join("\n")}`;
+      }
+    } catch (err) {
+      console.warn("[GigProcessor] Failed to fetch context summary, continuing without it:", err);
+    }
+
     const groupIntro = isNewToGigler
-      ? `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}". I'm Gigler, your AI assistant for this gig.${actionHint}`
-      : `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}".${actionHint}`;
+      ? `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}". I'm Gigler, your AI assistant for this gig.${actionHint}${contextSummary}`
+      : `Hi ${participantName}! ${ownerName} has added you to "${gigTitle}".${actionHint}${contextSummary}`;
 
     await sendConversationMessage(conversationSid, groupIntro);
     console.log(`[GigProcessor] Sent group intro to conversation ${conversationSid}`);
@@ -2179,6 +2229,10 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
 export const handler: Handler = async (event: Record<string, unknown>, context) => {
   if (event.requestContext && event.headers) {
     return handleConversationsWebhook(event);
+  }
+
+  if (event.action === "setup_conversation") {
+    return handleSetupConversation(event);
   }
 
   const gigEvent = event as unknown as GigProcessorEvent;
