@@ -112,7 +112,7 @@ export default function SettingsPage() {
               </div>
               <button
                 type="submit"
-                className="rounded-lg bg-brand-primary px-6 py-2 text-sm text-white font-medium hover:bg-brand-primary-hover transition"
+                className="rounded-lg bg-foreground text-background px-6 py-2 text-sm font-medium hover:opacity-90 transition"
               >
                 Save Changes
               </button>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold">{plan.name}</h3>
                     {plan.current && (
-                      <span className="text-xs bg-brand-primary text-white px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-foreground text-background px-2 py-0.5 rounded-full">
                         Current
                       </span>
                     )}

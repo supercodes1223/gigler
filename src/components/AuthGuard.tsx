@@ -118,7 +118,7 @@ function SignInForm({ onSignIn }: { onSignIn: (user: AuthUser) => void }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           required
         />
       </div>
@@ -128,7 +128,7 @@ function SignInForm({ onSignIn }: { onSignIn: (user: AuthUser) => void }) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-brand-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full rounded-lg border border-brand-border bg-background text-foreground px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           required
         />
       </div>
@@ -136,7 +136,7 @@ function SignInForm({ onSignIn }: { onSignIn: (user: AuthUser) => void }) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-brand-primary py-2.5 text-white font-medium hover:bg-brand-primary-hover transition disabled:opacity-50"
+        className="w-full rounded-lg bg-foreground text-background py-2.5 font-medium hover:opacity-90 transition disabled:opacity-50"
       >
         {submitting ? "Signing in..." : "Sign In"}
       </button>
