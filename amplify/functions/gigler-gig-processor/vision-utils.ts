@@ -31,6 +31,7 @@ export interface GigAction {
   params?: Record<string, unknown>;
   name?: string;
   phone?: string;
+  contextLabel?: string;
   description?: string;
   files?: Array<{ path: string; content: string }>;
   recurrence?: string;

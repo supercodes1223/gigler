@@ -46,6 +46,45 @@ describe("buildNudgeContextBlock", () => {
     expect(s).toContain("9");
     expect(s).toContain("participant");
   });
+
+  it("includes participant roster with contextLabel", () => {
+    const s = buildNudgeContextBlock({
+      audience: "participant",
+      recipientFirstName: "Charles",
+      gigTitle: "Utility Bills",
+      gigType: "household",
+      daysIdle: 7,
+      hints: {},
+      participantRoster: [
+        { name: "Albert", role: "owner", daysSinceLastMessage: 7, isCurrentRecipient: false },
+        { name: "Charles", role: "collaborator", contextLabel: "son - submits utility bills monthly", daysSinceLastMessage: 7, isCurrentRecipient: true },
+        { name: "Sabrina", role: "collaborator", contextLabel: "mother - reviews and pays bills", daysSinceLastMessage: 7, isCurrentRecipient: false },
+      ],
+    });
+    expect(s).toContain("Participants in this gig:");
+    expect(s).toContain("Albert (owner");
+    expect(s).toContain('Charles (collaborator, "son - submits utility bills monthly"');
+    expect(s).toContain("<-- current recipient");
+    expect(s).toContain('Sabrina (collaborator, "mother - reviews and pays bills"');
+  });
+
+  it("renders roster without contextLabel gracefully", () => {
+    const s = buildNudgeContextBlock({
+      audience: "owner",
+      recipientFirstName: "Albert",
+      gigTitle: "Utility Bills",
+      gigType: "household",
+      daysIdle: 7,
+      hints: {},
+      participantRoster: [
+        { name: "Albert", role: "owner", daysSinceLastMessage: 7, isCurrentRecipient: false },
+        { name: "Charles", role: "collaborator", isCurrentRecipient: false },
+      ],
+    });
+    expect(s).toContain("Participants in this gig:");
+    expect(s).toContain("Charles (collaborator, no messages yet)");
+    expect(s).not.toContain("contextLabel");
+  });
 });
 
 describe("fallback SMS builders", () => {

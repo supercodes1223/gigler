@@ -10,6 +10,7 @@ import {
   buildOwnerFallbackSms,
   buildParticipantFallbackSms,
   type NudgeContextInput,
+  type RosterEntry,
 } from "./nudge-context";
 import { getLastInboundForSender, type MessageRow } from "./participant-activity";
 
@@ -307,6 +308,33 @@ export async function processStaleGigsSmart(p: ProcessStaleGigsParams): Promise<
     const meta = parseGigMetadata(gig.metadata);
     const hints = hintsFromMetadata(meta, gig);
 
+    // Build participant roster for context-aware nudges (used by both owner and participant paths)
+    let roster: RosterEntry[] = [];
+    let participants: Array<Record<string, unknown>> = [];
+    let messages: MessageRow[] = [];
+
+    if (conversationSid && gigParticipantTableName && messageTableName) {
+      participants = await fetchParticipantsForGig(ddb, gigParticipantTableName, gigId);
+      if (participants.length >= 2) {
+        messages = await fetchRecentMessagesForGig(ddb, messageTableName, gigId, 80);
+        roster = participants.map(p => {
+          const pUserId = (p.userId as string) || "";
+          const pPhone = (p.phone as string) || "";
+          const lastMsg = getLastInboundForSender(messages, [pUserId, pPhone].filter(Boolean));
+          const daysSince = lastMsg
+            ? Math.floor((nowMs - lastMsg.getTime()) / (1000 * 60 * 60 * 24))
+            : undefined;
+          return {
+            name: firstName(p.name as string),
+            role: (p.role as string) || "collaborator",
+            contextLabel: (p.contextLabel as string) || undefined,
+            daysSinceLastMessage: daysSince,
+            isCurrentRecipient: false,
+          };
+        });
+      }
+    }
+
     const ownerCooldowned = await hasRecentOwnerNudge(
       ddb,
       reminderTableName,
@@ -325,16 +353,18 @@ export async function processStaleGigsSmart(p: ProcessStaleGigsParams): Promise<
           gigDescription: description,
           daysIdle,
           hints,
+          participantRoster: roster.length > 0 ? roster : undefined,
         };
 
         let body: string | null = null;
         if (geminiApiKey && geminiCallsLeft > 0) {
           geminiCallsLeft -= 1;
-          body = await generateNudgeSms(ctx, {
+          const result = await generateNudgeSms(ctx, {
             fetch: fetchFn,
             apiKey: geminiApiKey,
             model: geminiModel,
           });
+          body = result.sms;
         }
         if (!body) {
           body = buildOwnerFallbackSms(firstName(user.name), title, daysIdle);
@@ -355,12 +385,8 @@ export async function processStaleGigsSmart(p: ProcessStaleGigsParams): Promise<
       }
     }
 
-    if (!conversationSid || !gigParticipantTableName || !messageTableName) continue;
-
-    const participants = await fetchParticipantsForGig(ddb, gigParticipantTableName, gigId);
     if (participants.length < 2) continue;
 
-    const messages = await fetchRecentMessagesForGig(ddb, messageTableName, gigId, 80);
     const participantStaleMs = getParticipantStaleHours(gigType) * 60 * 60 * 1000;
 
     for (const part of participants) {
@@ -400,6 +426,11 @@ export async function processStaleGigsSmart(p: ProcessStaleGigsParams): Promise<
           ? Math.floor((nowMs - lastInbound.getTime()) / (1000 * 60 * 60 * 24))
           : Math.floor((nowMs - baselineMs) / (1000 * 60 * 60 * 24));
 
+      const partRoster = roster.map(r => ({
+        ...r,
+        isCurrentRecipient: r.name === firstName(part.name as string) && r.role !== "owner",
+      }));
+
       const pctx: NudgeContextInput = {
         audience: "participant",
         recipientFirstName: firstName(part.name as string),
@@ -409,16 +440,22 @@ export async function processStaleGigsSmart(p: ProcessStaleGigsParams): Promise<
         daysIdle,
         hints,
         participantDaysSinceMessage: partDaysSince,
+        participantRoster: partRoster.length > 0 ? partRoster : undefined,
       };
 
       let pbody: string | null = null;
       if (geminiApiKey && geminiCallsLeft > 0) {
         geminiCallsLeft -= 1;
-        pbody = await generateNudgeSms(pctx, {
+        const result = await generateNudgeSms(pctx, {
           fetch: fetchFn,
           apiKey: geminiApiKey,
           model: geminiModel,
         });
+        if (result.skip) {
+          log.info("Gemini skipped nudge for participant", { gigId, phone: maskPhone(phone) });
+          continue;
+        }
+        pbody = result.sms;
       }
       if (!pbody) {
         pbody = buildParticipantFallbackSms(firstName(part.name as string), title);
