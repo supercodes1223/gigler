@@ -121,6 +121,7 @@ interface GigAction {
   params?: Record<string, unknown>;
   name?: string;
   phone?: string;
+  contextLabel?: string;
   description?: string;
   files?: Array<{ path: string; content: string }>;
   recurrence?: string;
@@ -482,7 +483,8 @@ function mapFunctionCallToAction(name: string, args: Record<string, unknown>): G
       if (relationshipWords.includes(participantName.toLowerCase())) {
         participantName = "Participant";
       }
-      return { type: "add_participant", name: participantName, phone: args.phone };
+      const contextLabel = (args.contextLabel as string) || undefined;
+      return { type: "add_participant", name: participantName, phone: args.phone, contextLabel };
     }
     case "set_reminder":
       return {
@@ -998,7 +1000,8 @@ async function handleAddParticipant(
   ownerPhone: string,
   participantName: string,
   participantPhone: string,
-  trace: TraceContext
+  trace: TraceContext,
+  contextLabel?: string
 ): Promise<void> {
   console.log(`[GigProcessor] Adding participant: ${participantName} (${participantPhone}) to gig ${gigId}`);
 
@@ -1074,6 +1077,7 @@ async function handleAddParticipant(
         userId: existingUser!.id as string,
         role: "collaborator",
         name: participantName,
+        contextLabel,
         isGuest: false,
         invitedBy: ownerUserId,
         joinedAt: now,
@@ -1805,6 +1809,7 @@ const GIGLER_FUNCTION_DECLARATIONS = [
       properties: {
         name: { type: "STRING", description: "The participant's actual first name (e.g. 'Jeff', 'Sarah'). Must be a real name, NOT a relationship like 'Son', 'Mom', 'Dad'." },
         phone: { type: "STRING", description: "Phone in E.164 format (+1 followed by 10 digits). Convert from any format the user gives." },
+        contextLabel: { type: "STRING", description: "Brief label describing this person's relationship and role in the gig (e.g. 'son - submits utility bills monthly', 'wife - reviews and pays bills', 'contractor - delivers project updates'). Infer from conversation context." },
       },
       required: ["name", "phone"],
     },

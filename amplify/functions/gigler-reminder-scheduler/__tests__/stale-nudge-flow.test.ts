@@ -174,6 +174,103 @@ describe("processStaleGigsSmart (integration-style, mocked DDB)", () => {
     });
   });
 
+  it("skips participant nudge when Gemini returns skip:true", async () => {
+    const staleGig = {
+      id: "gig-skip-1",
+      ownerId: "user-owner-1",
+      title: "Household Bills",
+      type: "household",
+      status: "active",
+      metadata: JSON.stringify({ lastInteraction: oldInteraction }),
+      updatedAt: oldInteraction,
+      conversationSid: "CHxxxxxxxx",
+      shortCode: "abc12",
+    };
+
+    const participants = [
+      { gigId: "gig-skip-1", phone: "+15550001111", role: "owner", userId: "user-owner-1", name: "Albert" },
+      {
+        gigId: "gig-skip-1",
+        phone: "+15550002222",
+        role: "collaborator",
+        userId: "user-collab-1",
+        name: "Sabrina",
+        contextLabel: "mother - reviews and pays bills",
+        joinedAt: "2026-03-01T00:00:00.000Z",
+      },
+    ];
+
+    const mockSend = vi.fn().mockImplementation(async (cmd: unknown) => {
+      if (isCmd(cmd, ScanCommand)) {
+        return { Items: [staleGig] };
+      }
+      if (isCmd(cmd, QueryCommand)) {
+        const input = (cmd as QueryCommand).input;
+        if (input.TableName === "GigParticipant") {
+          return { Items: participants };
+        }
+        if (input.TableName === "Message") {
+          return { Items: [
+            { gigId: "gig-skip-1", timestamp: "2026-03-10T00:00:00.000Z", senderId: "+15550002222", direction: "inbound" },
+          ] };
+        }
+        if (input.IndexName === "byGig") {
+          return { Items: [] };
+        }
+        return { Items: [] };
+      }
+      if (isCmd(cmd, GetCommand)) {
+        return { Item: { id: "user-owner-1", phone: "+15550001111", name: "Albert" } };
+      }
+      if (isCmd(cmd, PutCommand)) {
+        return {};
+      }
+      throw new Error(`Unexpected command: ${(cmd as object).constructor?.name}`);
+    });
+
+    const ddb = { send: mockSend } as unknown as DynamoDBDocumentClient;
+    const sendSms = vi.fn().mockResolvedValue(true);
+    const mockLog = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+
+    const gemFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"sms":"","skip":true}' }] } }],
+      }),
+    });
+
+    const result = await processStaleGigsSmart({
+      ddb,
+      gigTableName: "Gig",
+      reminderTableName: "Reminder",
+      messageTableName: "Message",
+      gigParticipantTableName: "GigParticipant",
+      userTableName: "User",
+      geminiApiKey: "test-key",
+      geminiModel: "gemini-2.5-flash",
+      nowMs,
+      sendSms,
+      fetch: gemFetch,
+      log: mockLog,
+      maskPhone: p => p,
+    });
+
+    expect(result.ownerNudges).toBe(1);
+    expect(result.participantNudges).toBe(0);
+
+    expect(sendSms).toHaveBeenCalledWith("+15550001111", expect.any(String));
+    expect(sendSms).not.toHaveBeenCalledWith("+15550002222", expect.any(String));
+
+    const skipLog = mockLog.info.mock.calls.find(
+      (c: unknown[]) => (c[0] as string).includes("Gemini skipped nudge")
+    );
+    expect(skipLog).toBeDefined();
+
+    const puts = mockSend.mock.calls.filter(c => isCmd(c[0], PutCommand));
+    const pNudge = puts.find(c => (c[0] as PutCommand).input.Item?.type === "participant_nudge");
+    expect(pNudge).toBeUndefined();
+  });
+
   it("skips when no active gigs", async () => {
     const mockSend = vi.fn().mockImplementation(async (cmd: unknown) => {
       if (isCmd(cmd, ScanCommand)) return { Items: [] };

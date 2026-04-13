@@ -16,6 +16,7 @@ export interface GigAction {
   params?: Record<string, unknown>;
   name?: string;
   phone?: string;
+  contextLabel?: string;
   description?: string;
   files?: Array<{ path: string; content: string }>;
   recurrence?: string;
@@ -81,7 +82,7 @@ export interface ActionDeps {
   sendConversationMessage: (conversationSid: string, body: string) => Promise<void>;
   getExistingDeliverable: (gigId: string, type: string) => Promise<ExistingDeliverable | null>;
   handleUpdateBillStatus: (gigId: string, entry: BillStatusEntry) => Promise<void>;
-  handleAddParticipant: (gigId: string, userId: string, phone: string, name: string, participantPhone: string, trace: TraceContext) => Promise<void>;
+  handleAddParticipant: (gigId: string, userId: string, phone: string, name: string, participantPhone: string, trace: TraceContext, contextLabel?: string) => Promise<void>;
   handleCreateGitHubRepo: (gigId: string, userId: string, phone: string, name: string, description: string, files: Array<{ path: string; content: string }>, trace: TraceContext) => Promise<void>;
   createReminder: (params: ReminderParams) => Promise<void>;
   mediaProcessorFunctionName: string;
@@ -233,7 +234,7 @@ export async function executeActions(
         if (action.phone && action.name && action.name !== "Participant") {
           await deps.handleAddParticipant(
             ctx.gigId, ctx.userId, ctx.phone,
-            action.name, action.phone, trace
+            action.name, action.phone, trace, action.contextLabel
           );
         } else if (action.phone && (!action.name || action.name === "Participant")) {
           console.warn(`[executeActions] Participant name is placeholder — asking owner for real name`);

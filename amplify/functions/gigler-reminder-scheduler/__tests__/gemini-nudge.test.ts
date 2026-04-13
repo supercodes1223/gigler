@@ -11,14 +11,14 @@ const baseContext = {
 };
 
 describe("generateNudgeSms", () => {
-  it("returns null when api key missing", async () => {
+  it("returns sms:null skip:false when api key missing", async () => {
     const fetch = vi.fn();
     const out = await generateNudgeSms(baseContext, {
       fetch,
       apiKey: "",
       model: "gemini-2.5-flash",
     });
-    expect(out).toBeNull();
+    expect(out).toEqual({ sms: null, skip: false });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -34,14 +34,14 @@ describe("generateNudgeSms", () => {
       apiKey: "k",
       model: "gemini-2.5-flash",
     });
-    expect(out).toBe("Hello from Gigler!");
+    expect(out).toEqual({ sms: "Hello from Gigler!", skip: false });
     expect(fetch).toHaveBeenCalledTimes(1);
     const url = (fetch.mock.calls[0][0] as string);
     expect(url).toContain("gemini-2.5-flash");
     expect(url).toContain("key=k");
   });
 
-  it("returns null on API error", async () => {
+  it("returns sms:null skip:false on API error", async () => {
     const fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -52,17 +52,16 @@ describe("generateNudgeSms", () => {
       apiKey: "k",
       model: "m",
     });
-    expect(out).toBeNull();
+    expect(out).toEqual({ sms: null, skip: false });
   });
 
-  it("returns null when no candidates text", async () => {
+  it("returns sms:null skip:false when no candidates text", async () => {
     const fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ candidates: [] }),
     });
-    expect(
-      await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" })
-    ).toBeNull();
+    const out = await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
+    expect(out).toEqual({ sms: null, skip: false });
   });
 
   it("clamps long sms", async () => {
@@ -74,8 +73,52 @@ describe("generateNudgeSms", () => {
       }),
     });
     const out = await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
-    expect(out).not.toBeNull();
-    expect(out!.length).toBeLessThanOrEqual(MAX_NUDGE_SMS_CHARS);
-    expect(out!.endsWith("…")).toBe(true);
+    expect(out.sms).not.toBeNull();
+    expect(out.sms!.length).toBeLessThanOrEqual(MAX_NUDGE_SMS_CHARS);
+    expect(out.sms!.endsWith("…")).toBe(true);
+    expect(out.skip).toBe(false);
+  });
+
+  it("returns skip:true when Gemini responds with skip", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"sms":"","skip":true}' }] } }],
+      }),
+    });
+    const out = await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
+    expect(out).toEqual({ sms: null, skip: true });
+  });
+
+  it("returns skip:false when Gemini responds without skip field", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"sms":"Nudge!"}' }] } }],
+      }),
+    });
+    const out = await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
+    expect(out).toEqual({ sms: "Nudge!", skip: false });
+  });
+
+  it("returns skip:false on fetch error (fail-open)", async () => {
+    const fetch = vi.fn().mockRejectedValue(new Error("network"));
+    const out = await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
+    expect(out).toEqual({ sms: null, skip: false });
+  });
+
+  it("includes skip instruction in prompt", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"sms":"hi"}' }] } }],
+      }),
+    });
+    await generateNudgeSms(baseContext, { fetch, apiKey: "k", model: "m" });
+    const body = JSON.parse((fetch.mock.calls[0][1] as { body: string }).body);
+    const prompt = body.contents[0].parts[0].text;
+    expect(prompt).toContain("skip");
+    expect(prompt).toContain("bottleneck");
+    expect(prompt).toContain("contextLabel");
   });
 });

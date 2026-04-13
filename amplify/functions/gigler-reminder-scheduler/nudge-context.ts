@@ -4,6 +4,14 @@
 
 export type NudgeAudience = "owner" | "participant";
 
+export interface RosterEntry {
+  name: string;
+  role: string;
+  contextLabel?: string;
+  daysSinceLastMessage?: number;
+  isCurrentRecipient: boolean;
+}
+
 export interface NudgeContextInput {
   audience: NudgeAudience;
   recipientFirstName: string;
@@ -20,6 +28,8 @@ export interface NudgeContextInput {
   };
   /** For participants: days since they last sent inbound in thread */
   participantDaysSinceMessage?: number;
+  /** Full participant roster for context-aware nudge decisions */
+  participantRoster?: RosterEntry[];
 }
 
 export function buildNudgeContextBlock(input: NudgeContextInput): string {
@@ -47,6 +57,17 @@ export function buildNudgeContextBlock(input: NudgeContextInput): string {
   }
   if (input.audience === "participant" && input.participantDaysSinceMessage != null) {
     lines.push(`Days since this person last messaged in the thread: ${input.participantDaysSinceMessage}`);
+  }
+  if (input.participantRoster && input.participantRoster.length > 0) {
+    lines.push("Participants in this gig:");
+    for (const p of input.participantRoster) {
+      const parts = [p.role];
+      if (p.contextLabel) parts.push(`"${p.contextLabel}"`);
+      if (p.daysSinceLastMessage != null) parts.push(`last active ${p.daysSinceLastMessage} days ago`);
+      else parts.push("no messages yet");
+      const marker = p.isCurrentRecipient ? " <-- current recipient" : "";
+      lines.push(`- ${p.name} (${parts.join(", ")})${marker}`);
+    }
   }
   return lines.join("\n");
 }
