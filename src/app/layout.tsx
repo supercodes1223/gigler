@@ -25,11 +25,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Gigler — AI Gig Worker for Real Work",
+    default: "Gigler — AI Work Orchestration for Real Work",
     template: "%s | Gigler",
   },
   description:
-    "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
+    "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
   keywords: [
     "AI assistant",
     "SMS assistant",
@@ -60,23 +60,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "Gigler",
-    title: "Gigler — AI Gig Worker for Real Work",
+    title: "Gigler — AI Work Orchestration for Real Work",
     description:
-      "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
+      "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Gigler — AI Gig Worker for Real Work",
+        alt: "Gigler — AI Work Orchestration for Real Work",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gigler — AI Gig Worker for Real Work",
+    title: "Gigler — AI Work Orchestration for Real Work",
     description:
-      "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
+      "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
     images: ["/og-image.png"],
   },
   alternates: {
@@ -93,7 +93,7 @@ function JsonLd() {
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
       description:
-        "AI gig worker that turns simple text, email, or voice requests into completed work.",
+        "AI work orchestration that turns simple text, email, or voice requests into delivered results.",
       sameAs: [],
     },
     {
@@ -111,7 +111,7 @@ function JsonLd() {
         offerCount: 4,
       },
       description:
-        "AI gig worker for coding, planning, documents, workflows, and real work through text, email, or voice.",
+        "AI work orchestration for coding, planning, documents, workflows, and real work through text, email, or voice.",
     },
     {
       "@context": "https://schema.org",

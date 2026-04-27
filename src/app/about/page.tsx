@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Gigler — AI Gig Worker for Real Work",
+  title: "About Gigler — AI Work Orchestration for Real Work",
   description:
-    "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
+    "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
   alternates: { canonical: "/about" },
 };
 
@@ -46,10 +46,10 @@ export default function AboutPage() {
 
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
             <p>
-              Gigler turns a simple request into completed work. Send a text,
-              email, or voice message, and Gigler plans the steps, tracks the
-              progress, coordinates the tools and people, and delivers the
-              result.
+              Gigler orchestrates the work behind every request, then delivers
+              the results. Send a text, email, or voice message, and Gigler
+              plans the steps, tracks progress, coordinates the tools and
+              people, and completes the work.
             </p>
 
             <p>
