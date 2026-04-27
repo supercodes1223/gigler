@@ -1,11 +1,8 @@
-import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
-const ADMIN_EMAIL = "admin@gigler.ai";
-const FROM_EMAIL = process.env.INVITE_REQUEST_FROM_EMAIL || "notifications@gigler.ai";
-const AWS_REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-2";
+const INVITE_REQUEST_WEBHOOK_URL =
+  process.env.INVITE_REQUEST_WEBHOOK_URL ||
+  "https://7j4ltm42m5dnejb7qx5nzyieyq0ecehw.lambda-url.us-east-2.on.aws/";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,50 +27,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const ses = new SESClient({ region: AWS_REGION });
-  const submittedAt = new Date().toISOString();
-
   try {
-    await ses.send(
-      new SendEmailCommand({
-        Source: FROM_EMAIL,
-        Destination: {
-          ToAddresses: [ADMIN_EMAIL],
-        },
-        ReplyToAddresses: [email],
-        Message: {
-          Subject: {
-            Charset: "UTF-8",
-            Data: "New Gigler closed beta invite request",
-          },
-          Body: {
-            Text: {
-              Charset: "UTF-8",
-              Data: [
-                "New Gigler closed beta invite request",
-                "",
-                `Email: ${email}`,
-                `Submitted at: ${submittedAt}`,
-                "",
-                "Reply to this email to follow up with the requester.",
-              ].join("\n"),
-            },
-          },
-        },
-      }),
-    );
+    const response = await fetch(INVITE_REQUEST_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const result = (await response.json()) as { error?: string; message?: string };
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: result.error || "Could not submit invite request. Please try again." },
+        { status: response.status },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message:
+        result.message ||
+        "Request submitted. Gigler is currently invite-only, and we'll follow up if we can add you to the closed beta.",
+    });
   } catch (error) {
-    console.error("[InviteRequest] Failed to send admin email:", error);
-    const message = error instanceof Error ? error.message : "Unknown email service error";
+    console.error("[InviteRequest] Failed to submit invite request:", error);
     return NextResponse.json(
-      { error: `Could not submit invite request: ${message}` },
+      { error: "Could not submit invite request. Please try again." },
       { status: 500 },
     );
   }
-
-  return NextResponse.json({
-    ok: true,
-    message:
-      "Request submitted. Gigler is currently invite-only, and we'll follow up if we can add you to the closed beta.",
-  });
 }
