@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Gigler — Smartify Your Life",
+  title: "About Gigler — AI Gig Worker for Real Work",
   description:
-    "Gigler is an AI that gets real stuff done — plan events, build websites, form an LLC — however you ask, from wherever you are.",
+    "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
   alternates: { canonical: "/about" },
 };
 
@@ -41,20 +41,21 @@ export default function AboutPage() {
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-8">
-            Smartify Your Life
+            AI gig worker. Real work gets done.
           </h1>
 
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
             <p>
-              Gigler turns any message into a command center. Get real
-              stuff done — be a programmer, plan events, build websites, form
-              an LLC, make reservations — all while you&apos;re on the beach, on vacation, or
-              anywhere you want to be.
+              Gigler turns a simple request into completed work. Send a text,
+              email, or voice message, and Gigler plans the steps, tracks the
+              progress, coordinates the tools and people, and delivers the
+              result.
             </p>
 
             <p>
-              No app to download. No dashboard to learn. No new workflow to
-              figure out. You already know how to send a message. That&apos;s all you need.
+              Build a website, ship code, organize photos, plan events, generate
+              reports, make reservations, or coordinate a team workflow — all
+              from the interface you already use every day.
             </p>
 
             <h2 className="text-2xl font-bold text-foreground pt-4">
@@ -64,8 +65,9 @@ export default function AboutPage() {
             <p>
               Gigler is an AI that meets you wherever you are. You create{" "}
               <strong className="text-foreground">Gigs</strong> — projects,
-              tasks, anything you need done — just by asking. The AI manages,
-              coordinates, and actually executes the work.
+              tasks, or outcomes you need delivered — just by asking. Each gig
+              becomes a coordinated workflow with progress updates, shareable
+              links, screenshots when useful, and final deliverables.
             </p>
 
             <p>
@@ -76,19 +78,20 @@ export default function AboutPage() {
             </p>
 
             <h2 className="text-2xl font-bold text-foreground pt-4">
-              Beyond Text
+              More Than Conversation
             </h2>
 
             <p>
-              Gigler can also{" "}
-              <strong className="text-foreground">call you</strong> — wake-up
-              calls with your daily briefing, check-ins on stale projects, voice
-              consultations when typing isn&apos;t enough.
+              Gigler does not just answer questions. It can generate documents,
+              render PDFs, build pages, organize media, manage spreadsheets,
+              browse and submit web forms, and send proof-of-work updates as the
+              gig moves forward.
             </p>
 
             <p>
-              And when your gig produces something tangible — a PDF, a website,
-              a photo collage, a code project — Gigler generates{" "}
+              When a gig produces something tangible — a PDF, a website, a photo
+              collage, a code project, a report, a menu, or a dashboard — Gigler
+              generates{" "}
               <strong className="text-foreground">
                 deliverables with shareable URLs
               </strong>
@@ -103,11 +106,12 @@ export default function AboutPage() {
               We built Gigler because we believe the best interface is no
               interface. The most powerful tool is the one you already have in
               your pocket. Messages are universal, instant, and human.
-              That&apos;s where AI should live.
+              That&apos;s where AI should live — in the flow of your day, doing the
+              heavy lifting in the background.
             </p>
 
             <p className="text-foreground font-medium text-xl pt-4">
-              Just ask, and it gets done.
+              Send the request. Gigler plans, tracks, and delivers.
             </p>
           </div>
         </div>
