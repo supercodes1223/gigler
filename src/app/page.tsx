@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import GiglerHeroDemo from "@/components/GiglerHeroDemo";
+import InviteRequestForm from "@/components/InviteRequestForm";
 
 export const metadata: Metadata = {
   title: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
@@ -45,10 +46,10 @@ export default function HomePage() {
                 Careers
               </Link>
               <Link
-                href="/dashboard"
+                href="/#request-invite"
                 className="mt-1 block rounded-xl bg-foreground px-4 py-3 text-sm font-semibold text-background transition hover:bg-white"
               >
-                Get Started Free
+                Request Invite
               </Link>
             </div>
           </details>
@@ -80,7 +81,7 @@ export default function HomePage() {
                   <span className="rolodex-word" style={{ color: "#F25022" }}>organizing</span>
                   <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
                   <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
-                  <span className="rolodex-word" style={{ color: "#34A853" }}>facilitating</span>
+                  <span className="rolodex-word" style={{ color: "#34A853" }}>orchestrating</span>
                   <span className="rolodex-word">ler</span>
                 </span>
               </span>
@@ -88,14 +89,14 @@ export default function HomePage() {
             <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
               <strong className="text-foreground">Gigler builds it.</strong>
               <br />
-              Every gig, delivered.
+              Every gig, tracked and delivered.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/dashboard"
+                href="/#request-invite"
                 className="rounded-full bg-foreground px-8 py-3 text-base font-semibold text-background hover:bg-white transition text-center"
               >
-                Get Started Free
+                Request Invite
               </Link>
               <Link
                 href="/about"
@@ -280,6 +281,34 @@ export default function HomePage() {
               ),
             },
             {
+              title: "Gig Orchestration",
+              description:
+                "Turn a simple text, email, or voice request into a coordinated workflow with progress updates and deliverables.",
+              preview: (
+                <div className="space-y-1 text-[7px]">
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-blue-500/70" />
+                    <span className="text-zinc-400">Request received</span>
+                  </div>
+                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-purple-500/70" />
+                    <span className="text-zinc-400">Tools delegated</span>
+                  </div>
+                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-yellow-500/70" />
+                    <span className="text-zinc-500">Progress shared</span>
+                  </div>
+                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-green-500/70" />
+                    <span className="text-zinc-400">Delivered</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
               title: "Workspace Workflows",
               description: "Automate team tasks, approvals, and handoffs.",
               preview: (
@@ -325,17 +354,13 @@ export default function HomePage() {
       <section className="py-24 px-6">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to get things done?
+            Request access to Gigler
           </h2>
           <p className="text-lg text-brand-muted mb-10">
-            No downloads. No dashboards. Just text Gigler.
+            Gigler is currently in closed beta. Enter your email and we&apos;ll review your
+            invite request.
           </p>
-          <Link
-            href="/dashboard"
-            className="inline-block rounded-full bg-foreground px-10 py-4 text-lg font-semibold text-background hover:bg-white transition"
-          >
-            Get Started Free
-          </Link>
+          <InviteRequestForm />
         </div>
       </section>
 

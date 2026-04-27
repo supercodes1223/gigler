@@ -28,7 +28,7 @@ const TIERS = [
       "Single-user only (no group gigs)",
       "Gigler branding on deliverable pages",
     ],
-    cta: "Get Started Free",
+    cta: "Request Invite",
     highlight: false,
   },
   {
@@ -176,7 +176,7 @@ export default function PricingPage() {
                 href={
                   tier.name === "Enterprise"
                     ? "mailto:sales@gigler.ai"
-                    : "/dashboard"
+                    : "/#request-invite"
                 }
                 className={`block w-full rounded-full py-2.5 text-center font-medium transition ${
                   tier.highlight

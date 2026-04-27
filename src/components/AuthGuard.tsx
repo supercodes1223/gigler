@@ -73,9 +73,9 @@ export function AuthGuard({ children }: { children: ReactNode }) {
             </p>
             <SignInForm onSignIn={setUser} />
             <p className="mt-6 text-sm text-brand-muted">
-              Don&apos;t have an account?{" "}
-              <Link href="/dashboard" className="text-brand-primary hover:underline">
-                Sign up
+              Need access?{" "}
+              <Link href="/#request-invite" className="text-brand-primary hover:underline">
+                Request an invite
               </Link>
             </p>
           </div>
