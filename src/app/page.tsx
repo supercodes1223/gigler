@@ -5,7 +5,7 @@ import GiglerHeroDemo from "@/components/GiglerHeroDemo";
 import InviteRequestForm from "@/components/InviteRequestForm";
 
 export const metadata: Metadata = {
-  title: "Gigler — AI Gig Worker for Real Work",
+  title: "Gigler — AI Work Orchestration for Real Work",
   alternates: { canonical: "/" },
 };
 
@@ -124,7 +124,7 @@ export default function HomePage() {
             AI gig worker. Real work delivered.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Send the request. Gigler plans, tracks, and delivers.
+            Gigler orchestrates the work behind every request, then delivers the results.
           </p>
         </div>
 
