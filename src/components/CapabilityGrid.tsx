@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface Capability {
   title: string;
@@ -267,50 +265,45 @@ const CAPABILITIES: Capability[] = [
 ];
 
 export default function CapabilityGrid() {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const featured = CAPABILITIES.slice(0, 2);
+  const standard = CAPABILITIES.slice(2);
 
   return (
-    <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
-      {CAPABILITIES.map((item) => {
-        const isExpanded = expanded === item.title;
-
-        return (
-          <button
+    <div className="mx-auto max-w-5xl">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+        {featured.map((item) => (
+          <div
             key={item.title}
-            type="button"
-            aria-expanded={isExpanded}
-            onClick={() => setExpanded(isExpanded ? null : item.title)}
-            className={`group rounded-xl border border-brand-border bg-background p-4 text-left transition-all duration-300 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5 focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-              isExpanded
-                ? "col-span-2 scale-[1.01] border-purple-500/60 shadow-xl shadow-purple-500/10 md:col-span-2"
-                : "hover:scale-[1.02] last:col-span-2 last:md:col-span-1"
-            }`}
+            className="group rounded-2xl border border-brand-border bg-background p-5 text-left shadow-xl shadow-black/10 transition-all duration-300 hover:border-purple-500/50 hover:shadow-purple-500/10"
           >
-            <div
-              className={`mb-3 flex flex-col justify-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-all duration-300 ${
-                isExpanded ? "h-40" : "h-24"
-              }`}
-            >
+            <div className="mb-5 flex h-40 flex-col justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-4">
               {item.preview}
             </div>
-            <h3 className={`${isExpanded ? "text-lg" : "text-sm"} mb-1 font-bold`}>
-              {item.title}
-            </h3>
-            <p
-              className={`text-brand-muted leading-relaxed ${
-                isExpanded ? "text-sm" : "text-xs"
-              }`}
-            >
+            <h3 className="mb-2 text-xl font-bold">{item.title}</h3>
+            <p className="text-sm leading-relaxed text-brand-muted">{item.description}</p>
+            <div className="mt-5 rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-xs text-brand-muted">
+              {item.example}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+        {standard.map((item) => (
+          <div
+            key={item.title}
+            className="group rounded-xl border border-brand-border bg-background p-4 transition-all duration-300 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5 hover:scale-[1.02] last:col-span-2 last:md:col-span-1"
+          >
+            <div className="mb-3 flex h-24 flex-col justify-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+              {item.preview}
+            </div>
+            <h3 className="mb-1 text-sm font-bold">{item.title}</h3>
+            <p className="text-xs leading-relaxed text-brand-muted">
               {item.description}
             </p>
-            {isExpanded ? (
-              <div className="mt-4 rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-xs text-brand-muted">
-                {item.example}
-              </div>
-            ) : null}
-          </button>
-        );
-      })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
