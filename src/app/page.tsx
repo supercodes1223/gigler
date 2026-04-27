@@ -120,10 +120,10 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI gig worker. Always on.
+            AI gig worker. Real work done.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Beach, office, or on the go — text it and it&apos;s done.
+            Send the request. Gigler plans, tracks, and delivers.
           </p>
         </div>
 
@@ -285,25 +285,31 @@ export default function HomePage() {
               description:
                 "Turn a simple text, email, or voice request into a coordinated workflow with progress updates and deliverables.",
               preview: (
-                <div className="space-y-1 text-[7px]">
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 shrink-0 rounded-full bg-blue-500/70" />
-                    <span className="text-zinc-400">Request received</span>
+                <div className="relative h-full text-[7px]">
+                  <div className="absolute left-1 top-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-blue-300">
+                    Request
                   </div>
-                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 shrink-0 rounded-full bg-purple-500/70" />
-                    <span className="text-zinc-400">Tools delegated</span>
+                  <div className="absolute left-[3.1rem] top-[1.35rem] h-px w-5 bg-zinc-700" />
+                  <div className="absolute left-[4.3rem] top-0.5 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1 text-purple-300">
+                    Plan
                   </div>
-                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 shrink-0 rounded-full bg-yellow-500/70" />
-                    <span className="text-zinc-500">Progress shared</span>
+                  <div className="absolute left-[5.4rem] top-[1.9rem] h-4 w-px bg-zinc-700" />
+                  <div className="absolute left-8 top-[2.9rem] grid grid-cols-2 gap-1">
+                    <div className="rounded border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 text-green-300">
+                      Code
+                    </div>
+                    <div className="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-cyan-300">
+                      Web
+                    </div>
+                    <div className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-300">
+                      Docs
+                    </div>
+                    <div className="rounded border border-zinc-600 bg-zinc-800 px-1.5 py-0.5 text-zinc-400">
+                      Review
+                    </div>
                   </div>
-                  <div className="ml-1 h-1.5 w-px bg-zinc-700" />
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 shrink-0 rounded-full bg-green-500/70" />
-                    <span className="text-zinc-400">Delivered</span>
+                  <div className="absolute bottom-1 right-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-1 text-green-300">
+                    ✓ Delivered
                   </div>
                 </div>
               ),
