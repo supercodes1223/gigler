@@ -121,7 +121,7 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI gig worker. Real work done.
+            AI gig worker. Real work gets done.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
             Send the request. Gigler plans, tracks, and delivers.
