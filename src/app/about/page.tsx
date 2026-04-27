@@ -41,7 +41,7 @@ export default function AboutPage() {
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-8">
-            AI gig worker. Real work gets done.
+            AI gig worker. Real work delivered.
           </h1>
 
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
