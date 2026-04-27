@@ -5,7 +5,7 @@ import GiglerHeroDemo from "@/components/GiglerHeroDemo";
 import InviteRequestForm from "@/components/InviteRequestForm";
 
 export const metadata: Metadata = {
-  title: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
+  title: "Gigler — AI Gig Worker for Real Work",
   alternates: { canonical: "/" },
 };
 

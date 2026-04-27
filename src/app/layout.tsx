@@ -25,11 +25,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
+    default: "Gigler — AI Gig Worker for Real Work",
     template: "%s | Gigler",
   },
   description:
-    "Gigler is an AI that lives in your text messages. Create Gigs — coding, planning, business, creative work, reservations — by texting. No downloads. No dashboards. No learning new workflows. Just text, and it gets done.",
+    "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
   keywords: [
     "AI assistant",
     "SMS assistant",
@@ -60,23 +60,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "Gigler",
-    title: "Gigler — Just Text, and It Gets Done",
+    title: "Gigler — AI Gig Worker for Real Work",
     description:
-      "Gig + coding. Gig + planning. Gig + anything. No downloads, no dashboards. Just text Gigler and it gets done.",
+      "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Gigler — No Downloads. No Dashboards. Just Text, and It Gets Done.",
+        alt: "Gigler — AI Gig Worker for Real Work",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gigler — Just Text, and It Gets Done",
+    title: "Gigler — AI Gig Worker for Real Work",
     description:
-      "Gig + coding. Gig + planning. Gig + anything. No downloads, no dashboards. Just text it, it gets done.",
+      "Gigler turns simple text, email, or voice requests into completed work — coding, planning, documents, workflows, and more.",
     images: ["/og-image.png"],
   },
   alternates: {
@@ -93,7 +93,7 @@ function JsonLd() {
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
       description:
-        "AI assistant that lives in your text messages. Create and manage Gigs by texting.",
+        "AI gig worker that turns simple text, email, or voice requests into completed work.",
       sameAs: [],
     },
     {
@@ -111,14 +111,14 @@ function JsonLd() {
         offerCount: 4,
       },
       description:
-        "AI that manages your gigs over text. Events, coding, business formation, creative work — text it, it gets done.",
+        "AI gig worker for coding, planning, documents, workflows, and real work through text, email, or voice.",
     },
     {
       "@context": "https://schema.org",
       "@type": "Product",
       name: "Gigler AI",
       description:
-        "SMS-based AI assistant for managing projects, events, coding, business tasks, and more.",
+        "AI gig worker for managing projects, events, coding, business tasks, and more.",
       brand: { "@type": "Brand", name: "Gigler" },
       offers: [
         {
