@@ -99,7 +99,7 @@ export default function AboutPage() {
             </p>
 
             <h2 className="text-2xl font-bold text-foreground pt-4">
-              The Anti-App
+              The Interface You Already Use
             </h2>
 
             <p>
