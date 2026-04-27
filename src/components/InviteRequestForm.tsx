@@ -95,12 +95,12 @@ export default function InviteRequestForm() {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@company.com"
           className="w-full rounded-full border border-brand-border bg-brand-surface px-5 py-3 text-base text-foreground outline-none transition placeholder:text-brand-muted focus:border-brand-primary"
-          disabled={state === "submitting" || state === "success"}
+          disabled={state === "submitting"}
         />
       </div>
       <button
         type="submit"
-        disabled={state === "submitting" || state === "success"}
+        disabled={state === "submitting"}
         className="mt-3 w-full rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 sm:mt-0 sm:w-auto"
       >
         {state === "submitting" ? "Submitting..." : "Request Invite"}
