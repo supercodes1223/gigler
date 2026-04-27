@@ -64,8 +64,9 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("[InviteRequest] Failed to send admin email:", error);
+    const message = error instanceof Error ? error.message : "Unknown email service error";
     return NextResponse.json(
-      { error: "Could not submit invite request. Please try again." },
+      { error: `Could not submit invite request: ${message}` },
       { status: 500 },
     );
   }
