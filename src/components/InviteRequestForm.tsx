@@ -8,6 +8,7 @@ export default function InviteRequestForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,6 +37,7 @@ export default function InviteRequestForm() {
       }
 
       setState("success");
+      setSubmittedEmail(trimmedEmail);
       setEmail("");
       setMessage(
         result.message ||
@@ -49,6 +51,30 @@ export default function InviteRequestForm() {
           : "Could not submit invite request. Please try again.",
       );
     }
+  }
+
+  if (state === "success") {
+    return (
+      <div
+        id="request-invite"
+        className="mx-auto mt-8 max-w-xl rounded-3xl border border-green-500/30 bg-green-500/10 p-6 text-left shadow-2xl shadow-black/20"
+        aria-live="polite"
+      >
+        <div className="mb-3 inline-flex rounded-full border border-green-500/40 bg-green-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-300">
+          Request submitted
+        </div>
+        <h3 className="text-2xl font-bold text-foreground">You&apos;re on the list.</h3>
+        <p className="mt-3 text-sm leading-relaxed text-brand-muted">
+          {message ||
+            "Gigler is currently invite-only. We'll review your request and follow up if we can add you to the closed beta."}
+        </p>
+        {submittedEmail ? (
+          <p className="mt-4 rounded-2xl border border-brand-border bg-background px-4 py-3 text-sm text-foreground">
+            Submitted email: <span className="font-semibold">{submittedEmail}</span>
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -81,9 +107,7 @@ export default function InviteRequestForm() {
       </button>
       {message ? (
         <p
-          className={`mt-4 text-sm leading-relaxed sm:absolute sm:left-1/2 sm:top-full sm:mt-3 sm:w-full sm:max-w-xl sm:-translate-x-1/2 ${
-            state === "success" ? "text-green-400" : "text-red-400"
-          }`}
+          className="mt-4 text-sm leading-relaxed text-red-400 sm:absolute sm:left-1/2 sm:top-full sm:mt-3 sm:w-full sm:max-w-xl sm:-translate-x-1/2"
           aria-live="polite"
         >
           {message}
