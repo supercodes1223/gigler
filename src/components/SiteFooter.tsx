@@ -14,7 +14,7 @@ export default function SiteFooter() {
             className="h-auto w-56 sm:w-72 md:w-80"
           />
           <div className="text-sm font-semibold text-foreground">
-            NVIDIA Inception Program
+            NVIDIA Inception program member
           </div>
           <div className="text-sm text-brand-muted">
             &copy; {new Date().getFullYear()} Gigler. All rights reserved.
