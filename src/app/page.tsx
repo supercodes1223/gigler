@@ -3,6 +3,7 @@ import Link from "next/link";
 import CapabilityGrid from "@/components/CapabilityGrid";
 import GiglerHeroDemo from "@/components/GiglerHeroDemo";
 import InviteRequestForm from "@/components/InviteRequestForm";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Gigler — AI Work Orchestration for Real Work",
@@ -145,23 +146,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-brand-border">
-        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-brand-muted">
-            &copy; {new Date().getFullYear()} Gigler. All rights reserved.
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-brand-muted items-center">
-            <span className="whitespace-nowrap">Built in Carmel, CA with <span className="text-red-500">&#10084;</span></span>
-            <div className="flex gap-6 items-center">
-              <Link href="/about" className="hover:text-foreground transition">About</Link>
-              <Link href="/pricing" className="hover:text-foreground transition">Pricing</Link>
-              <Link href="/careers" className="hover:text-foreground transition">Careers</Link>
-              <Link href="/dashboard" className="hover:text-foreground transition">Login</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
