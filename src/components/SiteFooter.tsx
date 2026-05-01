@@ -7,10 +7,10 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 flex flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <Image
-            src="/nvidia-inception-program-badge-dark.jpg"
+            src="/nvidia-inception-program-badge-dark.png"
             alt="NVIDIA Inception Program"
-            width={350}
-            height={130}
+            width={687}
+            height={248}
             className="h-auto w-56 sm:w-72 md:w-80"
           />
           <div className="text-sm font-semibold text-foreground">
