@@ -3,9 +3,9 @@ import Link from "next/link";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Careers at Gigler — AI Should Get Things Done",
+  title: "Careers at Gigler — Build AI Work Orchestration",
   description:
-    "Join Gigler and build AI that actually does things. We're hiring engineers, researchers, and designers who ship.",
+    "Join Gigler and build AI work orchestration that delivers real outcomes through text, email, and voice.",
   alternates: { canonical: "/careers" },
 };
 
@@ -13,19 +13,19 @@ const OPEN_ROLES = [
   {
     title: "AI / ML Engineer",
     description:
-      "Build the AI brain that understands natural language, detects intent, and executes gigs across 9 categories. You'll work on conversation AI, multi-turn reasoning, and real-time decision making — powered by frontier models.",
-    tags: ["AI/ML", "NLP", "TypeScript", "Lambda"],
+      "Build the agent reasoning layer that turns natural language requests into planned, tracked, and delivered Gigs. You'll work on tool use, multimodal understanding, memory, and human-in-the-loop decision making.",
+    tags: ["AI/ML", "Agents", "Multimodal", "Tool Use"],
   },
   {
     title: "Full-Stack Engineer",
     description:
-      "Ship the infrastructure that powers millions of texts. Lambda functions, DynamoDB at scale, Twilio integrations, Next.js dashboard — you'll own the full stack from inbound SMS to delivered website.",
-    tags: ["AWS", "Next.js", "DynamoDB", "Twilio"],
+      "Ship the infrastructure that receives requests across text, email, and voice, then turns them into durable workflows, progress updates, deliverables, and shareable results.",
+    tags: ["TypeScript", "Serverless", "Messaging", "Workflows"],
   },
   {
     title: "Product Designer",
     description:
-      "Design the simplest AI experience ever built: no UI, just text. You'll craft conversation flows, onboarding experiences, deliverable templates, and the rare moments where a screen actually helps.",
+      "Design an AI experience that untethers people from screens. You'll craft conversation flows, progress updates, deliverable previews, and the rare moments where a screen actually helps.",
     tags: ["UX", "Conversation Design", "Figma"],
   },
 ] as const;
@@ -63,13 +63,14 @@ export default function CareersPage() {
       <section className="pt-32 pb-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            AI Should Get Things Done. Regardless Where You Are or How Prompted.
+            Build AI work orchestration for real life.
           </h1>
           <p className="text-lg text-brand-muted leading-relaxed mb-6">
             The hardest problems in AI are solved by people who ship. At Gigler,
-            we&apos;re building an AI that doesn&apos;t wait for you to open an
-            app — it works however you reach it. Every engineer, researcher, and
-            designer has massive impact.
+            we&apos;re building agents that plan, track, coordinate, and deliver
+            real work through text, email, and voice — so people can get outcomes
+            without living inside another dashboard. Every engineer, researcher,
+            and designer has massive impact.
           </p>
         </div>
       </section>

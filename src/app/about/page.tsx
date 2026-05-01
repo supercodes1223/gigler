@@ -48,9 +48,10 @@ export default function AboutPage() {
           <div className="space-y-8 text-lg text-brand-muted leading-relaxed">
             <p>
               Gigler orchestrates the work behind every request, then delivers
-              the results. Send a text, email, or voice message, and Gigler
-              plans the steps, tracks progress, coordinates the tools and
-              people, and completes the work.
+              the results — untethering people from screens and dashboards.
+              Send a text, email, or voice message, and Gigler plans the steps,
+              tracks progress, coordinates the tools and people, and completes
+              the work.
             </p>
 
             <p>

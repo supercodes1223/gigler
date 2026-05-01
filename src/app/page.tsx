@@ -125,7 +125,8 @@ export default function HomePage() {
             AI gig worker. Real work delivered.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Gigler orchestrates the work behind every request, then delivers the results.
+            Gigler untethers people from screens and dashboards by orchestrating
+            the work behind every request, then delivering the results.
           </p>
         </div>
 
