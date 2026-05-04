@@ -210,6 +210,115 @@ body {
   }
 }
 
+/* ── Box-style gradient frame for active orchestration cards ─────────────── */
+.gradient-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-frame::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #4285F4,
+    #9b59b6,
+    #EA4335,
+    #FBBC05,
+    #34A853,
+    #4285F4
+  );
+  animation: glow-rotate 4s linear infinite;
+}
+
+.gradient-frame::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #4285F4,
+    #9b59b6,
+    #EA4335,
+    #FBBC05,
+    #34A853,
+    #4285F4
+  );
+  animation: glow-rotate 4s linear infinite;
+  filter: blur(14px);
+  opacity: 0.45;
+}
+
+/* ── Subtle dot-grid background for the orchestration canvas ─────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(245, 240, 232, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ── Glowing data-packet that travels down a straight vertical connector ── */
+@keyframes connector-packet {
+  0%   { transform: translateY(0);          opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(2.25rem);    opacity: 0; }
+}
+
+/* ── Ambient floating-icons hero illustration ────────────────────────────── */
+/* Three drift patterns so no two icons sync up. Each translates a few px in
+   x/y with a subtle scale pulse — very slow, very calm. */
+@keyframes float-a {
+  0%, 100% { transform: translate(0, 0) scale(1);             }
+  25%      { transform: translate(8px,  -10px) scale(1.03);   }
+  50%      { transform: translate(-6px, -4px)  scale(0.97);   }
+  75%      { transform: translate(4px,  8px)   scale(1.02);   }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate(0, 0) scale(1);             }
+  33%      { transform: translate(-10px, 6px)  scale(1.04);   }
+  66%      { transform: translate(8px,  -8px)  scale(0.96);   }
+}
+@keyframes float-c {
+  0%, 100% { transform: translate(0, 0) scale(1);             }
+  20%      { transform: translate(6px,  12px)  scale(0.95);   }
+  50%      { transform: translate(-12px, 4px)  scale(1.05);   }
+  80%      { transform: translate(10px, -6px)  scale(1);      }
+}
+
+/* Honour reduced-motion — freeze the floating icons. */
+@media (prefers-reduced-motion: reduce) {
+  .float-a, .float-b, .float-c {
+    animation: none !important;
+  }
+}
+
+/* ── Connection-line traveling pulses (orchestration hub → satellite icons) ──── */
+/* Each connection has two pulse layers (an outer halo + inner bright core) that
+   share the same animation. We use pathLength="100" + a single visible dash so
+   exactly one glowing "pill" travels from hub to satellite, briefly pauses,
+   then repeats. -110 = path length (100) + dash length (10) so the pulse
+   exits cleanly off the end before resetting. */
+@keyframes pulse-travel {
+  0%   { stroke-dashoffset: 0;    }
+  100% { stroke-dashoffset: -110; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conn-pulse {
+    animation: none !important;
+  }
+}
+
+/* ── Slow halo pulse used by the central orchestration anchor ───────────── */
+@keyframes anchor-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.55; }
+  50%      { transform: scale(1.18); opacity: 0.85; }
+}
+
 /* ── SMS Demo typing animation ───────────────────────────────────────────── */
 @keyframes typing-dots {
   0%, 20%   { opacity: 0.3; }
