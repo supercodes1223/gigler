@@ -110,7 +110,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-8 sm:mt-4 lg:-mt-40">
+          <div className="-mt-4 sm:-mt-10 lg:-mt-40">
             <OrchestrationHeroDemo className="max-w-[330px] sm:max-w-[430px] lg:max-w-xl" />
           </div>
         </div>
