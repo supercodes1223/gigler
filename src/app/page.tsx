@@ -3,6 +3,7 @@ import Link from "next/link";
 import CapabilityGrid from "@/components/CapabilityGrid";
 import GiglerHeroDemo from "@/components/GiglerHeroDemo";
 import InviteRequestForm from "@/components/InviteRequestForm";
+import OrchestrationHeroDemo from "@/components/OrchestrationHeroDemo";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
@@ -69,12 +70,11 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero — Claude-style: text left, product window right */}
-      <section className="pt-28 pb-20 px-6 min-h-[90vh] flex items-center">
-        <div className="mx-auto max-w-6xl w-full grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left: text */}
+      {/* Hero */}
+      <section className="px-6 pb-16 pt-24 lg:pb-20">
+        <div className="mx-auto grid w-full max-w-6xl items-start gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6">
+            <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-7xl">
               <span className="inline-flex items-baseline gigler-glow" style={{ gap: "0" }}>
                 <span>Gig</span>
                 <span className="rolodex-container">
@@ -88,31 +88,100 @@ export default function HomePage() {
                 </span>
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-brand-muted leading-relaxed mb-8 max-w-lg">
-              <strong className="text-foreground">Gigler builds it.</strong>
+            <p className="mb-8 max-w-lg text-lg leading-relaxed text-brand-muted md:text-xl">
+              <strong className="text-foreground">Send a request. Gigler gets to work.</strong>
               <br />
-              Every gig, tracked and delivered.
+              Gigler plans, tracks, and delivers real work, reaching you by
+              text, email, or voice when it needs you.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/#request-invite"
-                className="rounded-full bg-foreground px-8 py-3 text-base font-semibold text-background hover:bg-white transition text-center"
+                className="rounded-full bg-foreground px-8 py-3 text-center text-base font-semibold text-background transition hover:bg-white"
               >
                 Request Invite
               </Link>
               <Link
                 href="/about"
-                className="rounded-full border border-brand-border px-8 py-3 text-base font-semibold text-foreground hover:bg-brand-surface transition text-center"
+                className="rounded-full border border-brand-border px-8 py-3 text-center text-base font-semibold text-foreground transition hover:bg-brand-surface"
               >
                 Learn More
               </Link>
             </div>
           </div>
 
-          {/* Right (desktop) / Below (mobile): Two-phase demo */}
-          <div className="mt-12 lg:mt-0">
-            <div className="ai-glow relative">
-              <GiglerHeroDemo />
+          <div className="-mt-8 sm:-mt-14 lg:-mt-40">
+            <OrchestrationHeroDemo className="max-w-[330px] overflow-hidden sm:max-w-[430px] lg:max-w-xl" />
+          </div>
+        </div>
+      </section>
+
+      {/* Process demo */}
+      <section className="px-6 pb-24 pt-6">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="lg:sticky lg:top-28">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
+              How it works
+            </p>
+            <h2 className="mb-5 text-3xl font-bold leading-tight md:text-4xl">
+              Every request becomes a Gig.
+            </h2>
+            <p className="max-w-xl text-lg leading-relaxed text-brand-muted">
+              Text, email, or voice. Gigler plans the work, picks the right
+              agents and tools, tracks progress, and delivers the result.
+            </p>
+          </div>
+          <div className="ai-glow relative">
+            <GiglerHeroDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* Everyday examples */}
+      <section className="px-6 pb-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-3xl">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
+              Everyday gigs
+            </p>
+            <h2 className="mb-5 text-3xl font-bold leading-tight md:text-4xl">
+              Gigler in your life.
+            </h2>
+            <p className="text-lg leading-relaxed text-brand-muted">
+              Bring Gigler into a text thread, email chain, or voice call. It
+              keeps the group moving, asks for decisions when needed, and turns
+              the outcome into a shareable gig.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Trip group chat
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                Add Gigler to the thread. It suggests places to see, tracks
+                what everyone picked, and sends the day&apos;s plan back to the
+                group.
+              </p>
+            </div>
+            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Shared photos
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                Drop photos and clips into the chat. Gigler sorts them by
+                person, moment, or event, then delivers an album link like
+                gigler.ai/trip123.
+              </p>
+            </div>
+            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Human checkpoints
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                If a decision matters, Gigler can text, email, or call with the
+                update, then continue the gig once you choose the next step.
+              </p>
             </div>
           </div>
         </div>
