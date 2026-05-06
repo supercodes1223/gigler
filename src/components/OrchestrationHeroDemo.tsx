@@ -289,8 +289,8 @@ const SVG_HUB_CENTER = { x: HUB_CENTER.x, y: HUB_CENTER.y * 1.2 };
 const SVG_FIELD_CENTER = { x: FIELD_CENTER.x, y: FIELD_CENTER.y * 1.2 };
 
 const ORBIT_ICONS: OrbitIcon[] = [
-  { id: "person", kind: "person", ring: "outer", x: 19, y: 36, color: "#4285F4", size: 35, hoverX: -3, hoverY: -2, delay: -6.7 },
-  { id: "chart", kind: "chart", ring: "outer", x: 81, y: 36, color: "#9b59b6", size: 38, hoverX: -2, hoverY: 3, delay: -3.8 },
+  { id: "person", kind: "person", ring: "outer", x: 17, y: 40, color: "#4285F4", size: 35, hoverX: -3, hoverY: -2, delay: -6.7 },
+  { id: "chart", kind: "chart", ring: "outer", x: 83, y: 40, color: "#9b59b6", size: 38, hoverX: -2, hoverY: 3, delay: -3.8 },
   { id: "chat", kind: "chat", ring: "outer", x: 14, y: 58, color: "#4285F4", size: 38, hoverX: 3, hoverY: 1, delay: -4.4 },
   { id: "doc", kind: "doc", ring: "outer", x: 88, y: 58, color: "#FBBC05", size: 35, hoverX: 2, hoverY: 2, delay: -5.1 },
   { id: "mail", kind: "mail", ring: "outer", x: 24, y: 78, color: "#4285F4", size: 35, hoverX: -2, hoverY: 2, delay: -8.9 },
@@ -646,7 +646,7 @@ function HubAnchor() {
 
       <div className="relative" style={{ animation: "hub-hover 7s ease-in-out infinite" }}>
         <div className="ai-glow rounded-2xl">
-          <div className="relative flex h-[58px] w-[238px] items-center justify-center gap-2 rounded-2xl border border-zinc-700/80 bg-zinc-950/95 px-4 shadow-2xl shadow-black/50 backdrop-blur">
+          <div className="relative flex h-[54px] w-[220px] items-center justify-center gap-2 rounded-2xl border border-zinc-700/80 bg-zinc-950/95 px-4 shadow-2xl shadow-black/50 backdrop-blur sm:h-[58px] sm:w-[238px]">
             <HubEdgeDots />
             <SparkleGlyph size={22} color="#FBBC05" />
             <span className="whitespace-nowrap text-center text-[14px] font-bold leading-tight text-zinc-100">
