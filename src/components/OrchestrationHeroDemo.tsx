@@ -320,7 +320,7 @@ const DELIVERY_LINKS = [
 ] as const;
 // Tuning knob: keep fewer outer-loop flow dots so the delivery path reads first.
 // Revert to [0, 1, 2, 3, 4, 5, 6, 7] if you want the busier sparkle pass back.
-const OUTER_FLOW_SEGMENTS = [0, 2, 3, 5, 6] as const;
+const OUTER_FLOW_SEGMENTS = [2, 3] as const;
 
 function svgPoint(point: { x: number; y: number }) {
   return { x: point.x, y: point.y * 1.2 };
@@ -370,7 +370,7 @@ function FlowLines() {
       className="absolute inset-0 h-full w-full pointer-events-none"
       viewBox="0 0 100 120"
       preserveAspectRatio="none"
-      style={{ overflow: "visible" }}
+      style={{ overflow: "hidden" }}
     >
       <defs>
         <filter id="orchestrationLineGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -717,12 +717,16 @@ export default function OrchestrationHeroDemo({ className = "" }: { className?: 
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-x-0 bottom-[18%] top-[25%]"
         style={{
           background:
             "radial-gradient(ellipse at 52% 54%, rgba(66,133,244,0.075), transparent 62%)," +
             "radial-gradient(ellipse at 50% 62%, rgba(168,85,247,0.055), transparent 56%)," +
             "radial-gradient(ellipse at 54% 72%, rgba(52,168,83,0.035), transparent 50%)",
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, black 36%, black 64%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, black 36%, black 64%, transparent 100%)",
         }}
       />
 

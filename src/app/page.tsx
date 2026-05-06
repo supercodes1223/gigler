@@ -110,8 +110,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="-mt-8 sm:-mt-14 lg:-mt-40">
-            <OrchestrationHeroDemo className="max-w-[330px] overflow-hidden sm:max-w-[430px] lg:max-w-xl" />
+          <div className="mt-8 sm:mt-4 lg:-mt-40">
+            <OrchestrationHeroDemo className="max-w-[330px] sm:max-w-[430px] lg:max-w-xl" />
           </div>
         </div>
       </section>
@@ -191,7 +191,7 @@ export default function HomePage() {
       <section className="py-24 px-6 bg-brand-surface">
         <div className="mx-auto max-w-5xl text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI gig worker. Real work delivered.
+            AI gig worker.
           </h2>
           <p className="text-lg text-brand-muted max-w-2xl mx-auto">
             Gigler untethers people from screens and dashboards by orchestrating
