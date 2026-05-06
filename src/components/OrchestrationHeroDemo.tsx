@@ -709,10 +709,9 @@ function renderGlyph(item: { kind: IconKind; size: number; color: string }): Rea
 export default function OrchestrationHeroDemo({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`relative mx-auto w-full max-w-lg ${className}`}
+      className={`relative mx-auto aspect-[5/5.35] w-full max-w-lg sm:aspect-[5/6] ${className}`}
       // Aspect ratio chosen to roughly match the SMS demo footprint without a
-      // hard frame; overflow stays visible so glow halos can spill softly.
-      style={{ aspectRatio: "5 / 6" }}
+      // hard frame; mobile gets a tighter crop so the hub sits closer to the CTAs.
       aria-hidden
     >
       <div
