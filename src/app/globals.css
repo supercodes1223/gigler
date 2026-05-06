@@ -260,63 +260,49 @@ body {
   background-size: 22px 22px;
 }
 
-/* ── Glowing data-packet that travels down a straight vertical connector ── */
-@keyframes connector-packet {
-  0%   { transform: translateY(0);          opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateY(2.25rem);    opacity: 0; }
+/* ── Ambient floating-icons hero illustration ────────────────────────────── */
+@keyframes orbit-icon-hover {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  22%      { transform: translate(var(--hover-x), var(--hover-y)) scale(1.012); }
+  48%      { transform: translate(var(--hover-x-alt), var(--hover-y-alt)) scale(0.998); }
+  72%      { transform: translate(var(--hover-x-neg), var(--hover-y-neg)) scale(1.008); }
 }
 
-/* ── Ambient floating-icons hero illustration ────────────────────────────── */
-/* Three drift patterns so no two icons sync up. Each translates a few px in
-   x/y with a subtle scale pulse — very slow, very calm. */
-@keyframes float-a {
-  0%, 100% { transform: translate(0, 0) scale(1);             }
-  25%      { transform: translate(8px,  -10px) scale(1.03);   }
-  50%      { transform: translate(-6px, -4px)  scale(0.97);   }
-  75%      { transform: translate(4px,  8px)   scale(1.02);   }
+@keyframes hub-hover {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
 }
-@keyframes float-b {
-  0%, 100% { transform: translate(0, 0) scale(1);             }
-  33%      { transform: translate(-10px, 6px)  scale(1.04);   }
-  66%      { transform: translate(8px,  -8px)  scale(0.96);   }
+
+@keyframes network-ring-drift {
+  to { stroke-dashoffset: -28; }
 }
-@keyframes float-c {
-  0%, 100% { transform: translate(0, 0) scale(1);             }
-  20%      { transform: translate(6px,  12px)  scale(0.95);   }
-  50%      { transform: translate(-12px, 4px)  scale(1.05);   }
-  80%      { transform: translate(10px, -6px)  scale(1);      }
+
+.network-ring {
+  animation: network-ring-drift 24s linear infinite;
+}
+
+.network-ring-delayed {
+  animation-duration: 31s;
+  animation-direction: reverse;
+}
+
+.orbit-icon-hover {
+  animation: orbit-icon-hover 9s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
 }
 
 /* Honour reduced-motion — freeze the floating icons. */
 @media (prefers-reduced-motion: reduce) {
-  .float-a, .float-b, .float-c {
-    animation: none !important;
-  }
-}
-
-/* ── Connection-line traveling pulses (orchestration hub → satellite icons) ──── */
-/* Each connection has two pulse layers (an outer halo + inner bright core) that
-   share the same animation. We use pathLength="100" + a single visible dash so
-   exactly one glowing "pill" travels from hub to satellite, briefly pauses,
-   then repeats. -110 = path length (100) + dash length (10) so the pulse
-   exits cleanly off the end before resetting. */
-@keyframes pulse-travel {
-  0%   { stroke-dashoffset: 0;    }
-  100% { stroke-dashoffset: -110; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .conn-pulse {
+  .orbit-icon-hover, .network-ring {
     animation: none !important;
   }
 }
 
 /* ── Slow halo pulse used by the central orchestration anchor ───────────── */
 @keyframes anchor-pulse {
-  0%, 100% { transform: scale(1);   opacity: 0.55; }
-  50%      { transform: scale(1.18); opacity: 0.85; }
+  0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: 0.55; }
+  50%      { transform: translate(-50%, -50%) scale(1.18); opacity: 0.85; }
 }
 
 /* ── SMS Demo typing animation ───────────────────────────────────────────── */
