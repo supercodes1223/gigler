@@ -73,7 +73,7 @@ export default function HomePage() {
       {/* Hero */}
       <section className="px-6 pb-16 pt-24 lg:pb-20">
         <div className="mx-auto grid w-full max-w-6xl items-start gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-16">
-          <div>
+          <div className="relative z-20">
             <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-7xl">
               <span className="inline-flex items-baseline gigler-glow" style={{ gap: "0" }}>
                 <span>Gig</span>
@@ -110,7 +110,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="-mt-4 sm:-mt-10 lg:-mt-40">
+          <div className="relative z-10 -mt-16 sm:-mt-10 lg:-mt-40">
             <OrchestrationHeroDemo className="max-w-[330px] sm:max-w-[430px] lg:max-w-xl" />
           </div>
         </div>
