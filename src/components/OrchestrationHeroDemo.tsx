@@ -289,14 +289,14 @@ const SVG_HUB_CENTER = { x: HUB_CENTER.x, y: HUB_CENTER.y * 1.2 };
 const SVG_FIELD_CENTER = { x: FIELD_CENTER.x, y: FIELD_CENTER.y * 1.2 };
 
 const ORBIT_ICONS: OrbitIcon[] = [
-  { id: "person", kind: "person", ring: "outer", x: 17, y: 40, color: "#4285F4", size: 35, hoverX: -3, hoverY: -2, delay: -6.7 },
-  { id: "chart", kind: "chart", ring: "outer", x: 83, y: 40, color: "#9b59b6", size: 38, hoverX: -2, hoverY: 3, delay: -3.8 },
+  { id: "person", kind: "person", ring: "outer", x: 17, y: 42, color: "#4285F4", size: 35, hoverX: -3, hoverY: -2, delay: -6.7 },
+  { id: "chart", kind: "chart", ring: "outer", x: 83, y: 42, color: "#9b59b6", size: 38, hoverX: -2, hoverY: 3, delay: -3.8 },
   { id: "chat", kind: "chat", ring: "outer", x: 14, y: 58, color: "#4285F4", size: 38, hoverX: 3, hoverY: 1, delay: -4.4 },
   { id: "doc", kind: "doc", ring: "outer", x: 88, y: 58, color: "#FBBC05", size: 35, hoverX: 2, hoverY: 2, delay: -5.1 },
   { id: "mail", kind: "mail", ring: "outer", x: 24, y: 78, color: "#4285F4", size: 35, hoverX: -2, hoverY: 2, delay: -8.9 },
   { id: "globe", kind: "globe", ring: "outer", x: 76, y: 78, color: "#22d3ee", size: 37, hoverX: -3, hoverY: -2, delay: -7.4 },
   { id: "check", kind: "check", ring: "outer", x: 50, y: 88, color: "#34A853", size: 36, hoverX: 2, hoverY: -3, delay: -2.5 },
-  { id: "cloud", kind: "cloud", ring: "outer", x: 50, y: 43, color: "#a78bfa", size: 38, hoverX: 3, hoverY: -2, delay: -1.2 },
+  { id: "cloud", kind: "cloud", ring: "outer", x: 50, y: 45, color: "#a78bfa", size: 38, hoverX: 3, hoverY: -2, delay: -1.2 },
   { id: "phone", kind: "phone", ring: "inner", x: 31, y: 48, color: "#22d3ee", size: 34, hoverX: -2, hoverY: 3, delay: -5.5 },
   { id: "lightning", kind: "lightning", ring: "inner", x: 69, y: 48, color: "#FBBC05", size: 29, hoverX: -2, hoverY: 2, delay: -1.8 },
   { id: "browser", kind: "browser", ring: "inner", x: 68, y: 69, color: "#9b59b6", size: 41, hoverX: 2, hoverY: 3, delay: -3.1 },
@@ -320,7 +320,7 @@ const DELIVERY_LINKS = [
 ] as const;
 // Tuning knob: keep fewer outer-loop flow dots so the delivery path reads first.
 // Revert to [0, 1, 2, 3, 4, 5, 6, 7] if you want the busier sparkle pass back.
-const OUTER_FLOW_SEGMENTS = [2, 3] as const;
+const OUTER_FLOW_SEGMENTS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 function svgPoint(point: { x: number; y: number }) {
   return { x: point.x, y: point.y * 1.2 };
@@ -347,14 +347,18 @@ function FlowDot({
   color,
   delay,
   duration = 5.8,
+  opacity = 0.58,
+  radius = 0.46,
 }: {
   path: string;
   color: string;
   delay: number;
   duration?: number;
+  opacity?: number;
+  radius?: number;
 }) {
   return (
-    <circle r="0.46" fill={color} opacity="0.58" filter="url(#flowDotGlow)">
+    <circle r={radius} fill={color} opacity={opacity} filter="url(#flowDotGlow)">
       <animateMotion path={path} dur={`${duration}s`} begin={`${delay}s`} repeatCount="indefinite" />
     </circle>
   );
@@ -475,7 +479,15 @@ function FlowLines() {
         const path = outerLoopPaths[index];
 
         return path ? (
-        <FlowDot key={`outer-flow-${index}`} path={path} color={index % 2 === 0 ? "#a78bfa" : "#4285F4"} delay={index * -0.72} />
+          <FlowDot
+            key={`outer-flow-${index}`}
+            path={path}
+            color={index % 2 === 0 ? "#a78bfa" : "#4285F4"}
+            delay={index * -1.05}
+            duration={7.4}
+            opacity={0.42}
+            radius={0.4}
+          />
         ) : null;
       })}
       {innerLoopPaths.map((path, index) => (
@@ -646,10 +658,10 @@ function HubAnchor() {
 
       <div className="relative" style={{ animation: "hub-hover 7s ease-in-out infinite" }}>
         <div className="ai-glow rounded-2xl">
-          <div className="relative flex h-[54px] w-[220px] items-center justify-center gap-2 rounded-2xl border border-zinc-700/80 bg-zinc-950/95 px-4 shadow-2xl shadow-black/50 backdrop-blur sm:h-[58px] sm:w-[238px]">
+          <div className="relative flex h-[50px] w-[208px] items-center justify-center gap-2 rounded-2xl border border-zinc-700/80 bg-zinc-950/95 px-3 shadow-2xl shadow-black/50 backdrop-blur sm:h-[58px] sm:w-[238px] sm:px-4">
             <HubEdgeDots />
-            <SparkleGlyph size={22} color="#FBBC05" />
-            <span className="whitespace-nowrap text-center text-[14px] font-bold leading-tight text-zinc-100">
+            <SparkleGlyph size={20} color="#FBBC05" />
+            <span className="whitespace-nowrap text-center text-[13px] font-bold leading-tight text-zinc-100 sm:text-[14px]">
               AI Gig Orchestration
             </span>
           </div>
