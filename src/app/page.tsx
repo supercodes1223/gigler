@@ -102,7 +102,7 @@ export default function HomePage() {
                 Request Invite
               </Link>
               <Link
-                href="/about"
+                href="/#how-it-works"
                 className="rounded-full border border-brand-border px-8 py-3 text-center text-base font-semibold text-foreground transition hover:bg-brand-surface"
               >
                 Learn More
@@ -110,14 +110,14 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative z-10 -mt-16 sm:-mt-10 lg:-mt-40">
+          <div className="relative z-10 -mt-20 sm:-mt-12 lg:-mt-40">
             <OrchestrationHeroDemo className="max-w-[330px] sm:max-w-[430px] lg:max-w-xl" />
           </div>
         </div>
       </section>
 
       {/* Process demo */}
-      <section className="px-6 pb-24 pt-6">
+      <section id="how-it-works" className="scroll-mt-24 px-6 pb-24 pt-6">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="lg:sticky lg:top-28">
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
