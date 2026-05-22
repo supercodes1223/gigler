@@ -158,10 +158,11 @@ export default function HomePage() {
                 week.
               </p>
               <p>
-                Powered by Orca, our own orchestration model built for agentic
-                tool use, Gigler breaks a gig into steps, selects and uses the
-                right third-party AI tools, coding agents, cloud platforms, and
-                workflows, then coordinates them through delivery.
+                Powered by Orca, our own orchestration model built to
+                coordinate AI agents and tools, Gigler breaks a gig into steps,
+                selects and uses the right third-party AI systems, coding
+                agents, cloud platforms, and workflows, then coordinates them
+                through completion.
               </p>
               <p>
                 Gigler looks at the work as a Gig, not a pile of tokens. The
