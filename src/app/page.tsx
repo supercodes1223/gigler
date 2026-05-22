@@ -146,26 +146,27 @@ export default function HomePage() {
                 Orchestration
               </p>
               <h2 className="max-w-xl text-3xl font-bold leading-tight md:text-4xl">
-                Stop choosing tools. Start finishing gigs.
+                Stop choosing tools. Start finishing actual work.
               </h2>
             </div>
             <div className="space-y-5 text-lg leading-relaxed text-brand-muted">
               <p>
-                Gigler looks at the work as a Gig, not a pile of tokens. It
-                breaks down what needs to happen, chooses the right AI models,
-                agents, and platforms for each step, and coordinates them until
-                the work is done.
+                AI tools are evolving every day, and the right choice depends
+                on the work and the outcome people want. Gigler takes the
+                guesswork out of choosing between ChatGPT, Claude, Codex,
+                Cursor, Gemini, agents, cloud tools, and whatever launches next
+                week.
               </p>
               <p>
-                You do not need to decide whether a task belongs in Claude,
-                Codex, Cursor, or another tool. Gigler routes the gig to the
-                right mix, avoids overkill for small tasks, and brings in
-                stronger systems when the work demands it.
+                Powered by Orca, our own orchestration model built for agentic
+                tool use, Gigler breaks a gig into steps, selects and uses the
+                right third-party AI tools, coding agents, cloud platforms, and
+                workflows, then coordinates them through delivery.
               </p>
               <p>
-                AI tools are evolving every day. Gigler keeps up with the
-                frontier, chooses the best-fit tools available, and incorporates
-                the right ones for the right tasks.
+                Gigler looks at the work as a Gig, not a pile of tokens. The
+                focus is the outcome you want completed, not the model menu you
+                had to navigate to get there.
               </p>
             </div>
           </div>
@@ -181,10 +182,10 @@ export default function HomePage() {
             </div>
             <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
               <p className="mb-3 text-sm font-semibold text-foreground">
-                Best-fit AI routing
+                Orca model orchestration
               </p>
               <p className="text-sm leading-relaxed text-brand-muted">
-                Gigler chooses the model, agent, or platform based on the job.
+                Gigler selects and uses third-party tools around the work.
               </p>
             </div>
             <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
