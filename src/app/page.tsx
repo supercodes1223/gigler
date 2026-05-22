@@ -19,13 +19,17 @@ const orchestrationLogos = [
   { name: "Cursor", src: "/logos/cursor.svg" },
   { name: "Gemini", src: "/logos/gemini.svg" },
   { name: "Google Cloud", src: "/logos/google-cloud.svg" },
+  { name: "AWS", src: "/logos/aws.svg" },
+  { name: "OpenClaw", initials: "OC" },
+  { name: "Claude Cowork", src: "/logos/claude.svg" },
+  { name: "Hermes", initials: "H" },
 ] as const;
 
 function OrchestrationLogoStrip({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
       <p className="mb-4 max-w-sm text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
-        AI Gig Orchestration using the best AI systems
+        AI Gig Orchestration
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-md">
         {orchestrationLogos.map((logo) => (
@@ -33,13 +37,19 @@ function OrchestrationLogoStrip({ className = "" }: { className?: string }) {
             key={logo.name}
             className="flex min-h-12 items-center gap-3 rounded-lg border border-brand-border bg-brand-surface/55 px-3 py-2"
           >
-            <Image
-              src={logo.src}
-              alt=""
-              width={22}
-              height={22}
-              className="h-5 w-5 shrink-0 brightness-0 invert opacity-70"
-            />
+            {"src" in logo ? (
+              <Image
+                src={logo.src}
+                alt=""
+                width={22}
+                height={22}
+                className="h-5 w-5 shrink-0 brightness-0 invert opacity-70"
+              />
+            ) : (
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-border text-[9px] font-bold tracking-normal text-brand-muted">
+                {logo.initials}
+              </span>
+            )}
             <span className="text-sm font-semibold leading-tight text-foreground">
               {logo.name}
             </span>
