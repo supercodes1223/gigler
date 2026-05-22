@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import CapabilityGrid from "@/components/CapabilityGrid";
 import GiglerHeroDemo from "@/components/GiglerHeroDemo";
@@ -10,6 +11,44 @@ export const metadata: Metadata = {
   title: "Gigler — AI Work Orchestration for Real Work",
   alternates: { canonical: "/" },
 };
+
+const orchestrationLogos = [
+  { name: "ChatGPT", src: "/logos/chatgpt.svg" },
+  { name: "Claude Code", src: "/logos/claude.svg" },
+  { name: "Codex", src: "/logos/chatgpt.svg" },
+  { name: "Cursor", src: "/logos/cursor.svg" },
+  { name: "Gemini", src: "/logos/gemini.svg" },
+  { name: "Google Cloud", src: "/logos/google-cloud.svg" },
+] as const;
+
+function OrchestrationLogoStrip({ className = "" }: { className?: string }) {
+  return (
+    <div className={className}>
+      <p className="mb-4 max-w-sm text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
+        AI Gig Orchestration using the best AI systems
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-md">
+        {orchestrationLogos.map((logo) => (
+          <div
+            key={logo.name}
+            className="flex min-h-12 items-center gap-3 rounded-lg border border-brand-border bg-brand-surface/55 px-3 py-2"
+          >
+            <Image
+              src={logo.src}
+              alt=""
+              width={22}
+              height={22}
+              className="h-5 w-5 shrink-0 brightness-0 invert opacity-70"
+            />
+            <span className="text-sm font-semibold leading-tight text-foreground">
+              {logo.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
@@ -148,6 +187,7 @@ export default function HomePage() {
               <h2 className="max-w-xl text-3xl font-bold leading-tight md:text-4xl">
                 Stop choosing tools. Start finishing actual work.
               </h2>
+              <OrchestrationLogoStrip className="mt-10 hidden lg:block" />
             </div>
             <div className="space-y-5 text-lg leading-relaxed text-brand-muted">
               <p>
@@ -171,6 +211,7 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+          <OrchestrationLogoStrip className="mt-10 lg:hidden" />
         </div>
       </section>
 
