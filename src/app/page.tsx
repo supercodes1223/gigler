@@ -137,6 +137,74 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Orchestration positioning */}
+      <section id="orchestration" className="scroll-mt-24 px-6 pb-24">
+        <div className="mx-auto max-w-6xl rounded-lg border border-brand-border bg-background-alt/70 p-6 md:p-10">
+          <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+            <div>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
+                Orchestration
+              </p>
+              <h2 className="max-w-xl text-3xl font-bold leading-tight md:text-4xl">
+                Stop choosing tools. Start finishing gigs.
+              </h2>
+            </div>
+            <div className="space-y-5 text-lg leading-relaxed text-brand-muted">
+              <p>
+                Gigler looks at the work as a Gig, not a pile of tokens. It
+                breaks down what needs to happen, chooses the right AI models,
+                agents, and platforms for each step, and coordinates them until
+                the work is done.
+              </p>
+              <p>
+                You do not need to decide whether a task belongs in Claude,
+                Codex, Cursor, or another tool. Gigler routes the gig to the
+                right mix, avoids overkill for small tasks, and brings in
+                stronger systems when the work demands it.
+              </p>
+              <p>
+                AI tools are evolving every day. Gigler keeps up with the
+                frontier, chooses the best-fit tools available, and incorporates
+                the right ones for the right tasks.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Right-sized execution
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                Small tasks stay simple; complex gigs get deeper orchestration.
+              </p>
+            </div>
+            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Best-fit AI routing
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                Gigler chooses the model, agent, or platform based on the job.
+              </p>
+            </div>
+            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">
+                Transparent delivery
+              </p>
+              <p className="text-sm leading-relaxed text-brand-muted">
+                Each gig can show the tools and platforms used to complete the
+                work.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-8 max-w-3xl text-base leading-relaxed text-brand-muted">
+            Gigler&apos;s orchestration layer keeps learning from completed gigs
+            so it can make better choices as frontier AI changes.
+          </p>
+        </div>
+      </section>
+
       {/* Everyday examples */}
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-6xl">
