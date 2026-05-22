@@ -171,39 +171,6 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Right-sized execution
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                Small tasks stay simple; complex gigs get deeper orchestration.
-              </p>
-            </div>
-            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Orca model orchestration
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                Gigler selects and uses third-party tools around the work.
-              </p>
-            </div>
-            <div className="rounded-lg border border-brand-border bg-brand-surface/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Transparent delivery
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                Each gig can show the tools and platforms used to complete the
-                work.
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-8 max-w-3xl text-base leading-relaxed text-brand-muted">
-            Gigler&apos;s orchestration layer keeps learning from completed gigs
-            so it can make better choices as frontier AI changes.
-          </p>
         </div>
       </section>
 
