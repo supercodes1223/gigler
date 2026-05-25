@@ -80,6 +80,26 @@ export default function AboutPage() {
             </p>
 
             <h2 className="text-2xl font-bold text-foreground pt-4">
+              Not Locked Into One AI Lab
+            </h2>
+
+            <p>
+              Frontier AI labs keep shipping powerful models, agents, and
+              platforms, but each one pulls people into its own interface,
+              memory, and workflow. Gigler removes that complexity. Each gig is
+              routed across the right mix of AI models, agents, tools, and
+              platforms, so the work is not dependent on any single lab or
+              system.
+            </p>
+
+            <p>
+              Powered by Orca, our model designed and trained for AI
+              orchestration across platforms, Gigler can choose the right tool
+              for each step, coordinate those systems together, and keep
+              improving as more gigs are completed.
+            </p>
+
+            <h2 className="text-2xl font-bold text-foreground pt-4">
               More Than Conversation
             </h2>
 
