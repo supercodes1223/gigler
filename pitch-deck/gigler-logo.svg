@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 440" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gigler logo">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap');
+      .brand-font {
+        font-family: 'Fredoka', 'Baloo 2', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+        font-weight: 700;
+        font-style: normal;
+      }
+    ]]></style>
+  </defs>
+
+  <!-- black rounded background -->
+  <rect x="0" y="0" width="440" height="440" rx="48" ry="48" fill="#000000"/>
+
+  <!-- "Gigler" centered, sized to fit naturally without squishing -->
+  <g transform="translate(220, 240) rotate(-4)">
+    <text class="brand-font"
+          text-anchor="middle"
+          dominant-baseline="central"
+          x="0" y="0"
+          font-size="160"
+          fill="#ffffff"
+          letter-spacing="-4">Gigler</text>
+  </g>
+</svg>

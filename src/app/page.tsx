@@ -201,23 +201,28 @@ export default function HomePage() {
             </div>
             <div className="space-y-5 text-lg leading-relaxed text-brand-muted">
               <p>
-                AI tools are evolving every day, and the right choice depends
-                on the work and the outcome people want. Gigler takes the
-                guesswork out of choosing between ChatGPT, Claude, Codex,
-                Cursor, Gemini, agents, cloud tools, and whatever launches next
-                week.
+                AI tools are getting more capable every week. But each one
+                lives in its own interface, context, memory, and workflow.
+                Gigler brings together best-in-class agents, AI tools, and
+                frontier models without locking you into any single system, so
+                you do not have to choose the right tool, manage each step, and
+                keep the work on track yourself.
               </p>
               <p>
-                Powered by Orca, our own orchestration model built to
-                coordinate AI agents and tools, Gigler breaks a gig into steps,
-                selects and uses the right third-party AI systems, coding
-                agents, cloud platforms, and workflows, then coordinates them
-                through completion.
+                Powered by Orca, our own model designed and trained for AI
+                orchestration across platforms, Gigler breaks a gig into steps,
+                chooses the right mix, and coordinates frontier agents across
+                platforms. One step might go to a frontier coding agent, another
+                to a cloud or browser tool, and another to an AI agent with
+                specialized capabilities, all coordinated toward the completed
+                gig.
               </p>
               <p>
                 Gigler looks at the work as a Gig, not a pile of tokens. The
                 focus is the outcome you want completed, not the model menu you
-                had to navigate to get there.
+                had to navigate to get there. As gigs are completed, Orca keeps
+                getting smarter at routing work across models, agents, and
+                platforms.
               </p>
             </div>
           </div>

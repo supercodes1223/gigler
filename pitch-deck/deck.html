@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gigler.ai - Pitch Deck</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; color: #0a0a0a; background: #fff; }
+  .slide {
+    width: 13.333in;
+    height: 7.5in;
+    padding: 0.7in 0.9in;
+    page-break-after: always;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+  .slide-num {
+    position: absolute;
+    bottom: 0.4in;
+    right: 0.6in;
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 1.5px;
+  }
+  .brand-mark {
+    position: absolute;
+    top: 0.4in;
+    left: 0.9in;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #2563eb;
+    text-transform: uppercase;
+  }
+  .accent { color: #2563eb; }
+  h1 { font-size: 64px; font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; }
+  h2 { font-size: 42px; font-weight: 800; line-height: 1.1; letter-spacing: -0.8px; margin-bottom: 0.3in; }
+  h3 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  p { font-size: 19px; line-height: 1.55; color: #333; }
+  .lead { font-size: 26px; line-height: 1.4; color: #222; max-width: 9in; }
+
+  /* Cover */
+  .cover { background: #0a0a0a; color: #fff; }
+  .cover .brand-mark { color: #2563eb; }
+  .cover h1 { font-size: 110px; font-weight: 900; letter-spacing: -3px; }
+  .cover .tagline { font-size: 38px; font-weight: 300; color: #aaa; margin-top: 0.2in; max-width: 9in; }
+  .cover .footer { position: absolute; bottom: 0.7in; left: 0.9in; right: 0.9in; display: flex; justify-content: space-between; color: #888; font-size: 16px; }
+
+  /* Big quote / one-liner slide */
+  .one-liner { background: #2563eb; color: #fff; }
+  .one-liner .brand-mark { color: #fff; opacity: 0.7; }
+  .one-liner h1 { font-size: 88px; font-weight: 900; letter-spacing: -2px; max-width: 11in; color: #fff; }
+  .one-liner .sub { font-size: 28px; margin-top: 0.4in; max-width: 10in; color: #fff; opacity: 0.85; }
+
+  /* 2-column layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6in; margin-top: 0.2in; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4in; margin-top: 0.2in; }
+  .card {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 0.3in;
+    background: #fafafa;
+  }
+  .card h3 { color: #0a0a0a; margin-bottom: 8px; }
+  .card p { font-size: 16px; color: #555; }
+  .card .icon {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    color: #2563eb;
+    text-transform: uppercase;
+  }
+
+  /* Capabilities slide: hero + grid */
+  .cap-layout {
+    display: grid;
+    grid-template-columns: 5.2in 1fr;
+    gap: 0.4in;
+    margin-top: 0.15in;
+  }
+  .hero-card {
+    background: #0a0a0a;
+    color: #fff;
+    border-radius: 14px;
+    padding: 0.35in 0.4in;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-card .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #2563eb;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero-card h3 {
+    font-size: 32px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .hero-card .tagline {
+    font-size: 16px;
+    color: #aaa;
+    margin-bottom: 18px;
+  }
+  .codeblock {
+    background: #161616;
+    border-radius: 8px;
+    padding: 18px 22px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    margin-top: auto;
+  }
+  .codeblock .kw { color: #c084fc; }
+  .codeblock .fn { color: #60a5fa; }
+  .codeblock .str { color: #86efac; }
+  .codeblock .num { color: #fcd34d; }
+  .deploy-line {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #4ade80;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+  .cap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .cap-tile {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 11px 14px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cap-tile h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0a0a0a;
+    margin-bottom: 2px;
+  }
+  .cap-tile p {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.35;
+  }
+
+  /* Story slide (sports parents) */
+  .story { background: #0a0a0a; color: #fff; }
+  .story .brand-mark { color: #2563eb; }
+  .story h2 { color: #fff; }
+  .story .subtitle { color: #888; font-size: 18px; margin-bottom: 0.4in; }
+  .timeline { display: flex; flex-direction: column; gap: 0.18in; margin-top: 0.1in; }
+  .step {
+    display: grid;
+    grid-template-columns: 0.9in 1fr;
+    gap: 0.3in;
+    align-items: start;
+  }
+  .step .time { font-size: 18px; font-weight: 700; color: #2563eb; padding-top: 2px; }
+  .step .what { font-size: 18px; color: #ddd; line-height: 1.4; }
+  .step .what strong { color: #fff; }
+
+  /* List slide */
+  ul.bullets { list-style: none; margin-top: 0.2in; }
+  ul.bullets li { font-size: 22px; line-height: 1.7; color: #222; padding-left: 30px; position: relative; }
+  ul.bullets li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    background: #2563eb;
+    border-radius: 2px;
+  }
+
+  /* Data row slide */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6in; margin-top: 0.5in; }
+  .stat .num { font-size: 56px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; }
+  .stat .label { font-size: 16px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* NVIDIA-tech slide */
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5in; margin-top: 0.2in; }
+  .tech-now h3 { color: #999; }
+  .tech-future h3 { color: #2563eb; }
+  .tech-list { list-style: none; margin-top: 12px; }
+  .tech-list li { font-size: 17px; color: #333; padding: 6px 0; line-height: 1.5; }
+  .tech-list li::before { content: "→"; color: #2563eb; margin-right: 10px; font-weight: 700; }
+
+  /* Closing */
+  .close { background: #0a0a0a; color: #fff; }
+  .close .brand-mark { color: #2563eb; }
+  .close h1 { font-size: 90px; font-weight: 900; letter-spacing: -2px; }
+  .close .ask { font-size: 26px; margin-top: 0.3in; color: #ddd; max-width: 10in; line-height: 1.5; }
+  .close .contact { position: absolute; bottom: 0.7in; left: 0.9in; right: 0.9in; display: flex; flex-direction: column; gap: 8px; color: #aaa; font-size: 18px; }
+  .close .contact strong { color: #fff; font-weight: 600; }
+
+  .small { font-size: 14px; color: #888; margin-top: 0.3in; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- Slide 1: Cover -->
+<section class="slide cover">
+  <div class="brand-mark">GIGLER</div>
+  <h1>AI work<br><span class="accent">orchestration.</span></h1>
+  <p class="tagline">Send the request. Gigler plans, tracks, and delivers real work.</p>
+  <div class="footer">
+    <span>gigler.ai</span>
+    <span>support@carmenai.co</span>
+  </div>
+</section>
+
+<!-- Slide 2: The problem -->
+<section class="slide">
+  <div class="brand-mark">THE PROBLEM</div>
+  <h2>AI today talks. It doesn&rsquo;t do.</h2>
+  <p class="lead">
+    Every AI product wants you to install another app, learn another interface,
+    chat in another tab. And after all that effort, the AI usually just&hellip; answers a question.
+  </p>
+  <p class="lead" style="margin-top: 0.3in;">
+    Real people don&rsquo;t want a chatbot. They want the bill paid, the photos organized, the
+    party planned, the form submitted, the website built. They want it done in the channel
+    they already live in: <strong>SMS and email.</strong>
+  </p>
+  <div class="slide-num">02</div>
+</section>
+
+<!-- Slide 3: The big idea -->
+<section class="slide one-liner">
+  <div class="brand-mark">THE IDEA</div>
+  <h1>Send a request.<br>Or add Gigler to the thread.<br>It plans, tracks, and delivers.</h1>
+  <p class="sub">Text, email, or voice. No dashboard to learn. No screen to babysit.</p>
+  <div class="slide-num">03</div>
+</section>
+
+<!-- Slide 4: How it works -->
+<section class="slide">
+  <div class="brand-mark">HOW IT WORKS</div>
+  <h2>Every request becomes a Gig.</h2>
+  <div class="grid-2" style="margin-top: 0.2in;">
+    <div>
+      <p class="lead">A user sends a request by text, email, or voice. Gigler turns it into a dedicated
+      Gig with its own memory, schedule, progress updates, and deliverables.</p>
+      <p class="lead" style="margin-top: 0.3in;">Gigler's agents pick the right tools: reply, draft,
+      browse, run code, watch video, generate PDFs, schedule follow-ups, and ask a human when a decision is needed.</p>
+    </div>
+    <div class="card" style="background: #0a0a0a; color: #fff; border: none;">
+      <h3 style="color: #2563eb;">Agent toolkit</h3>
+      <ul class="tech-list" style="margin-top: 14px;">
+        <li style="color: #ddd;">Reply via SMS / MMS / email / voice</li>
+        <li style="color: #ddd;">Browse and fill out web forms</li>
+        <li style="color: #ddd;">Generate PDFs, sites, reports, deliverables</li>
+        <li style="color: #ddd;">Run real code in a sandbox</li>
+        <li style="color: #ddd;">Read images, video, documents</li>
+        <li style="color: #ddd;">Schedule reminders &amp; follow-ups</li>
+        <li style="color: #ddd;">Live View hand-off to a human</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">04</div>
+</section>
+
+<!-- Slide 5: KILLER STORY - Sports parents -->
+<section class="slide story">
+  <div class="brand-mark">A REAL DAY WITH GIGLER</div>
+  <h2>The team-parents group chat.</h2>
+  <p class="subtitle">Saturday, 9am. A parent adds <span class="accent">+1-555-GIGLER</span> to the group thread:</p>
+  <div class="timeline">
+    <div class="step">
+      <div class="time">9:02 AM</div>
+      <div class="what">Mom: <em>"Hey Gigler, can you organize photos during the tournament and recap each game?"</em></div>
+    </div>
+    <div class="step">
+      <div class="time">9:03 AM</div>
+      <div class="what"><strong>Gigler:</strong> "On it. Drop photos and game clips here. I'll sort by player and recap when each game ends."</div>
+    </div>
+    <div class="step">
+      <div class="time">10-11 AM</div>
+      <div class="what">Parents share photos and a livestream link. Gigler watches the video, identifies players via jersey numbers, tags photos automatically.</div>
+    </div>
+    <div class="step">
+      <div class="time">11:15 AM</div>
+      <div class="what"><strong>Gigler:</strong> "Game 1 recap: 3-1 win. Top moments: Avery's assist (4:12), Maya's save (8:30). Photo album: gigler.ai/d/k7m2"</div>
+    </div>
+    <div class="step">
+      <div class="time">5:00 PM</div>
+      <div class="what"><strong>Gigler:</strong> "Tournament wrap: 4 games, 32 photos sorted by 12 players, 4 recap videos, parent email sent. PDF album attached."</div>
+    </div>
+  </div>
+  <div class="slide-num">05</div>
+</section>
+
+<!-- Slide 6: Use cases -->
+<section class="slide">
+  <div class="brand-mark">WHAT GIGLER CAN ALREADY DO</div>
+  <h2 style="margin-bottom: 0.05in;">Real work, delivered anywhere.</h2>
+  <p style="font-size: 18px; color: #666; margin-bottom: 0.2in;">From beach to office, Gigler orchestrates the work behind every request.</p>
+  <div class="cap-layout">
+    <div class="hero-card">
+      <div class="label">Flagship capability</div>
+      <h3>Gig Programmer</h3>
+      <p class="tagline">Code, debug, and ship features. Anytime, anywhere. From a hammock if you want.</p>
+      <div class="codeblock">
+<span class="kw">const</span> <span class="fn">app</span> = express()<br>
+<span class="fn">app</span>.<span class="fn">get</span>(<span class="str">'/api'</span>, handler)<br>
+<span class="fn">app</span>.<span class="fn">listen</span>(<span class="num">3000</span>)
+        <div class="deploy-line">&#10003; Deployed successfully &middot; preview at gigler.ai/d/k7m2</div>
+      </div>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-tile">
+        <h4>Gig Orchestration</h4>
+        <p>Plan, track, coordinate, deliver.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Landing Pages</h4>
+        <p>Full websites from a text description.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Event Planning</h4>
+        <p>Book venues, send invites, coordinate.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Photo Collages</h4>
+        <p>Organize and share event photos.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>PDFs &amp; Reports</h4>
+        <p>Polished documents and summaries.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Restaurant Menus</h4>
+        <p>Print-ready or shareable online.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Excel Sheets</h4>
+        <p>Organize, analyze, share data.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Bills Dashboard</h4>
+        <p>Auto-extracted utilities, due dates.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">06</div>
+</section>
+
+<!-- Slide 7: Why now -->
+<section class="slide">
+  <div class="brand-mark">WHY NOW</div>
+  <h2>Five things just clicked into place.</h2>
+  <ul class="bullets">
+    <li>LLMs are finally good enough for autonomous, multi-step execution. Not just chat.</li>
+    <li>Vision + multimodal models can watch video, read receipts, classify uploads in real time.</li>
+    <li>Headless browsers are programmable, observable, and human-in-the-loop ready.</li>
+    <li>Sandboxes for code execution are cheap, safe, and per-session billable.</li>
+    <li>SMS/MMS and email infrastructure is commodity. Reach is universal.</li>
+  </ul>
+  <p class="small">The first generation of consumer AI agents that actually do work, not just answer questions, is here.</p>
+  <div class="slide-num">07</div>
+</section>
+
+<!-- Slide 8: NVIDIA tech fit -->
+<section class="slide">
+  <div class="brand-mark">TECH STACK &amp; NVIDIA FIT</div>
+  <h2>Why we want to build on NVIDIA.</h2>
+  <div class="tech-grid">
+    <div class="tech-now">
+      <h3>Today</h3>
+      <ul class="tech-list">
+        <li>Google Gemini for reasoning, vision, function calling</li>
+        <li>Twilio for SMS / MMS / Conversations</li>
+        <li>Cloudflare Workers + Agents SDK + Durable Objects (in migration)</li>
+        <li>Cloudflare R2 for media, Browser Run for web tasks</li>
+        <li>Per-gig agent architecture with durable execution</li>
+      </ul>
+    </div>
+    <div class="tech-future">
+      <h3>What NVIDIA unlocks for us</h3>
+      <ul class="tech-list">
+      <li><strong>NVIDIA NIM microservices</strong> for scalable inference across agent workloads</li>
+      <li><strong>NVIDIA NeMo</strong> for improving AI agent workflows and multimodal understanding</li>
+      <li><strong>NeMo Guardrails</strong> for safer human-in-the-loop autonomous execution</li>
+      <li><strong>NVIDIA Riva</strong> for voice agents: briefings, voice input, and human decision calls</li>
+        <li><strong>Inception ecosystem</strong>: partners building on similar agent infrastructure</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">08</div>
+</section>
+
+<!-- Slide 9: Traction & roadmap -->
+<section class="slide">
+  <div class="brand-mark">WHERE WE ARE</div>
+  <h2>Live product. Active users. Aggressive roadmap.</h2>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="num">7</div>
+      <div class="label">Active testers (alpha)</div>
+    </div>
+    <div class="stat">
+      <div class="num">~$1M</div>
+      <div class="label">Funding raised</div>
+    </div>
+    <div class="stat">
+      <div class="num">6 wks</div>
+      <div class="label">To Cloudflare cutover &amp; v2 launch</div>
+    </div>
+  </div>
+  <ul class="bullets" style="margin-top: 0.5in;">
+    <li>Live SMS &amp; email gig completion at gigler.ai today.</li>
+    <li>Sister company Carmen.ai validates the underlying multi-agent infrastructure.</li>
+    <li>Roadmap: per-gig durable agents (Q2), code sandboxes (Q3), browser agents (Q3), voice agents on NVIDIA Riva (Q4).</li>
+  </ul>
+  <div class="slide-num">09</div>
+</section>
+
+<!-- Slide 10: Closing / Ask -->
+<section class="slide close">
+  <div class="brand-mark">THE ASK</div>
+  <h1>Let&rsquo;s build the<br>SMS-native AI agent<br>on NVIDIA.</h1>
+  <p class="ask">
+    We&rsquo;re applying to NVIDIA Inception for compute credits, technical access to NIM and Riva,
+    and a partnership path to ship voice + vision agents at consumer scale. Gigler is the
+    everyday-user interface NVIDIA agents have been waiting for.
+  </p>
+  <div class="contact">
+    <span><strong>gigler.ai</strong></span>
+    <span>support@carmenai.co</span>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gigler.ai - Pitch Deck</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; color: #0a0a0a; background: #fff; }
+  .slide {
+    width: 13.333in;
+    height: 7.5in;
+    padding: 0.7in 0.9in;
+    page-break-after: always;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+  .slide-num {
+    position: absolute;
+    bottom: 0.4in;
+    right: 0.6in;
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 1.5px;
+  }
+  .brand-mark {
+    position: absolute;
+    top: 0.4in;
+    left: 0.9in;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #2563eb;
+    text-transform: uppercase;
+  }
+  .accent { color: #2563eb; }
+  h1 { font-size: 64px; font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; }
+  h2 { font-size: 42px; font-weight: 800; line-height: 1.1; letter-spacing: -0.8px; margin-bottom: 0.3in; }
+  h3 { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  p { font-size: 19px; line-height: 1.55; color: #333; }
+  .lead { font-size: 26px; line-height: 1.4; color: #222; max-width: 9in; }
+  .problem-slide {
+    justify-content: flex-start;
+    padding-top: 0.7in;
+  }
+  .problem-slide h2 {
+    font-size: 40px;
+    margin-bottom: 0.22in;
+    max-width: 10.7in;
+  }
+  .problem-slide .lead {
+    font-size: 23px;
+    line-height: 1.34;
+    max-width: 10.5in;
+  }
+  .problem-slide .lead + .lead {
+    margin-top: 0.22in !important;
+  }
+
+  /* Cover */
+  .cover { background: #0a0a0a; color: #fff; }
+  .cover .brand-mark { color: #2563eb; }
+  .cover h1 { font-size: 110px; font-weight: 900; letter-spacing: -3px; }
+  .cover .tagline { font-size: 38px; font-weight: 300; color: #aaa; margin-top: 0.2in; max-width: 9in; }
+  .cover .footer { position: absolute; bottom: 0.7in; left: 0.9in; right: 0.9in; display: flex; justify-content: space-between; color: #888; font-size: 16px; }
+
+  /* Big quote / one-liner slide */
+  .one-liner { background: #2563eb; color: #fff; }
+  .one-liner .brand-mark { color: #fff; opacity: 0.7; }
+  .one-liner h1 { font-size: 88px; font-weight: 900; letter-spacing: -2px; max-width: 11in; color: #fff; }
+  .one-liner .sub { font-size: 28px; margin-top: 0.4in; max-width: 10in; color: #fff; opacity: 0.85; }
+
+  /* 2-column layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6in; margin-top: 0.2in; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4in; margin-top: 0.2in; }
+  .card {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 0.3in;
+    background: #fafafa;
+  }
+  .card h3 { color: #0a0a0a; margin-bottom: 8px; }
+  .card p { font-size: 16px; color: #555; }
+  .card .icon {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    color: #2563eb;
+    text-transform: uppercase;
+  }
+
+  /* Capabilities slide: hero + grid */
+  .cap-layout {
+    display: grid;
+    grid-template-columns: 5.2in 1fr;
+    gap: 0.4in;
+    margin-top: 0.15in;
+  }
+  .hero-card {
+    background: #0a0a0a;
+    color: #fff;
+    border-radius: 14px;
+    padding: 0.35in 0.4in;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-card .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #2563eb;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero-card h3 {
+    font-size: 32px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .hero-card .tagline {
+    font-size: 16px;
+    color: #aaa;
+    margin-bottom: 18px;
+  }
+  .codeblock {
+    background: #161616;
+    border-radius: 8px;
+    padding: 18px 22px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    margin-top: auto;
+  }
+  .codeblock .kw { color: #c084fc; }
+  .codeblock .fn { color: #60a5fa; }
+  .codeblock .str { color: #86efac; }
+  .codeblock .num { color: #fcd34d; }
+  .deploy-line {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #4ade80;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+  .cap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .cap-tile {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    padding: 11px 14px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cap-tile h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0a0a0a;
+    margin-bottom: 2px;
+  }
+  .cap-tile p {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.35;
+  }
+
+  /* Story slide (sports parents) */
+  .story { background: #0a0a0a; color: #fff; }
+  .story .brand-mark { color: #2563eb; }
+  .story h2 { color: #fff; }
+  .story .subtitle { color: #888; font-size: 18px; margin-bottom: 0.4in; }
+  .timeline { display: flex; flex-direction: column; gap: 0.18in; margin-top: 0.1in; }
+  .step {
+    display: grid;
+    grid-template-columns: 0.9in 1fr;
+    gap: 0.3in;
+    align-items: start;
+  }
+  .step .time { font-size: 18px; font-weight: 700; color: #2563eb; padding-top: 2px; }
+  .step .what { font-size: 18px; color: #ddd; line-height: 1.4; }
+  .step .what strong { color: #fff; }
+
+  /* List slide */
+  ul.bullets { list-style: none; margin-top: 0.2in; }
+  ul.bullets li { font-size: 22px; line-height: 1.7; color: #222; padding-left: 30px; position: relative; }
+  ul.bullets li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    background: #2563eb;
+    border-radius: 2px;
+  }
+
+  /* Data row slide */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6in; margin-top: 0.5in; }
+  .stat .num { font-size: 56px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; }
+  .stat .label { font-size: 16px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* NVIDIA-tech slide */
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5in; margin-top: 0.2in; }
+  .tech-now h3 { color: #999; }
+  .tech-future h3 { color: #2563eb; }
+  .tech-list { list-style: none; margin-top: 12px; }
+  .tech-list li { font-size: 17px; color: #333; padding: 6px 0; line-height: 1.5; }
+  .tech-list li::before { content: "→"; color: #2563eb; margin-right: 10px; font-weight: 700; }
+
+  /* Closing */
+  .close { background: #0a0a0a; color: #fff; }
+  .close .brand-mark { color: #2563eb; }
+  .close h1 { font-size: 90px; font-weight: 900; letter-spacing: -2px; }
+  .close .ask { font-size: 26px; margin-top: 0.3in; color: #ddd; max-width: 10in; line-height: 1.5; }
+  .close .contact { position: absolute; bottom: 0.7in; left: 0.9in; right: 0.9in; display: flex; flex-direction: column; gap: 8px; color: #aaa; font-size: 18px; }
+  .close .contact strong { color: #fff; font-weight: 600; }
+
+  .small { font-size: 14px; color: #888; margin-top: 0.3in; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- Slide 1: Cover -->
+<section class="slide cover">
+  <div class="brand-mark">GIGLER</div>
+  <h1>AI gig work<br><span class="accent">orchestration.</span></h1>
+  <p class="tagline">No downloads. No dashboards. Just text, call, or email Gigler, and real work gets done.</p>
+  <div class="footer">
+    <span>gigler.ai</span>
+    <span>admin@gigler.ai</span>
+  </div>
+</section>
+
+<!-- Slide 2: The problem -->
+<section class="slide problem-slide">
+  <div class="brand-mark">THE PROBLEM</div>
+  <h2>AI can act now. But people still have to choose the right tool, manage each step, and keep the work on track.</h2>
+  <p class="lead">
+    Codex, Claude Code, Cursor, Gemini, ChatGPT, browser agents, and cloud tools are
+    getting more capable every week. But each one lives in its own interface, context,
+    memory, and workflow.
+  </p>
+  <p class="lead" style="margin-top: 0.3in;">
+    Even as AI gets more capable, users are overwhelmed by which tool, model,
+    or agent fits each task and their unique workflow. Gigler removes that burden:
+    ask for the outcome, and Orca, our model designed and trained specifically to
+    orchestrate AI agents and tools, breaks the gig into steps, chooses the right
+    mix, and coordinates frontier agents across platforms. One step might go to a
+    frontier coding agent, another to a cloud or browser tool, and another to an AI
+    agent with specialized capabilities, all coordinated toward the completed gig.
+  </p>
+  <p class="lead" style="margin-top: 0.3in;">
+    As gigs are completed, Orca keeps getting smarter at routing work across models,
+    agents, and platforms.
+  </p>
+  <p class="lead" style="margin-top: 0.2in;">
+    A completed AI Gig is not a chat transcript. It is the work delivered: photos
+    organized, trips planned, APIs built, spreadsheets updated, forms submitted,
+    websites deployed. No new dashboard. No workflow to learn. Just text, email,
+    or call Gigler. Zero friction.
+  </p>
+  <div class="slide-num">02</div>
+</section>
+
+<!-- Slide 3: The big idea -->
+<section class="slide one-liner">
+  <div class="brand-mark">THE IDEA</div>
+  <h1>Send a request.<br>Or add Gigler to the thread.<br>It plans, tracks, and delivers.</h1>
+  <p class="sub">An AI gig worker, always on. Gigler reaches you by phone, text, or email with updates and questions.</p>
+  <div class="slide-num">03</div>
+</section>
+
+<!-- Slide 4: How it works -->
+<section class="slide">
+  <div class="brand-mark">HOW IT WORKS</div>
+  <h2>Every request becomes a Gig.</h2>
+  <div class="grid-2" style="margin-top: 0.2in;">
+    <div>
+      <p class="lead">A user sends a request by text, email, or voice. Gigler turns it into a dedicated
+      Gig with its own memory, schedule, progress updates, and deliverables.</p>
+      <p class="lead" style="margin-top: 0.3in;">Gigler brings together best-in-class agents,
+      AI tools, and frontier models without locking users into any single system. It
+      orchestrates the right tool for the gig, and the right tool for each task inside
+      that gig.</p>
+      <p class="lead" style="margin-top: 0.3in;">When a decision matters, Gigler reaches the user
+      by phone, text, or email, then keeps the gig moving.</p>
+    </div>
+    <div class="card" style="background: #0a0a0a; color: #fff; border: none;">
+      <h3 style="color: #2563eb;">Agent toolkit</h3>
+      <ul class="tech-list" style="margin-top: 14px;">
+        <li style="color: #ddd;">Reply via SMS / MMS / email / voice</li>
+        <li style="color: #ddd;">Browse and fill out web forms</li>
+        <li style="color: #ddd;">Generate PDFs, sites, reports, deliverables</li>
+        <li style="color: #ddd;">Run real code in a sandbox</li>
+        <li style="color: #ddd;">Read images, video, documents</li>
+        <li style="color: #ddd;">Schedule reminders &amp; follow-ups</li>
+        <li style="color: #ddd;">Live View hand-off to a human</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">04</div>
+</section>
+
+<!-- Slide 5: KILLER STORY - Sports parents -->
+<section class="slide story">
+  <div class="brand-mark">A REAL DAY WITH GIGLER</div>
+  <h2>The team-parents group chat.</h2>
+  <p class="subtitle">Saturday, 9am. A parent adds <span class="accent">+1-555-GIGLER</span> to the group thread:</p>
+  <div class="timeline">
+    <div class="step">
+      <div class="time">9:02 AM</div>
+      <div class="what">Mom: <em>"Hey Gigler, can you organize photos during the tournament and recap each game?"</em></div>
+    </div>
+    <div class="step">
+      <div class="time">9:03 AM</div>
+      <div class="what"><strong>Gigler:</strong> "On it. Drop photos and game clips here. I'll sort by player and recap when each game ends."</div>
+    </div>
+    <div class="step">
+      <div class="time">10-11 AM</div>
+      <div class="what">Parents share photos and a livestream link. Gigler watches the video, identifies players via jersey numbers, tags photos automatically.</div>
+    </div>
+    <div class="step">
+      <div class="time">11:15 AM</div>
+      <div class="what"><strong>Gigler:</strong> "Game 1 recap: 3-1 win. Top moments: Avery's assist (4:12), Maya's save (8:30). Photo album: gigler.ai/d/k7m2"</div>
+    </div>
+    <div class="step">
+      <div class="time">5:00 PM</div>
+      <div class="what"><strong>Gigler:</strong> "Tournament wrap: 4 games, 32 photos sorted by 12 players, 4 recap videos, parent email sent. PDF album attached."</div>
+    </div>
+  </div>
+  <div class="slide-num">05</div>
+</section>
+
+<!-- Slide 6: Use cases -->
+<section class="slide">
+  <div class="brand-mark">WHAT GIGLER CAN ALREADY DO</div>
+  <h2 style="margin-bottom: 0.05in;">AI gig worker. Always on.</h2>
+  <p style="font-size: 18px; color: #666; margin-bottom: 0.2in;">Beach, office, or on the go — text it and it's done.</p>
+  <div class="cap-layout">
+    <div class="hero-card">
+      <div class="label">Flagship capability</div>
+      <h3>Gig Programmer</h3>
+      <p class="tagline">Code, debug, and ship features. Anytime, anywhere. From a hammock if you want.</p>
+      <div class="codeblock">
+<span class="kw">const</span> <span class="fn">app</span> = express()<br>
+<span class="fn">app</span>.<span class="fn">get</span>(<span class="str">'/api'</span>, handler)<br>
+<span class="fn">app</span>.<span class="fn">listen</span>(<span class="num">3000</span>)
+        <div class="deploy-line">&#10003; Deployed successfully &middot; preview at gigler.ai/d/k7m2</div>
+      </div>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-tile">
+        <h4>Gig Orchestration</h4>
+        <p>Plan, track, coordinate, deliver.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Landing Pages</h4>
+        <p>Full websites from a text description.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Event Planning</h4>
+        <p>Book venues, send invites, coordinate.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Photo Collages</h4>
+        <p>Organize and share event photos.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>PDFs &amp; Reports</h4>
+        <p>Polished documents and summaries.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Restaurant Menus</h4>
+        <p>Print-ready or shareable online.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Excel Sheets</h4>
+        <p>Organize, analyze, share data.</p>
+      </div>
+      <div class="cap-tile">
+        <h4>Bills Dashboard</h4>
+        <p>Auto-extracted utilities, due dates.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">06</div>
+</section>
+
+<!-- Slide 7: Business model -->
+<section class="slide">
+  <div class="brand-mark">BUSINESS MODEL</div>
+  <h2>We sell completed work, not another AI seat.</h2>
+  <div class="grid-3">
+    <div class="card">
+      <div class="icon">Customers</div>
+      <h3>Consumers & prosumers</h3>
+      <p>People who need useful digital work done without managing apps, vendors, or dashboards.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Expansion</div>
+      <h3>Teams & groups</h3>
+      <p>Group chats, family logistics, creators, operators, and small businesses coordinating repeatable work.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Revenue</div>
+      <h3>Per-gig + subscription</h3>
+      <p>Start with paid gig requests, then expand into recurring plans for frequent users and teams.</p>
+    </div>
+  </div>
+  <p class="lead" style="margin-top: 0.45in;">
+    Gigler's wedge is simple: users pay for outcomes, not tokens, seats, or tool selection.
+    They ask in the channels they already use, then Gigler orchestrates the tools and agents
+    behind the scenes.
+  </p>
+  <div class="slide-num">07</div>
+</section>
+
+<!-- Slide 8: Why now -->
+<section class="slide">
+  <div class="brand-mark">WHY NOW</div>
+  <h2>Five things just clicked into place.</h2>
+  <ul class="bullets">
+    <li>LLMs are finally good enough for autonomous, multi-step execution. Not just chat.</li>
+    <li>Vision + multimodal models can watch video, read receipts, classify uploads in real time.</li>
+    <li>Headless browsers are programmable, observable, and human-in-the-loop ready.</li>
+    <li>Sandboxes for code execution are cheap, safe, and per-session billable.</li>
+    <li>Voice, SMS/MMS, and email infrastructure is commodity. Reach is universal.</li>
+  </ul>
+  <p class="small">The first generation of consumer AI agents that actually do work, not just answer questions, is here.</p>
+  <div class="slide-num">08</div>
+</section>
+
+<!-- Slide 9: Technology -->
+<section class="slide">
+  <div class="brand-mark">TECHNOLOGY</div>
+  <h2>Agent orchestration for real-world work.</h2>
+  <div class="tech-grid">
+    <div class="tech-now">
+      <h3>Current platform</h3>
+      <ul class="tech-list">
+        <li>AI agents for planning, execution, progress tracking, and delivery</li>
+        <li>Text, email, voice, and shared workspace interfaces</li>
+        <li>Tool orchestration across code, browser, documents, images, and workflow systems</li>
+        <li>Per-gig memory, status, deliverables, and human checkpoints</li>
+        <li>Cloud-native execution designed for repeatable agent workflows</li>
+      </ul>
+    </div>
+    <div class="tech-future">
+      <h3>NVIDIA fit</h3>
+      <ul class="tech-list">
+        <li><strong>NVIDIA Inception member</strong> with access to startup ecosystem benefits</li>
+        <li><strong>NVIDIA NIM</strong> for scalable inference across agent workloads</li>
+        <li><strong>NVIDIA NeMo / Guardrails</strong> for safer autonomous and human-in-the-loop workflows</li>
+        <li><strong>NVIDIA Riva</strong> for future voice briefings, voice input, and decision calls</li>
+        <li><strong>GPU cloud partners</strong> for lower-latency, higher-throughput agent execution</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">09</div>
+</section>
+
+<!-- Slide 10: Traction & roadmap -->
+<section class="slide">
+  <div class="brand-mark">WHERE WE ARE</div>
+  <h2>Live product. Active users. Aggressive roadmap.</h2>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="num">407</div>
+      <div class="label">Active testers (alpha)</div>
+    </div>
+    <div class="stat">
+      <div class="num">~$1M</div>
+      <div class="label">Funding raised</div>
+    </div>
+    <div class="stat">
+      <div class="num">Q2-Q4</div>
+      <div class="label">Near-term agent roadmap</div>
+    </div>
+  </div>
+  <ul class="bullets" style="margin-top: 0.5in;">
+    <li>Live SMS &amp; email gig completion at gigler.ai today.</li>
+    <li>407 active alpha testers validate demand for screen-free AI work execution.</li>
+    <li>Roadmap: deeper per-gig orchestration, code sandboxes, browser agents, and voice agents.</li>
+  </ul>
+  <div class="slide-num">10</div>
+</section>
+
+<!-- Slide 11: Closing / Ask -->
+<section class="slide close">
+  <div class="brand-mark">THE ASK</div>
+  <h1>Help us fund.<br>The AI gig worker<br>for real work.</h1>
+  <p class="ask">
+    Gigler is building the future of productive work: quality outcomes over process,
+    powered by AI gig orchestration across voice, text, email, and shared workspaces.
+  </p>
+  <div class="contact">
+    <span><strong>gigler.ai</strong></span>
+    <span>admin@gigler.ai</span>
+  </div>
+</section>
+
+</body>
+</html>
