@@ -70,7 +70,7 @@
       <div class="row">
         <div class="node"><div class="t1">📱 SMS / MMS</div><div class="t2">Twilio · shared number · sender = identity</div></div>
         <div class="node"><div class="t1">📧 Email — unique address per gig</div><div class="t2">gig+{shortCode}@gigler.ai · onEmail agent hook</div></div>
-        <div class="node"><div class="t1">📞 Voice</div><div class="t2">Gemini Live + Pipecat · real-time call</div></div>
+        <div class="node"><div class="t1">📞 Voice</div><div class="t2">realtime speech-to-speech · Pipecat</div></div>
         <div class="node"><div class="t1">🌐 Web dashboard</div><div class="t2">live gig state · review &amp; approve</div></div>
       </div>
     </div>
@@ -85,7 +85,7 @@
           <div class="t1">ORCA &nbsp;·&nbsp; plan → route → execute → verify</div>
           <div class="t2">intent &amp; gig-type classification · step planning · tool/model routing (easiest path first) · progress &amp; memory in per-gig state · human-checkpoint policy · durable execution &amp; resume</div>
         </div>
-        <div class="node dark side"><div class="t1">Gemini</div><div class="t2">reasoning · vision · generation · function-calling · MCP tools</div></div>
+        <div class="node dark side"><div class="t1">Frontier LLM</div><div class="t2">model-agnostic · reasoning · vision · generation · function-calling · MCP</div></div>
         <div class="node amber side"><div class="t1">Human checkpoint</div><div class="t2">approve · log in · confirm</div></div>
       </div>
     </div>
@@ -120,11 +120,11 @@
 
     <div class="legend">
       <div class="key"><span class="sw b"></span> Orchestration / delivery</div>
-      <div class="key"><span class="sw d"></span> AI model (Gemini)</div>
+      <div class="key"><span class="sw d"></span> AI model (provider-agnostic)</div>
       <div class="key"><span class="sw g"></span> Execution tool / platform</div>
       <div class="key"><span class="sw a"></span> Human-in-the-loop</div>
     </div>
-    <div class="foot">Existing system runs on AWS (Amplify Gen 2, Next.js, DynamoDB, Lambda, Gemini); Track 2 hardening evolves the email channel, per-gig isolation, and durable execution onto Cloudflare Workers + Agents SDK + Durable Objects + R2.</div>
+    <div class="foot">Existing system runs on AWS (Amplify Gen 2, Next.js, DynamoDB, Lambda); Track 2 hardening evolves the email channel, per-gig isolation, and durable execution onto Cloudflare Workers + Agents SDK + Durable Objects + R2. Orca is model-agnostic and routes each step to the best-fit frontier model.</div>
   </div>
 </div>
 </body>
