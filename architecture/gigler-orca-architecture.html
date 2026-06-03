@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gigler Orca — Architecture Document</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; color: #0a0a0a; background: #fff; }
+
+  .slide {
+    width: 13.333in; height: 7.5in;
+    padding: 0.6in 0.85in;
+    page-break-after: always;
+    position: relative;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+  .slide-num { position: absolute; bottom: 0.34in; right: 0.55in; font-size: 10px; color: #aaa; letter-spacing: 1.5px; }
+  .brand-mark { position: absolute; top: 0.34in; left: 0.85in; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: #2563eb; text-transform: uppercase; }
+  .kicker { position: absolute; top: 0.34in; right: 0.55in; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: #999; text-transform: uppercase; }
+
+  .accent { color: #2563eb; }
+  h1 { font-size: 58px; font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; }
+  h2 { font-size: 34px; font-weight: 800; line-height: 1.12; letter-spacing: -0.6px; margin-bottom: 0.18in; margin-top: 0.42in; }
+  h3 { font-size: 18px; font-weight: 700; line-height: 1.3; }
+  p { font-size: 15px; line-height: 1.5; color: #333; }
+  .lead { font-size: 20px; line-height: 1.45; color: #222; max-width: 10.5in; }
+
+  /* Cover */
+  .cover { background: #0a0a0a; color: #fff; justify-content: center; }
+  .cover .brand-mark { color: #2563eb; }
+  .cover h1 { font-size: 92px; font-weight: 900; letter-spacing: -3px; }
+  .cover .tagline { font-size: 30px; font-weight: 300; color: #aaa; margin-top: 0.22in; max-width: 10in; }
+  .cover .meta-row { position: absolute; bottom: 0.6in; left: 0.85in; right: 0.85in; display: flex; justify-content: space-between; color: #888; font-size: 15px; }
+  .cover .badge { display: inline-block; margin-top: 0.35in; border: 1px solid #2563eb; color: #60a5fa; border-radius: 999px; padding: 7px 18px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+
+  /* Section divider */
+  .divider { background: #2563eb; color: #fff; justify-content: center; }
+  .divider .brand-mark { color: rgba(255,255,255,0.75); }
+  .divider h1 { font-size: 64px; color: #fff; }
+  .divider p { color: rgba(255,255,255,0.9); font-size: 22px; margin-top: 0.2in; max-width: 10in; }
+
+  /* Generic layout helpers */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45in; margin-top: 0.1in; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.28in; margin-top: 0.1in; }
+  .card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 0.24in 0.26in; background: #fafafa; }
+  .card .icon { font-size: 11px; font-weight: 700; letter-spacing: 1.3px; margin-bottom: 9px; color: #2563eb; text-transform: uppercase; }
+  .card h3 { color: #0a0a0a; margin-bottom: 6px; font-size: 16px; }
+  .card p { font-size: 13px; color: #555; }
+
+  ul.bullets { list-style: none; margin-top: 0.12in; }
+  ul.bullets li { font-size: 16px; line-height: 1.6; color: #2a2a2a; padding-left: 26px; position: relative; margin-bottom: 4px; }
+  ul.bullets li::before { content: ""; position: absolute; left: 0; top: 9px; width: 10px; height: 10px; background: #2563eb; border-radius: 2px; }
+  ul.bullets li strong { color: #0a0a0a; }
+
+  table.t { width: 100%; border-collapse: collapse; margin-top: 0.14in; font-size: 13px; }
+  table.t th { text-align: left; background: #0a0a0a; color: #fff; padding: 9px 12px; font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; }
+  table.t td { padding: 8px 12px; border-bottom: 1px solid #ececec; color: #333; vertical-align: top; }
+  table.t tr:nth-child(even) td { background: #fafafa; }
+  table.t .em { color: #2563eb; font-weight: 600; }
+
+  /* Diagram primitives */
+  .diagram { margin-top: 0.16in; }
+  .lane { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+  .lane-label { width: 1.35in; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #2563eb; flex-shrink: 0; }
+  .row { display: flex; align-items: stretch; gap: 10px; flex-wrap: nowrap; }
+  .node { border: 1.5px solid #d4d4d8; border-radius: 10px; padding: 10px 12px; background: #fff; flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0.62in; }
+  .node .t1 { font-size: 13px; font-weight: 700; color: #0a0a0a; line-height: 1.2; }
+  .node .t2 { font-size: 11px; color: #666; line-height: 1.3; margin-top: 3px; }
+  .node.dark { background: #0a0a0a; border-color: #0a0a0a; }
+  .node.dark .t1 { color: #fff; }
+  .node.dark .t2 { color: #9ca3af; }
+  .node.blue { background: #2563eb; border-color: #2563eb; }
+  .node.blue .t1 { color: #fff; }
+  .node.blue .t2 { color: #cfe0ff; }
+  .node.ghost { background: #f4f6fb; border-color: #c7d2fe; }
+  .node.amber { background: #fff7ed; border-color: #fdba74; }
+  .node.amber .t1 { color: #9a3412; }
+  .node.amber .t2 { color: #c2410c; }
+  .arrow-down { text-align: center; color: #94a3b8; font-size: 18px; line-height: 1; margin: 2px 0; }
+  .conn { display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 18px; width: 22px; flex-shrink: 0; }
+
+  .note { font-size: 12px; color: #777; margin-top: 0.14in; font-style: italic; line-height: 1.5; }
+  .pill { display: inline-block; background: #eef2ff; color: #2563eb; border-radius: 6px; padding: 2px 9px; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; }
+
+  .codeblock { background: #0f1115; border-radius: 9px; padding: 14px 18px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.62; color: #d4d4d4; margin-top: 0.14in; }
+  .codeblock .kw { color: #c084fc; }
+  .codeblock .fn { color: #60a5fa; }
+  .codeblock .str { color: #86efac; }
+  .codeblock .cm { color: #6b7280; }
+
+  /* Closing */
+  .close { background: #0a0a0a; color: #fff; justify-content: center; }
+  .close .brand-mark { color: #2563eb; }
+  .close h1 { font-size: 70px; font-weight: 900; letter-spacing: -2px; }
+  .close .ask { font-size: 22px; margin-top: 0.25in; color: #ddd; max-width: 10in; line-height: 1.5; }
+  .close .contact { position: absolute; bottom: 0.6in; left: 0.85in; right: 0.85in; display: flex; justify-content: space-between; color: #aaa; font-size: 16px; }
+  .close .contact strong { color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<section class="slide cover">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Architecture Document</div>
+  <h1>Gigler <span class="accent">Orca</span></h1>
+  <p class="tagline">AI gig orchestration that turns text, email, and voice into completed work — with a unique email address for every gig.</p>
+  <div class="badge">Google for Startups AI Agents Challenge · Track 2 — Optimize Existing Agents</div>
+  <div class="meta-row">
+    <span>gigler.ai</span>
+    <span>System architecture &amp; orchestration design · v1</span>
+    <span>June 2026</span>
+  </div>
+</section>
+
+<!-- 2. Executive summary -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Overview</div>
+  <h2>A completed gig is the product — not a chat transcript.</h2>
+  <p class="lead">
+    Users send Gigler an outcome they want over the channels they already use — <strong>SMS, email, or voice</strong>.
+    <strong>Orca</strong>, Gigler's orchestration layer, decomposes the request into steps, routes each step to the
+    right model, agent, tool, or platform, tracks state, pauses for human approval only when needed, and delivers a
+    real artifact through a shareable link.
+  </p>
+  <div class="three-col" style="margin-top:0.32in;">
+    <div class="card">
+      <div class="icon">The input</div>
+      <h3>Channels people already live in</h3>
+      <p>No app to install, no dashboard to learn. Text it, email it, or call it. Each gig even gets its own email address.</p>
+    </div>
+    <div class="card">
+      <div class="icon">The brain</div>
+      <h3>Orca orchestration</h3>
+      <p>Plan → route → execute → verify. Picks the cheapest capable tool first; escalates to real browsers, sandboxes, or a human only when required.</p>
+    </div>
+    <div class="card">
+      <div class="icon">The output</div>
+      <h3>Deliverables, not answers</h3>
+      <p>A deployed site, a designed PDF, a submitted form, a booked reservation — delivered as a <span class="pill">gigler.ai/abc123</span> link.</p>
+    </div>
+  </div>
+  <p class="note">This document describes the current production system (AWS) and the email-native evolution on Cloudflare that hardens Gigler for production scale — the Track 2 "optimize existing agents" story.</p>
+  <div class="slide-num">02</div>
+</section>
+
+<!-- 3. System overview diagram (hero) -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">System Overview</div>
+  <h2 style="margin-top:0.3in;">From a single request to a delivered gig</h2>
+  <div class="diagram">
+    <div class="lane">
+      <div class="lane-label">Channels</div>
+      <div class="row" style="flex:1;">
+        <div class="node"><div class="t1">SMS / MMS</div><div class="t2">Twilio · shared number, sender = identity</div></div>
+        <div class="node"><div class="t1">Email</div><div class="t2">unique address per gig · gig+{code}@gigler.ai</div></div>
+        <div class="node"><div class="t1">Voice</div><div class="t2">Gemini Live + Pipecat real-time call</div></div>
+        <div class="node"><div class="t1">Web dashboard</div><div class="t2">live gig state &amp; review</div></div>
+      </div>
+    </div>
+    <div class="arrow-down">▼</div>
+    <div class="lane">
+      <div class="lane-label">Orchestration</div>
+      <div class="row" style="flex:1;">
+        <div class="node blue" style="flex:2;"><div class="t1">ORCA — orchestration layer</div><div class="t2">intent &amp; gig-type classification · step planning · tool/model routing · progress &amp; memory · human-checkpoint policy</div></div>
+        <div class="conn">↔</div>
+        <div class="node dark"><div class="t1">Gemini</div><div class="t2">reasoning, vision, generation, function-calling</div></div>
+      </div>
+    </div>
+    <div class="arrow-down">▼</div>
+    <div class="lane">
+      <div class="lane-label">Execution</div>
+      <div class="row" style="flex:1;">
+        <div class="node ghost"><div class="t1">Document / media</div><div class="t2">HTML→Chrome→PDF &amp; PNG deliverables</div></div>
+        <div class="node ghost"><div class="t1">Browser tasks</div><div class="t2">real-Chrome form-fill, booking, payments</div></div>
+        <div class="node ghost"><div class="t1">Code &amp; deploy</div><div class="t2">scaffold, build, preview, ship a site</div></div>
+        <div class="node ghost"><div class="t1">3rd-party APIs</div><div class="t2">OpenTable · Resy · Evite · Stripe</div></div>
+        <div class="node amber"><div class="t1">Human checkpoint</div><div class="t2">approve / log-in / confirm</div></div>
+      </div>
+    </div>
+    <div class="arrow-down">▼</div>
+    <div class="lane">
+      <div class="lane-label">State &amp; delivery</div>
+      <div class="row" style="flex:1;">
+        <div class="node"><div class="t1">Per-gig state</div><div class="t2">messages, participants, reminders, media</div></div>
+        <div class="node"><div class="t1">Object storage</div><div class="t2">media + deliverables (S3 today → R2)</div></div>
+        <div class="node"><div class="t1">Scheduling</div><div class="t2">reminders, check-ins, follow-ups</div></div>
+        <div class="node blue"><div class="t1">Deliverable link</div><div class="t2">gigler.ai/{shortCode} · OTP-gated</div></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Identity is always the <strong>sender</strong> (phone or From address), never the destination — so one shared number and one domain serve thousands of users, each landing in their own gig.</p>
+  <div class="slide-num">03</div>
+</section>
+
+<!-- 4. Orca orchestration loop -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Orchestration · Orca</div>
+  <h2>The Orca loop: plan, route, execute, verify</h2>
+  <div class="two-col" style="grid-template-columns: 1.15fr 1fr; gap:0.4in;">
+    <div>
+      <div class="diagram" style="margin-top:0.05in;">
+        <div class="node blue"><div class="t1">1 · Understand</div><div class="t2">Classify intent &amp; gig type (9 types). Extract goal, constraints, missing info.</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node"><div class="t1">2 · Plan</div><div class="t2">Break the gig into ordered steps; mark which need a human checkpoint.</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node"><div class="t1">3 · Route each step</div><div class="t2">Pick the cheapest capable tool: API → Vision → Browser → Sandbox.</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node"><div class="t1">4 · Execute &amp; checkpoint</div><div class="t2">Run tools; pause for approval/login when needed; resume durably.</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node blue"><div class="t1">5 · Verify &amp; deliver</div><div class="t2">Screenshot proof, validate output, send the deliverable link.</div></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0.05in;">Tool-selection priority (easiest path first)</h3>
+      <table class="t" style="margin-top:0.1in;">
+        <tr><th>Need</th><th>Orca chooses</th></tr>
+        <tr><td>Structured data exists</td><td class="em">Direct API</td></tr>
+        <tr><td>Read a doc / receipt / screenshot</td><td class="em">Gemini Vision</td></tr>
+        <tr><td>Login, SPA, anti-bot, CSRF</td><td class="em">Real browser + HITL</td></tr>
+        <tr><td>Build / run / deploy code</td><td class="em">Sandbox container</td></tr>
+        <tr><td>Designed document or card</td><td class="em">HTML→Chrome→PDF/PNG</td></tr>
+      </table>
+      <h3 style="margin-top:0.22in;">Why this is orchestration, not a chatbot</h3>
+      <ul class="bullets">
+        <li>Multi-step plans with state that survives restarts</li>
+        <li>Routes across <strong>models, agents, tools, and platforms</strong></li>
+        <li>Human-in-the-loop only at the moments that need it</li>
+        <li>Gets smarter at routing as more gigs complete</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">04</div>
+</section>
+
+<!-- 5. Email-for-agents deep dive -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Email-native agents</div>
+  <h2>Every gig is an agent with its own email address</h2>
+  <div class="two-col" style="grid-template-columns: 1fr 1.05fr; gap:0.4in;">
+    <div>
+      <p class="lead" style="font-size:17px;">
+        Email is the most universal interface on earth. Using Cloudflare's Email Service + Agents SDK,
+        each gig gets a unique sub-address that routes inbound mail straight to that gig's agent instance.
+        The inbox becomes the agent's memory.
+      </p>
+      <div class="diagram" style="margin-top:0.18in;">
+        <div class="node"><div class="t1">Inbound email → gig+1a2b3c@gigler.ai</div><div class="t2">Cloudflare Email Routing receives all *@gigler.ai</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node"><div class="t1">routeAgentEmail() + address resolver</div><div class="t2">sub-address maps to the exact gig agent instance</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node blue"><div class="t1">GigAgent.onEmail()</div><div class="t2">parse, persist to state, kick off Orca work, reply / escalate async</div></div>
+        <div class="arrow-down">▼</div>
+        <div class="node"><div class="t1">env.EMAIL.send() — async reply</div><div class="t2">HMAC-signed reply routing back to the same agent</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="codeblock"><span class="kw">export class</span> <span class="fn">GigAgent</span> <span class="kw">extends</span> Agent {
+  <span class="kw">async</span> <span class="fn">onEmail</span>(email: AgentEmail) {
+    <span class="kw">const</span> msg = <span class="kw">await</span> PostalMime.parse(<span class="kw">await</span> email.getRaw());
+    <span class="cm">// inbox = memory; persists in Durable Object</span>
+    <span class="kw">this</span>.setState({ ...this.state, lastFrom: email.from });
+    <span class="cm">// hand the request to Orca, run async</span>
+    <span class="kw">await</span> <span class="kw">this</span>.runFiber(<span class="str">"orca"</span>, () => orca.handle(msg));
+  }
+}
+
+<span class="kw">export default</span> {
+  <span class="kw">async</span> <span class="fn">email</span>(message, env) {
+    <span class="kw">await</span> <span class="fn">routeAgentEmail</span>(message, env, {
+      resolver: <span class="fn">createAddressBasedEmailResolver</span>(<span class="str">"GigAgent"</span>),
+    });
+  },
+};</div>
+      <ul class="bullets" style="margin-top:0.18in;">
+        <li><strong>No inbox provisioning</strong> — the address itself is the route</li>
+        <li><strong>Asynchronous work</strong> — receive now, process for an hour, reply when done</li>
+        <li><strong>Secure replies</strong> — HMAC-SHA256 headers prevent reply hijacking</li>
+        <li><strong>Same agent, every channel</strong> — SMS, voice &amp; email share one gig state</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-num">05</div>
+</section>
+
+<!-- 6. Identity & multi-tenant routing -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Identity &amp; routing</div>
+  <h2>One identity across every channel, one agent per gig</h2>
+  <p class="lead" style="font-size:16px;">The system identifies users by <strong>who sent the message</strong> (phone or email From), not by where they sent it. A user can start a gig by text and add details by email — both land in the same gig.</p>
+  <div class="diagram">
+    <div class="row">
+      <div class="node"><div class="t1">Alice texts the shared number</div><div class="t2">From: +1 555·0101</div></div>
+      <div class="conn">→</div>
+      <div class="node"><div class="t1">Look up sender → User</div><div class="t2">by phone; onboard if unknown</div></div>
+      <div class="conn">→</div>
+      <div class="node blue"><div class="t1">GigAgent #1a2b3c</div><div class="t2">Alice's active gig (its own state)</div></div>
+    </div>
+    <div class="arrow-down">▼ later, same gig</div>
+    <div class="row">
+      <div class="node"><div class="t1">Alice emails gig+1a2b3c@gigler.ai</div><div class="t2">From: alice@example.com</div></div>
+      <div class="conn">→</div>
+      <div class="node"><div class="t1">Address resolver</div><div class="t2">sub-address → exact gig</div></div>
+      <div class="conn">→</div>
+      <div class="node blue"><div class="t1">GigAgent #1a2b3c</div><div class="t2">same agent, unified memory</div></div>
+    </div>
+  </div>
+  <table class="t">
+    <tr><th>Destination pattern</th><th>Routing behavior</th></tr>
+    <tr><td><span class="em">gig+{shortCode}@gigler.ai</span></td><td>Address-based resolver → that specific gig agent. Used for replies to per-gig emails.</td></tr>
+    <tr><td><span class="em">gigs@gigler.ai</span></td><td>Generic intake → look up sender's From → route to their active gig or spawn a new one.</td></tr>
+    <tr><td><span class="em">admin@ · support@ · notifications@</span></td><td>Routed to a single global Admin Inbox agent (team mail, not a user gig).</td></tr>
+  </table>
+  <p class="note">Multi-tenant safety: 1,000 people emailing <strong>gigs@gigler.ai</strong> land in 1,000 isolated gig agents. Channels are merged only after explicit, verified linking — never silently.</p>
+  <div class="slide-num">06</div>
+</section>
+
+<!-- 7. Per-gig agent + data architecture -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">State architecture</div>
+  <h2>Per-gig agent state + cross-tenant index</h2>
+  <div class="two-col" style="grid-template-columns:1fr 1fr; gap:0.4in;">
+    <div>
+      <h3 style="color:#2563eb;">One agent (Durable Object) per gig</h3>
+      <p style="margin-top:6px;">Each gig is a physically isolated stateful actor with its own embedded SQLite, alarms, and live WebSocket to the dashboard.</p>
+      <ul class="bullets" style="margin-top:0.1in;">
+        <li><strong>messages</strong> — full conversation across all channels</li>
+        <li><strong>participants</strong> — members &amp; roles (group gigs)</li>
+        <li><strong>reminders</strong> — durable alarms for follow-ups</li>
+        <li><strong>media</strong> — pointers to R2 objects</li>
+        <li><strong>checkpoints</strong> — durable-execution recovery state</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:#2563eb;">Cross-tenant index (D1 / relational)</h3>
+      <p style="margin-top:6px;">A small relational store for everything that must be queried across gigs and users.</p>
+      <ul class="bullets" style="margin-top:0.1in;">
+        <li><strong>User</strong> — phone + email identity, plan, billing</li>
+        <li><strong>Gig</strong> — shortCode, owner, status, title</li>
+        <li><strong>Deliverable</strong> — shortCode → R2 key (link lookup)</li>
+        <li><strong>UserIntegration</strong> — encrypted third-party tokens</li>
+      </ul>
+    </div>
+  </div>
+  <table class="t" style="margin-top:0.22in;">
+    <tr><th>Concern</th><th>Today (AWS)</th><th>Hardened (Cloudflare)</th></tr>
+    <tr><td>Per-gig live state</td><td>DynamoDB shared tables</td><td class="em">Durable Object SQLite — physical isolation per gig</td></tr>
+    <tr><td>Cross-gig queries / billing</td><td>DynamoDB + GSIs</td><td class="em">D1 (managed SQLite), indexed</td></tr>
+    <tr><td>Media &amp; deliverables</td><td>S3 + CloudFront</td><td class="em">R2 — zero egress, S3-compatible</td></tr>
+    <tr><td>Reminders</td><td>EventBridge scan every 5 min</td><td class="em">Per-gig durable alarms (no polling)</td></tr>
+    <tr><td>Dashboard updates</td><td>Polling</td><td class="em">Live WebSocket state sync</td></tr>
+  </table>
+  <div class="slide-num">07</div>
+</section>
+
+<!-- 8. Execution surfaces / tools -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Execution surfaces</div>
+  <h2>The tools Orca routes work to</h2>
+  <div class="three-col">
+    <div class="card">
+      <div class="icon">Documents &amp; media</div>
+      <h3>HTML → Chrome → PDF / PNG</h3>
+      <p>Agent writes designed HTML, headless Chrome prints a pitch deck, report, invoice, menu, or MMS card. Source HTML stored for one-line iteration ("make it blue").</p>
+    </div>
+    <div class="card">
+      <div class="icon">Browser tasks</div>
+      <h3>Real Chrome + HITL</h3>
+      <p>Form-fill, bookings, bill pay, applications. Dismisses cookie walls, handles SPAs, captures proof screenshots. Hands off to a human for logins &amp; CAPTCHAs.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Code &amp; deploy</div>
+      <h3>Sandbox containers</h3>
+      <p>Persistent containers scaffold, run, and deploy a site. Live preview URL streamed to the dashboard. Credentials injected at the egress proxy — agent never sees them.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Vision &amp; reasoning</div>
+      <h3>Gemini</h3>
+      <p>Reads PDFs, receipts, and screenshots; drafts copy; classifies intent; calls functions. The reasoning core behind every gig.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Third-party platforms</div>
+      <h3>Adapter pattern</h3>
+      <p>OpenTable, Resy, Evite, Stripe behind a uniform search / execute / confirm / cancel interface. Always confirms with the user before finalizing.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Scheduling &amp; voice</div>
+      <h3>Reminders + Gemini Live</h3>
+      <p>Durable reminders, wake-up calls, check-ins. Real-time voice via Gemini Live for hands-free gig updates.</p>
+    </div>
+  </div>
+  <p class="note">Every action that touches the outside world is captured (screenshot + metadata) as irrefutable proof of work, stored and searchable from the dashboard.</p>
+  <div class="slide-num">08</div>
+</section>
+
+<!-- 9. Current AWS architecture -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Existing system</div>
+  <h2>Today: the production agent on AWS</h2>
+  <div class="diagram">
+    <div class="lane">
+      <div class="lane-label">Ingest</div>
+      <div class="row" style="flex:1;">
+        <div class="node"><div class="t1">Twilio webhook</div><div class="t2">SMS / MMS / Conversations</div></div>
+        <div class="node"><div class="t1">SES → SNS</div><div class="t2">inbound email</div></div>
+        <div class="node"><div class="t1">EventBridge</div><div class="t2">5-min reminder cron</div></div>
+      </div>
+    </div>
+    <div class="arrow-down">▼</div>
+    <div class="lane">
+      <div class="lane-label">Lambda fleet</div>
+      <div class="row" style="flex:1;">
+        <div class="node blue"><div class="t1">inbound-sms</div><div class="t2">main brain / router</div></div>
+        <div class="node blue"><div class="t1">gig-processor</div><div class="t2">AI execution · 9 prompts</div></div>
+        <div class="node"><div class="t1">media-processor</div><div class="t2">MMS / image gen</div></div>
+        <div class="node"><div class="t1">deliverable-gen</div><div class="t2">PDF / site</div></div>
+        <div class="node"><div class="t1">reminder-sched</div><div class="t2">cron dispatch</div></div>
+        <div class="node"><div class="t1">voice-bridge</div><div class="t2">Gemini Live</div></div>
+        <div class="node"><div class="t1">email-handler</div><div class="t2">SES inbound</div></div>
+        <div class="node"><div class="t1">3rd-party</div><div class="t2">bookings</div></div>
+      </div>
+    </div>
+    <div class="arrow-down">▼</div>
+    <div class="lane">
+      <div class="lane-label">Data / AI</div>
+      <div class="row" style="flex:1;">
+        <div class="node"><div class="t1">DynamoDB</div><div class="t2">10 tables, GSI-indexed</div></div>
+        <div class="node"><div class="t1">S3 + CloudFront</div><div class="t2">media &amp; deliverables</div></div>
+        <div class="node dark"><div class="t1">Google Gemini</div><div class="t2">reasoning · vision · generation</div></div>
+        <div class="node"><div class="t1">Cognito</div><div class="t2">dashboard auth</div></div>
+        <div class="node"><div class="t1">Stripe</div><div class="t2">billing</div></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Stack: AWS Amplify Gen 2 · Next.js 16 · Twilio · Gemini · Stripe. Proven end-to-end (real gigs, real deliverables) — the foundation we are now optimizing for reliability and scale.</p>
+  <div class="slide-num">09</div>
+</section>
+
+<!-- 10. Divider: the optimization -->
+<section class="slide divider">
+  <div class="brand-mark">TRACK 2 · OPTIMIZE</div>
+  <h1>From a working agent<br>to a production-grade one.</h1>
+  <p>The same orchestration brain, hardened: email-native gigs, per-gig isolation, durable execution, and disciplined human-in-the-loop.</p>
+  <div class="slide-num">10</div>
+</section>
+
+<!-- 11. AWS -> Cloudflare evolution -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">The optimization</div>
+  <h2>What we hardened, and why it matters</h2>
+  <table class="t">
+    <tr><th>Dimension</th><th>Before (works, but brittle at scale)</th><th>After (production-grade)</th></tr>
+    <tr><td>Email channel</td><td>SES + SNS + Lambda + manual MIME storage</td><td class="em">Each gig = an email-native agent (onEmail), unique address, async reply</td></tr>
+    <tr><td>Gig isolation</td><td>Shared tables, logical partitioning</td><td class="em">One Durable Object per gig — physical multi-tenant isolation</td></tr>
+    <tr><td>Long multi-step gigs</td><td>15-min Lambda cap; state lost on timeout</td><td class="em">Durable execution survives eviction; resumes from last checkpoint</td></tr>
+    <tr><td>Human-in-the-loop</td><td>Ad-hoc SMS confirmation</td><td class="em">First-class waitForApproval() with escalation reminders</td></tr>
+    <tr><td>Reminders</td><td>Cron scans the table every 5 min</td><td class="em">Per-gig durable alarms — event-driven, no scanning</td></tr>
+    <tr><td>Deliverable cost</td><td>S3 egress per download</td><td class="em">R2 zero-egress object storage</td></tr>
+    <tr><td>Dashboard freshness</td><td>Polling</td><td class="em">Live WebSocket state sync</td></tr>
+  </table>
+  <p class="note">Reliability &amp; edge cases are treated as an engineering discipline: mail-loop guards (RFC 3834), secure reply routing, idle-browser cost caps, pre-flight form validation, and proof-of-work capture for every external action — derived from real field tests (e.g. a full agent-driven accelerator application run).</p>
+  <div class="slide-num">11</div>
+</section>
+
+<!-- 12. Google Cloud / Gemini + mandatory tech alignment -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Google AI stack</div>
+  <h2>Built on Gemini, aligned with ADK &amp; MCP</h2>
+  <div class="two-col" style="grid-template-columns:1fr 1fr; gap:0.4in;">
+    <div>
+      <h3 style="color:#2563eb;">Gemini across the gig lifecycle</h3>
+      <ul class="bullets" style="margin-top:0.1in;">
+        <li><strong>Intent &amp; gig-type classification</strong> on every inbound message</li>
+        <li><strong>Multi-step reasoning &amp; planning</strong> inside the Orca loop</li>
+        <li><strong>Vision</strong> — reads PDFs, receipts, screenshots, uploaded photos</li>
+        <li><strong>Generation</strong> — drafts copy, designed HTML, and images</li>
+        <li><strong>Function-calling</strong> — the tool interface Orca routes through</li>
+        <li><strong>Gemini Live</strong> — real-time voice for hands-free gigs</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:#2563eb;">Agent patterns &amp; portability</h3>
+      <ul class="bullets" style="margin-top:0.1in;">
+        <li><strong>MCP</strong> — tools (email, browser, code) exposed as Model Context Protocol servers Orca can securely call</li>
+        <li><strong>ADK-aligned</strong> — declarative agent + tool definitions; Orca maps cleanly onto the Agent Development Kit pattern</li>
+        <li><strong>Model gateway</strong> — Gemini is primary; a thin gateway keeps routing portable across models &amp; providers</li>
+        <li><strong>Google Cloud ready</strong> — credits applied to evaluation, optimization, and a path toward Marketplace / Gemini Enterprise</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Orca is not "another chat model." It is an orchestration layer that selects and coordinates the right model, agent, tool, and platform per step — and improves its routing as more gigs complete.</p>
+  <div class="slide-num">12</div>
+</section>
+
+<!-- 13. Reliability, security, HITL -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Reliability &amp; trust</div>
+  <h2>Production hardening &amp; safety</h2>
+  <div class="three-col">
+    <div class="card">
+      <div class="icon">Durable execution</div>
+      <h3>Nothing gets lost</h3>
+      <p>Long gigs checkpoint and resume after eviction, timeouts, or a closed laptop — the agent picks up from the last completed step.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Human-in-the-loop</div>
+      <h3>Control where it counts</h3>
+      <p>Logins, payments, irreversible submits, and pre-fill confirmations pause for explicit approval with escalation reminders.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Email safety</div>
+      <h3>No loops, no hijacks</h3>
+      <p>RFC 3834 auto-reply guards prevent mail loops; HMAC-signed reply routing prevents header forgery to other agents.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Credential isolation</div>
+      <h3>Secrets stay secret</h3>
+      <p>Third-party tokens injected at the egress proxy; the model and sandbox code never see raw credentials.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Cost guardrails</div>
+      <h3>No runaway agents</h3>
+      <p>Per-gig browser-minute caps, idle-session shutdown, and plan-tier budgets enforced before any expensive tool launches.</p>
+    </div>
+    <div class="card">
+      <div class="icon">Proof of work</div>
+      <h3>Verifiable outcomes</h3>
+      <p>Every external action stores a confirmation screenshot + metadata, searchable from the dashboard — trust by evidence.</p>
+    </div>
+  </div>
+  <div class="slide-num">13</div>
+</section>
+
+<!-- 14. Submission mapping + testing access -->
+<section class="slide">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Submission</div>
+  <h2>How this maps to the challenge</h2>
+  <div class="two-col" style="grid-template-columns:1.05fr 1fr; gap:0.4in;">
+    <div>
+      <table class="t">
+        <tr><th>Criterion</th><th>Where Gigler delivers</th></tr>
+        <tr><td>Technical (30%)</td><td>Multi-step orchestration, durable execution, tool/model routing, real deliverables</td></tr>
+        <tr><td>Business (30%)</td><td>Users want outcomes, not tool menus; Gigler turns fragmented AI into completed work</td></tr>
+        <tr><td>Innovation (20%)</td><td>Orca routing layer + a unique email address per gig across SMS / email / voice</td></tr>
+        <tr><td>Demo (20%)</td><td>One request → orchestrated steps → a shareable, real deliverable</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3 style="color:#2563eb;">Required assets</h3>
+      <ul class="bullets" style="margin-top:0.1in;">
+        <li><strong>Code</strong> — repository (Next.js + agents + tools)</li>
+        <li><strong>Video</strong> — 2–3 min, one complete gig end-to-end</li>
+        <li><strong>Architecture diagram</strong> — hosted at <span class="pill">gigler.ai/architecture</span></li>
+        <li><strong>Testing access</strong> — text/email the demo gig and get a deliverable link back</li>
+      </ul>
+      <h3 style="color:#2563eb; margin-top:0.2in;">Suggested demo gig</h3>
+      <p style="margin-top:6px;">"Build me a one-page site for my dog-walking business and send me the link." Orca plans, scaffolds in a sandbox, screenshots the result, and replies with a live URL + a designed one-pager PDF — all from a single text.</p>
+    </div>
+  </div>
+  <div class="slide-num">14</div>
+</section>
+
+<!-- 15. Close -->
+<section class="slide close">
+  <div class="brand-mark">GIGLER</div>
+  <div class="kicker">Gigler Orca</div>
+  <h1>Send the request.<br>Gigler delivers the <span class="accent">work</span>.</h1>
+  <p class="ask">An AI gig-orchestration platform where every gig is an agent — reachable by text, email, or voice — that plans, routes, and delivers real outcomes.</p>
+  <div class="contact">
+    <span><strong>gigler.ai</strong> · gigler.ai/architecture</span>
+    <span>Google for Startups AI Agents Challenge · Track 2</span>
+  </div>
+</section>
+
+</body>
+</html>

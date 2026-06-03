@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gigler Orca — Architecture Diagram</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; color: #0a0a0a; background: #fff; }
+  .page {
+    width: 13.333in; height: 7.5in;
+    padding: 0.45in 0.6in 0.4in;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0a0a0a; padding-bottom: 9px; }
+  .head .title { font-size: 27px; font-weight: 900; letter-spacing: -0.6px; }
+  .head .title .accent { color: #2563eb; }
+  .head .sub { font-size: 12px; color: #666; margin-top: 2px; }
+  .head .right { text-align: right; font-size: 11px; color: #888; letter-spacing: 0.5px; }
+  .head .right .brand { font-size: 14px; font-weight: 800; color: #2563eb; letter-spacing: 1.5px; }
+
+  .grid { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 0.18in 0 0.05in; }
+
+  .band-label { font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #2563eb; margin-bottom: 7px; }
+  .row { display: flex; gap: 12px; align-items: stretch; }
+  .node { border: 1.5px solid #d4d4d8; border-radius: 11px; padding: 9px 13px; background: #fff; flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0.66in; }
+  .node .t1 { font-size: 13.5px; font-weight: 700; color: #0a0a0a; line-height: 1.18; }
+  .node .t2 { font-size: 10.5px; color: #667085; line-height: 1.3; margin-top: 3px; }
+  .node.dark { background: #0a0a0a; border-color: #0a0a0a; }
+  .node.dark .t1 { color: #fff; } .node.dark .t2 { color: #9ca3af; }
+  .node.blue { background: #2563eb; border-color: #2563eb; }
+  .node.blue .t1 { color: #fff; } .node.blue .t2 { color: #d2e1ff; }
+  .node.ghost { background: #f4f6fb; border-color: #c7d2fe; }
+  .node.amber { background: #fff7ed; border-color: #fdba74; }
+  .node.amber .t1 { color: #9a3412; } .node.amber .t2 { color: #c2410c; }
+
+  .flow { text-align: center; color: #9aa6b8; font-size: 17px; line-height: 1; margin: 3px 0; letter-spacing: 6px; }
+  .orca { display: flex; gap: 12px; align-items: stretch; }
+  .orca .main { flex: 2.6; }
+  .orca .side { flex: 1; }
+  .legend { display: flex; gap: 16px; align-items: center; margin-top: 0.14in; font-size: 10px; color: #667085; }
+  .legend .key { display: flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid #d4d4d8; }
+  .sw.b { background: #2563eb; border-color: #2563eb; }
+  .sw.d { background: #0a0a0a; border-color: #0a0a0a; }
+  .sw.g { background: #f4f6fb; border-color: #c7d2fe; }
+  .sw.a { background: #fff7ed; border-color: #fdba74; }
+  .foot { font-size: 10px; color: #98a2b3; font-style: italic; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="head">
+    <div>
+      <div class="title">Gigler <span class="accent">Orca</span> — System Architecture</div>
+      <div class="sub">AI gig orchestration: text · email · voice in → orchestrated execution → a delivered outcome out</div>
+    </div>
+    <div class="right">
+      <div class="brand">GIGLER</div>
+      <div>Google for Startups AI Agents Challenge · Track 2 — Optimize</div>
+      <div>gigler.ai/architecture</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Channels -->
+    <div>
+      <div class="band-label">1 · Channels — identity is the sender, not the destination</div>
+      <div class="row">
+        <div class="node"><div class="t1">📱 SMS / MMS</div><div class="t2">Twilio · shared number · sender = identity</div></div>
+        <div class="node"><div class="t1">📧 Email — unique address per gig</div><div class="t2">gig+{shortCode}@gigler.ai · onEmail agent hook</div></div>
+        <div class="node"><div class="t1">📞 Voice</div><div class="t2">Gemini Live + Pipecat · real-time call</div></div>
+        <div class="node"><div class="t1">🌐 Web dashboard</div><div class="t2">live gig state · review &amp; approve</div></div>
+      </div>
+    </div>
+
+    <div class="flow">▼ ▼ ▼</div>
+
+    <!-- Orca -->
+    <div>
+      <div class="band-label">2 · Orca orchestration layer — one stateful agent per gig</div>
+      <div class="orca">
+        <div class="node blue main">
+          <div class="t1">ORCA &nbsp;·&nbsp; plan → route → execute → verify</div>
+          <div class="t2">intent &amp; gig-type classification · step planning · tool/model routing (easiest path first) · progress &amp; memory in per-gig state · human-checkpoint policy · durable execution &amp; resume</div>
+        </div>
+        <div class="node dark side"><div class="t1">Gemini</div><div class="t2">reasoning · vision · generation · function-calling · MCP tools</div></div>
+        <div class="node amber side"><div class="t1">Human checkpoint</div><div class="t2">approve · log in · confirm</div></div>
+      </div>
+    </div>
+
+    <div class="flow">▼ ▼ ▼</div>
+
+    <!-- Execution -->
+    <div>
+      <div class="band-label">3 · Execution surfaces — routed per step</div>
+      <div class="row">
+        <div class="node ghost"><div class="t1">Document / media</div><div class="t2">HTML → Chrome → PDF &amp; PNG</div></div>
+        <div class="node ghost"><div class="t1">Browser tasks</div><div class="t2">real Chrome · forms · bookings · bill pay</div></div>
+        <div class="node ghost"><div class="t1">Code &amp; deploy</div><div class="t2">sandbox · scaffold · live preview</div></div>
+        <div class="node ghost"><div class="t1">Vision</div><div class="t2">read PDFs · receipts · photos</div></div>
+        <div class="node ghost"><div class="t1">3rd-party APIs</div><div class="t2">OpenTable · Resy · Evite · Stripe</div></div>
+      </div>
+    </div>
+
+    <div class="flow">▼ ▼ ▼</div>
+
+    <!-- State + delivery -->
+    <div>
+      <div class="band-label">4 · State &amp; delivery</div>
+      <div class="row">
+        <div class="node"><div class="t1">Per-gig state</div><div class="t2">messages · participants · reminders · media · checkpoints</div></div>
+        <div class="node"><div class="t1">Cross-tenant index</div><div class="t2">users · gigs · deliverables · billing</div></div>
+        <div class="node"><div class="t1">Object storage</div><div class="t2">media + deliverables (S3 → R2)</div></div>
+        <div class="node"><div class="t1">Scheduling</div><div class="t2">durable reminders · check-ins · follow-ups</div></div>
+        <div class="node blue"><div class="t1">📦 Deliverable link</div><div class="t2">gigler.ai/{shortCode} · OTP-gated · proof captured</div></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="key"><span class="sw b"></span> Orchestration / delivery</div>
+      <div class="key"><span class="sw d"></span> AI model (Gemini)</div>
+      <div class="key"><span class="sw g"></span> Execution tool / platform</div>
+      <div class="key"><span class="sw a"></span> Human-in-the-loop</div>
+    </div>
+    <div class="foot">Existing system runs on AWS (Amplify Gen 2, Next.js, DynamoDB, Lambda, Gemini); Track 2 hardening evolves the email channel, per-gig isolation, and durable execution onto Cloudflare Workers + Agents SDK + Durable Objects + R2.</div>
+  </div>
+</div>
+</body>
+</html>

@@ -209,7 +209,7 @@
   .stat .num { font-size: 56px; font-weight: 900; color: #0a0a0a; letter-spacing: -1.5px; }
   .stat .label { font-size: 16px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 
-  /* NVIDIA-tech slide */
+  /* Technology slide */
   .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5in; margin-top: 0.2in; }
   .tech-now h3 { color: #999; }
   .tech-future h3 { color: #2563eb; }
@@ -217,11 +217,76 @@
   .tech-list li { font-size: 17px; color: #333; padding: 6px 0; line-height: 1.5; }
   .tech-list li::before { content: "→"; color: #2563eb; margin-right: 10px; font-weight: 700; }
 
+  /* Team slide */
+  .team-slide {
+    justify-content: flex-start;
+    padding-top: 0.7in;
+  }
+  .team-title {
+    font-size: 44px;
+    margin-top: 0.35in;
+    margin-bottom: 0.55in;
+  }
+  .founder-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2in;
+    align-items: start;
+  }
+  .founder-card {
+    text-align: center;
+  }
+  .founder-photo {
+    width: 1.55in;
+    height: 1.55in;
+    border-radius: 0;
+    object-fit: cover;
+    margin: 0 auto 0.22in;
+    display: block;
+  }
+  .founder-photo.sabrina {
+    object-position: 50% 66%;
+  }
+  .founder-card h3 {
+    font-size: 24px;
+    color: #0a0a0a;
+    margin-bottom: 4px;
+  }
+  .founder-role {
+    font-size: 18px;
+    color: #666;
+    margin-bottom: 0.16in;
+  }
+  .founder-proof {
+    font-size: 15px;
+    line-height: 1.45;
+    color: #444;
+    max-width: 3.7in;
+    margin: 0 auto 0.18in;
+  }
+  .credential-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 9px;
+  }
+  .credential {
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #333;
+    background: #fff;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
   /* Closing */
   .close { background: #0a0a0a; color: #fff; }
   .close .brand-mark { color: #2563eb; }
-  .close h1 { font-size: 90px; font-weight: 900; letter-spacing: -2px; }
-  .close .ask { font-size: 26px; margin-top: 0.3in; color: #ddd; max-width: 10in; line-height: 1.5; }
+  .close h1 { font-size: 82px; font-weight: 900; letter-spacing: -2px; }
+  .close .ask { font-size: 22px; margin-top: 0.24in; color: #ddd; max-width: 10in; line-height: 1.42; }
   .close .contact { position: absolute; bottom: 0.7in; left: 0.9in; right: 0.9in; display: flex; flex-direction: column; gap: 8px; color: #aaa; font-size: 18px; }
   .close .contact strong { color: #fff; font-weight: 600; }
 
@@ -253,7 +318,7 @@
   <p class="lead" style="margin-top: 0.3in;">
     Even as AI gets more capable, users are overwhelmed by which tool, model,
     or agent fits each task and their unique workflow. Gigler removes that burden:
-    ask for the outcome, and Orca, our model designed and trained specifically to
+    users ask for the outcome, and Orca, our model designed and trained specifically to
     orchestrate AI agents and tools, breaks the gig into steps, chooses the right
     mix, and coordinates frontier agents across platforms. One step might go to a
     frontier coding agent, another to a cloud or browser tool, and another to an AI
@@ -276,7 +341,7 @@
 <section class="slide one-liner">
   <div class="brand-mark">THE IDEA</div>
   <h1>Send a request.<br>Or add Gigler to the thread.<br>It plans, tracks, and delivers.</h1>
-  <p class="sub">An AI gig worker, always on. Gigler reaches you by phone, text, or email with updates and questions.</p>
+  <p class="sub">Orca-powered AI gig orchestration, always on. Gigler reaches you by phone, text, or email with updates and questions.</p>
   <div class="slide-num">03</div>
 </section>
 
@@ -288,10 +353,10 @@
     <div>
       <p class="lead">A user sends a request by text, email, or voice. Gigler turns it into a dedicated
       Gig with its own memory, schedule, progress updates, and deliverables.</p>
-      <p class="lead" style="margin-top: 0.3in;">Gigler brings together best-in-class agents,
+      <p class="lead" style="margin-top: 0.3in;">Orca brings together best-in-class agents,
       AI tools, and frontier models without locking users into any single system. It
-      orchestrates the right tool for the gig, and the right tool for each task inside
-      that gig.</p>
+      routes the right tool for the gig, and the right tool for each task inside that
+      gig.</p>
       <p class="lead" style="margin-top: 0.3in;">When a decision matters, Gigler reaches the user
       by phone, text, or email, then keeps the gig moving.</p>
     </div>
@@ -344,13 +409,13 @@
 <!-- Slide 6: Use cases -->
 <section class="slide">
   <div class="brand-mark">WHAT GIGLER CAN ALREADY DO</div>
-  <h2 style="margin-bottom: 0.05in;">AI gig worker. Always on.</h2>
-  <p style="font-size: 18px; color: #666; margin-bottom: 0.2in;">Beach, office, or on the go — text it and it's done.</p>
+  <h2 style="margin-bottom: 0.05in;">Completed gigs across tools, agents, and platforms.</h2>
+  <p style="font-size: 18px; color: #666; margin-bottom: 0.2in;">Text, email, or call Gigler. Orca routes the work, coordinates the tools, and delivers the result.</p>
   <div class="cap-layout">
     <div class="hero-card">
       <div class="label">Flagship capability</div>
-      <h3>Gig Programmer</h3>
-      <p class="tagline">Code, debug, and ship features. Anytime, anywhere. From a hammock if you want.</p>
+      <h3>Orca-powered delivery</h3>
+      <p class="tagline">Break down a software gig, route each step to the right agent or tool, then ship the working result.</p>
       <div class="codeblock">
 <span class="kw">const</span> <span class="fn">app</span> = express()<br>
 <span class="fn">app</span>.<span class="fn">get</span>(<span class="str">'/api'</span>, handler)<br>
@@ -361,11 +426,11 @@
     <div class="cap-grid">
       <div class="cap-tile">
         <h4>Gig Orchestration</h4>
-        <p>Plan, track, coordinate, deliver.</p>
+        <p>Plan steps, route tools, track delivery.</p>
       </div>
       <div class="cap-tile">
-        <h4>Landing Pages</h4>
-        <p>Full websites from a text description.</p>
+        <h4>Code &amp; APIs</h4>
+        <p>Build, debug, deploy, and document.</p>
       </div>
       <div class="cap-tile">
         <h4>Event Planning</h4>
@@ -384,7 +449,7 @@
         <p>Print-ready or shareable online.</p>
       </div>
       <div class="cap-tile">
-        <h4>Excel Sheets</h4>
+        <h4>Spreadsheets</h4>
         <p>Organize, analyze, share data.</p>
       </div>
       <div class="cap-tile">
@@ -430,13 +495,13 @@
   <div class="brand-mark">WHY NOW</div>
   <h2>Five things just clicked into place.</h2>
   <ul class="bullets">
-    <li>LLMs are finally good enough for autonomous, multi-step execution. Not just chat.</li>
-    <li>Vision + multimodal models can watch video, read receipts, classify uploads in real time.</li>
-    <li>Headless browsers are programmable, observable, and human-in-the-loop ready.</li>
+    <li>Frontier AI models can now reason, code, use tools, and operate across multimodal inputs.</li>
+    <li>Coding agents, browser agents, cloud tools, and specialized models are improving fast but fragmenting faster.</li>
+    <li>Users need orchestration because the right tool for each task keeps changing.</li>
     <li>Sandboxes for code execution are cheap, safe, and per-session billable.</li>
     <li>Voice, SMS/MMS, and email infrastructure is commodity. Reach is universal.</li>
   </ul>
-  <p class="small">The first generation of consumer AI agents that actually do work, not just answer questions, is here.</p>
+  <p class="small">The opportunity is not another single AI app. It is the orchestration layer that turns fast-changing AI capability into completed work.</p>
   <div class="slide-num">08</div>
 </section>
 
@@ -448,65 +513,98 @@
     <div class="tech-now">
       <h3>Current platform</h3>
       <ul class="tech-list">
-        <li>AI agents for planning, execution, progress tracking, and delivery</li>
+        <li>Orca orchestration model designed and trained to route gigs across frontier AI agents, models, tools, and leading platforms</li>
         <li>Text, email, voice, and shared workspace interfaces</li>
-        <li>Tool orchestration across code, browser, documents, images, and workflow systems</li>
+        <li>Cross-platform tool orchestration across code, browser, cloud, documents, images, and workflow systems</li>
         <li>Per-gig memory, status, deliverables, and human checkpoints</li>
         <li>Cloud-native execution designed for repeatable agent workflows</li>
       </ul>
     </div>
     <div class="tech-future">
-      <h3>NVIDIA fit</h3>
+      <h3>Capital Connect fit</h3>
       <ul class="tech-list">
-        <li><strong>NVIDIA Inception member</strong> with access to startup ecosystem benefits</li>
-        <li><strong>NVIDIA NIM</strong> for scalable inference across agent workloads</li>
-        <li><strong>NVIDIA NeMo / Guardrails</strong> for safer autonomous and human-in-the-loop workflows</li>
-        <li><strong>NVIDIA Riva</strong> for future voice briefings, voice input, and decision calls</li>
-        <li><strong>GPU cloud partners</strong> for lower-latency, higher-throughput agent execution</li>
+        <li><strong>Category timing</strong> as AI shifts from chat interfaces to agentic execution</li>
+        <li><strong>Orca routing layer</strong> designed to capture value across frontier models, tools, and platforms</li>
+        <li><strong>Capital accelerates</strong> agent evaluation, model routing, cloud execution, and safety systems</li>
+        <li><strong>Cloud and GPU partnerships</strong> improve latency, throughput, and per-gig margins as volume scales</li>
+        <li><strong>Data flywheel</strong> from completed gigs improves routing, tool selection, and delivery quality</li>
       </ul>
     </div>
   </div>
   <div class="slide-num">09</div>
 </section>
 
-<!-- Slide 10: Traction & roadmap -->
-<section class="slide">
-  <div class="brand-mark">WHERE WE ARE</div>
-  <h2>Live product. Active users. Aggressive roadmap.</h2>
-  <div class="stat-row">
-    <div class="stat">
-      <div class="num">407</div>
-      <div class="label">Active testers (alpha)</div>
+<!-- Slide 10: Team -->
+<section class="slide team-slide">
+  <div class="brand-mark">TEAM</div>
+  <h2 class="team-title">The founders building Gigler.</h2>
+  <div class="founder-grid">
+    <div class="founder-card">
+      <img class="founder-photo" src="charles-headshot.jpg" alt="Charles Conner">
+      <h3>Charles Conner</h3>
+      <div class="founder-role">Co-founder / CEO &amp; Technical Lead</div>
+      <p class="founder-proof">BS Computer Science, Chapman University. Graduating one year early. Built full-stack AI systems, agent pipelines, ML models, and an optimization tool adopted by Chapman.</p>
+      <div class="credential-row">
+        <span class="credential">Chapman</span>
+        <span class="credential">Quorum</span>
+      </div>
     </div>
-    <div class="stat">
-      <div class="num">~$1M</div>
-      <div class="label">Funding raised</div>
-    </div>
-    <div class="stat">
-      <div class="num">Q2-Q4</div>
-      <div class="label">Near-term agent roadmap</div>
+    <div class="founder-card">
+      <img class="founder-photo sabrina" src="sabrina-headshot.jpg" alt="Sabrina Taylor">
+      <h3>Sabrina Aleece Taylor</h3>
+      <div class="founder-role">Co-founder / COO</div>
+      <p class="founder-proof">Operations, customer workflows, and business execution experience across consumer mobility and insurance services.</p>
+      <div class="credential-row">
+        <span class="credential">Hertz</span>
+        <span class="credential">Nikssarian Insurance</span>
+      </div>
     </div>
   </div>
-  <ul class="bullets" style="margin-top: 0.5in;">
-    <li>Live SMS &amp; email gig completion at gigler.ai today.</li>
-    <li>407 active alpha testers validate demand for screen-free AI work execution.</li>
-    <li>Roadmap: deeper per-gig orchestration, code sandboxes, browser agents, and voice agents.</li>
-  </ul>
   <div class="slide-num">10</div>
 </section>
 
-<!-- Slide 11: Closing / Ask -->
+<!-- Slide 11: Traction & roadmap -->
+<section class="slide">
+  <div class="brand-mark">WHERE WE ARE</div>
+  <h2>Live product. Angel-backed. Orca roadmap underway.</h2>
+  <div class="stat-row">
+    <div class="stat">
+      <div class="num">407</div>
+      <div class="label">Closed alpha testers</div>
+    </div>
+    <div class="stat">
+      <div class="num">~$1M</div>
+      <div class="label">Angel funding raised</div>
+    </div>
+    <div class="stat">
+      <div class="num">Q2-Q4</div>
+      <div class="label">Orca orchestration roadmap</div>
+    </div>
+  </div>
+  <ul class="bullets" style="margin-top: 0.5in;">
+    <li>Live text, email, and voice gig completion for closed stealth alpha users, with deliverables shared through gigler.ai links, GitHub, spreadsheets, documents, and more.</li>
+    <li>407 closed alpha testers validate demand for screen-free AI work execution.</li>
+    <li>Roadmap: deeper Orca routing, code sandboxes, browser agents, voice agents, and cloud deployment workflows.</li>
+  </ul>
+  <div class="slide-num">11</div>
+</section>
+
+<!-- Slide 12: Closing / Ask -->
 <section class="slide close">
   <div class="brand-mark">THE ASK</div>
-  <h1>Help us fund.<br>The AI gig worker<br>for real work.</h1>
+  <h1>Raising $1M seed round<br>to scale AI gig orchestration<br>for real work.</h1>
   <p class="ask">
-    Gigler is building the future of productive work: quality outcomes over process,
-    powered by AI gig orchestration across voice, text, email, and shared workspaces.
+    This round accelerates Orca routing, agent reliability, code sandboxes, browser
+    and voice agents, cloud deployment workflows, closed alpha expansion, and
+    go-to-market. Within 12 months, this round is designed to turn closed alpha
+    usage into repeatable paid gig revenue, improve our Orca agent model reliability
+    across real workflows, and position Gigler for a larger Series A raise.
   </p>
   <div class="contact">
     <span><strong>gigler.ai</strong></span>
     <span>admin@gigler.ai</span>
   </div>
+  <div class="slide-num">12</div>
 </section>
 
 </body>
