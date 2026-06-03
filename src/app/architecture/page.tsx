@@ -41,16 +41,7 @@ export default function ArchitecturePage() {
 
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-8">
-            System Architecture · Gigler Orca
-          </p>
-
           <ArchitectureTabs />
-
-          <p className="mt-12 text-sm text-brand-muted">
-            Prepared for the Google for Startups AI Agents Challenge · Track 2 —
-            Optimize Existing Agents.
-          </p>
         </div>
       </section>
 
