@@ -246,7 +246,8 @@ export default function ArchitectureTabs() {
         <div role="tabpanel" className="mt-8">
           <p className="text-lg text-brand-muted leading-relaxed max-w-3xl mb-8">
             Gigler is an AI gig-orchestration platform. Users ask for an outcome
-            over text, email, or voice; Orca breaks the gig into steps, routes
+            at gigler.ai or text, email, or voice; Orca breaks the gig into
+            steps, routes
             each step to the right model, agent, tool, or platform, tracks
             progress, asks for human input only when needed, and delivers a real
             result. This is the same system shown in the technical view, told as
