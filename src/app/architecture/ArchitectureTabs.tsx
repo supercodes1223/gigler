@@ -19,11 +19,43 @@ const HIGHLIGHTS: { title: string; body: string }[] = [
   },
 ];
 
+const GIG_STEPS = [
+  "Got your request",
+  "Planned the steps",
+  "Researched the details",
+  "Built your landing page",
+  "Captured a preview",
+];
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 shrink-0 text-brand-accent"
+      aria-hidden="true"
+    >
+      <circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.15" />
+      <path
+        d="M6 10.5l2.5 2.5L14 7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function GigStatusPreview() {
+  const [showAll, setShowAll] = useState(false);
+  const visibleSteps = showAll ? GIG_STEPS : GIG_STEPS.slice(0, 3);
+  const hiddenCount = GIG_STEPS.length - 3;
+
   return (
     <div className="mt-8">
       <style>{`
-        @keyframes ggShimmer { 0% { transform: translateX(-130%); } 100% { transform: translateX(360%); } }
+        @keyframes ggShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(220%); } }
       `}</style>
       <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-3">
         What the user sees
@@ -43,18 +75,18 @@ function GigStatusPreview() {
           </div>
           <div className="h-3.5 w-full rounded-full bg-background overflow-hidden">
             <div
-              className="relative h-full rounded-full"
+              className="relative h-full overflow-hidden rounded-full"
               style={{
                 width: "62%",
                 background: "linear-gradient(90deg, var(--brand-accent), #7aa9ff)",
               }}
             >
               <div
-                className="absolute inset-y-0 w-1/3"
+                className="absolute inset-y-0 left-0 w-1/4"
                 style={{
                   background:
-                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
-                  animation: "ggShimmer 1.8s ease-in-out infinite",
+                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)",
+                  animation: "ggShimmer 2.4s ease-in-out infinite",
                 }}
               />
             </div>
@@ -63,10 +95,28 @@ function GigStatusPreview() {
             <span className="text-sm font-bold text-brand-accent">62%</span>
             <span className="text-xs text-brand-muted">almost there</span>
           </div>
-          <p className="mt-4 text-xs text-brand-muted leading-relaxed">
-            One simple link, one moving bar. We&rsquo;ll text you the deliverable
-            the moment it&rsquo;s done — no dashboards, no machinery to manage.
-          </p>
+
+          <ul className="mt-4 space-y-2">
+            {visibleSteps.map((step) => (
+              <li
+                key={step}
+                className="flex items-center gap-2.5 text-sm text-foreground"
+              >
+                <CheckIcon />
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+
+          {hiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-3 text-xs font-semibold text-brand-accent hover:underline"
+            >
+              {showAll ? "Show less" : `Show ${hiddenCount} more`}
+            </button>
+          )}
         </div>
       </div>
     </div>
