@@ -9,22 +9,16 @@
   html, body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; }
   .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
 
-  .stage {
-    position: relative; width: 1280px; height: 720px;
-    background-color: #0b0d12;
-    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-    background-size: 22px 22px;
-    color: #e5e7eb; overflow: hidden;
-  }
+  .stage { position: relative; width: 1280px; height: 720px; background-color: #0b0d12; background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 22px 22px; color: #e5e7eb; overflow: hidden; }
   svg.wires { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; }
 
   .grp { position: absolute; border: 1.6px dashed #3b82f6; border-radius: 14px; }
   .grp-title { position: absolute; padding: 0 12px; background: #0b0d12; font-size: 12.5px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; color: #60a5fa; }
 
-  .box { position: absolute; border-radius: 12px; background: #141925; border: 1.5px solid #232c3d; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .box { position: absolute; border-radius: 12px; background: #141925; border: 1.5px solid #232c3d; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6px; }
   .box .ic { margin-bottom: 7px; }
-  .box .lab { font-size: 13px; font-weight: 700; color: #f3f4f6; line-height: 1.15; }
-  .box .sub { font-size: 9.5px; color: #8b97ab; margin-top: 3px; line-height: 1.25; }
+  .box .lab { font-size: 12px; font-weight: 700; color: #f3f4f6; line-height: 1.15; }
+  .box .sub { font-size: 9px; color: #8b97ab; margin-top: 3px; line-height: 1.25; }
 
   .userbox { position: absolute; border-radius: 12px; background: rgba(59,130,246,0.10); border: 1.5px solid #2b3a55; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .userbox .lab { font-size: 17px; font-weight: 700; color: #e5e7eb; }
@@ -39,16 +33,19 @@
   .orca .lab { font-size: 17px; font-weight: 900; color: #fff; letter-spacing: 1px; }
   .orca .sub { font-size: 10px; font-weight: 600; color: #7aa2ff; margin-top: 4px; letter-spacing: 0.4px; }
 
-  /* progress panel */
-  .panel { position: absolute; border-radius: 12px; background: #0f141d; border: 1.5px solid #232c3d; padding: 16px 16px 14px; }
-  .panel .ttl { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #9fb2cc; margin-bottom: 13px; }
-  .prow { margin-bottom: 13px; }
-  .prow .top { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; }
-  .prow .nm { color: #d7dee9; font-weight: 600; }
-  .prow .pct { color: #7aa2ff; font-weight: 700; }
-  .track { height: 9px; border-radius: 6px; background: #1c2533; overflow: hidden; }
-  .fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #2563eb, #60a5fa); }
-  .panel .cap { font-size: 9.5px; color: #7e8aa0; margin-top: 4px; line-height: 1.35; }
+  /* simple user-facing gig status card */
+  .statuscard { position: absolute; border-radius: 12px; background: #0f141d; border: 1.5px solid #232c3d; overflow: hidden; }
+  .bbar { height: 34px; background: #161c27; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #232c3d; }
+  .bbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #39424f; margin-right: 6px; }
+  .bbar .url { margin-left: 8px; font-size: 11px; color: #9ec2ff; background: #0e1520; border: 1px solid #243043; border-radius: 6px; padding: 3px 12px; }
+  .sbody { padding: 18px 18px 16px; }
+  .sbody .stitle { font-size: 15px; font-weight: 800; color: #eef2f8; margin-bottom: 16px; }
+  .track { height: 14px; border-radius: 8px; background: #1c2533; overflow: hidden; }
+  .fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #2563eb, #60a5fa); }
+  .pctline { display: flex; justify-content: space-between; margin-top: 9px; }
+  .pctline .p { font-size: 12px; font-weight: 800; color: #7aa2ff; }
+  .pctline .s { font-size: 11px; color: #8b97ab; }
+  .deliver { font-size: 11px; color: #9aa6b8; margin-top: 18px; line-height: 1.4; }
 
   .albl { position: absolute; text-align: center; font-size: 12px; font-weight: 700; color: #e8edf6; }
   .albl.sm { font-size: 11px; font-weight: 600; color: #aeb9cc; }
@@ -71,49 +68,42 @@
       <marker id="ahb" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#60a5fa"/></marker>
     </defs>
     <g stroke="#cbd5e1" stroke-width="2" fill="none">
-      <!-- 1 User -> Email -->
-      <line x1="200" y1="176" x2="306" y2="176" marker-end="url(#ah)"/>
-      <!-- 2 Email -> Orca -->
-      <line x1="416" y1="232" x2="416" y2="300" marker-end="url(#ah)"/>
-      <!-- 3 Orca -> Agent A (assign) -->
-      <line x1="528" y1="332" x2="640" y2="250" marker-end="url(#ah)"/>
-      <!-- handoff A->B -->
-      <line x1="812" y1="246" x2="846" y2="246" marker-end="url(#ah)"/>
-      <!-- handoff B->C -->
-      <line x1="1018" y1="246" x2="1052" y2="246" marker-end="url(#ah)"/>
-      <!-- 4 results back: C -> down -> Orca -->
-      <polyline points="1136,316 1136,420 532,420 532,378" marker-end="url(#ah)"/>
-      <!-- 5 Orca <-> EventBridge loop -->
-      <line x1="398" y1="392" x2="398" y2="486" marker-end="url(#ah)"/>
-      <line x1="434" y1="486" x2="434" y2="392" marker-end="url(#ah)"/>
+      <line x1="200" y1="176" x2="304" y2="176" marker-end="url(#ah)"/>            <!-- 1 -->
+      <line x1="416" y1="232" x2="416" y2="300" marker-end="url(#ah)"/>            <!-- 2 -->
+      <line x1="528" y1="332" x2="612" y2="250" marker-end="url(#ah)"/>            <!-- 3 -->
+      <line x1="742" y1="250" x2="770" y2="250" marker-end="url(#ah)"/>            <!-- handoff -->
+      <line x1="900" y1="250" x2="928" y2="250" marker-end="url(#ah)"/>
+      <line x1="1058" y1="250" x2="1086" y2="250" marker-end="url(#ah)"/>
+      <polyline points="1152,325 1152,410 530,410 530,394" marker-end="url(#ah)"/> <!-- 4 results -->
+      <line x1="398" y1="392" x2="398" y2="468" marker-end="url(#ah)"/>            <!-- 5 schedule -->
+      <line x1="434" y1="468" x2="434" y2="392" marker-end="url(#ah)"/>            <!-- 5 check-in -->
     </g>
     <g stroke="#60a5fa" stroke-width="2" fill="none">
-      <!-- 6 Orca -> progress panel top edge (live progress) -->
-      <polyline points="304,330 150,330 150,338" marker-end="url(#ahb)"/>
+      <polyline points="304,340 170,340 170,358" marker-end="url(#ahb)"/>          <!-- 6 progress -->
     </g>
   </svg>
 
-  <!-- GROUP: per-gig orchestration -->
-  <div class="grp" style="left:286px; top:108px; width:954px; height:500px;"></div>
+  <!-- groups -->
+  <div class="grp" style="left:286px; top:108px; width:954px; height:482px;"></div>
   <div class="grp-title" style="left:470px; top:100px;">Gig Orchestration — one email-native agent per gig</div>
 
-  <!-- GROUP: AI agents -->
-  <div class="grp" style="left:606px; top:150px; width:620px; height:320px; border-color:#334155;"></div>
-  <div class="grp-title" style="left:820px; top:142px; color:#9fb2cc; border-color:#334155;">AI Agents · specialized, with handoff</div>
+  <div class="grp" style="left:600px; top:150px; width:632px; height:300px; border-color:#334155;"></div>
+  <div class="grp-title" style="left:800px; top:142px; color:#9fb2cc; border-color:#334155;">AI Agents · specialized, with handoff</div>
 
   <!-- USER -->
   <div class="userbox" style="left:50px; top:150px; width:150px; height:140px;">
     <div class="lab">User</div><div class="sub">SMS · email · voice</div>
   </div>
 
-  <!-- PROGRESS PANEL -->
-  <div class="panel" style="left:50px; top:340px; width:212px; height:300px;">
-    <div class="ttl">User's live view</div>
-    <div class="prow"><div class="top"><span class="nm">Plan &amp; route</span><span class="pct">100%</span></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
-    <div class="prow"><div class="top"><span class="nm">Agents working</span><span class="pct">68%</span></div><div class="track"><div class="fill" style="width:68%"></div></div></div>
-    <div class="prow"><div class="top"><span class="nm">Review / handoff</span><span class="pct">45%</span></div><div class="track"><div class="fill" style="width:45%"></div></div></div>
-    <div class="prow"><div class="top"><span class="nm">Deliverable</span><span class="pct">30%</span></div><div class="track"><div class="fill" style="width:30%"></div></div></div>
-    <div class="cap">Live progress + deliverable link, pushed via SMS · email · dashboard.</div>
+  <!-- SIMPLE GIG STATUS CARD (what the user sees) -->
+  <div class="statuscard" style="left:50px; top:360px; width:240px; height:228px;">
+    <div class="bbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url mono">gigler.ai/gig/a13</span></div>
+    <div class="sbody">
+      <div class="stitle">Your gig — on the way…</div>
+      <div class="track"><div class="fill" style="width:62%"></div></div>
+      <div class="pctline"><span class="p">62%</span><span class="s">almost there</span></div>
+      <div class="deliver">We&rsquo;ll text you the link the moment it&rsquo;s done.</div>
+    </div>
   </div>
 
   <!-- UNIQUE EMAIL NODE -->
@@ -129,47 +119,48 @@
   </div>
 
   <!-- EVENTBRIDGE -->
-  <div class="box" style="left:306px; top:486px; width:220px; height:86px;">
-    <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
-    <div class="lab">EventBridge schedule</div><div class="sub">interval check-in · every 5 min · per gig</div>
+  <div class="box" style="left:306px; top:468px; width:220px; height:96px;">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+    <div class="lab">Scheduled check-in</div>
+    <div class="sub">interval polling · every 5 min · per gig</div>
+    <div class="sub" style="color:#6b7787;">AWS EventBridge today → Cloudflare DO alarms (target)</div>
   </div>
 
-  <!-- AGENT A -->
-  <div class="box" style="left:632px; top:172px; width:180px; height:144px;">
-    <span class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/><circle cx="6" cy="6.7" r="0.5" fill="#60a5fa"/></svg></span>
+  <!-- AGENTS -->
+  <div class="box" style="left:614px; top:175px; width:128px; height:150px;">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></span>
     <div class="lab">Research Agent</div><div class="sub">browse · gather · validate</div>
   </div>
-  <!-- AGENT B -->
-  <div class="box" style="left:838px; top:172px; width:180px; height:144px;">
-    <span class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l8 4.5v9l-8 4.5-8-4.5v-9l8-4.5z"/><path d="M4 7l8 4.5L20 7"/><path d="M12 11.5V21"/></svg></span>
+  <div class="box" style="left:772px; top:175px; width:128px; height:150px;">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l8 4.5v9l-8 4.5-8-4.5v-9l8-4.5z"/><path d="M4 7l8 4.5L20 7"/><path d="M12 11.5V21"/></svg></span>
     <div class="lab">Builder Agent</div><div class="sub">code · build · deploy</div>
   </div>
-  <!-- AGENT C -->
-  <div class="box" style="left:1044px; top:172px; width:180px; height:144px;">
-    <span class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l5 5v14H6z"/><path d="M13 2.5V8h5"/><path d="M9 13h6M9 16.5h6"/></svg></span>
-    <div class="lab">Delivery Agent</div><div class="sub">PDF · page · link</div>
+  <div class="box" style="left:930px; top:175px; width:128px; height:150px;">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/><circle cx="6" cy="6.7" r="0.5" fill="#60a5fa"/></svg></span>
+    <div class="lab">Browser Agent</div><div class="sub">forms · book · HITL</div>
+  </div>
+  <div class="box" style="left:1088px; top:175px; width:128px; height:150px;">
+    <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5L12 12.5 20.5 6.5"/></svg></span>
+    <div class="lab">Comms Agent</div><div class="sub">email · SMS · deliver</div>
   </div>
 
-  <!-- tools caption inside agents group -->
-  <div class="albl sm" style="left:632px; top:330px; width:592px; color:#7e8aa0;">each agent uses: Frontier LLM (model-agnostic) · Sandbox · Browser Run · MCP tools</div>
+  <div class="albl sm" style="left:614px; top:340px; width:602px; color:#7e8aa0;">each agent uses: Frontier LLM (model-agnostic) · Sandbox · Browser Run · MCP tools</div>
 
-  <!-- arrow labels -->
+  <!-- labels -->
   <div class="albl" style="left:170px; top:152px; width:170px;">New gig request</div>
   <div class="albl sm" style="left:432px; top:256px; width:160px; text-align:left;">classify &amp; plan</div>
-  <div class="albl sm" style="left:540px; top:268px; width:120px;">assign to agents</div>
-  <div class="albl sm" style="left:792px; top:222px; width:80px;">handoff</div>
-  <div class="albl sm" style="left:998px; top:222px; width:80px;">handoff</div>
+  <div class="albl sm" style="left:540px; top:262px; width:120px;">assign to agents</div>
   <div class="albl sm" style="left:700px; top:398px; width:260px;">results return to Orca</div>
-  <div class="albl sm" style="left:438px; top:430px; width:210px; text-align:left;">Orca check-ins each gig</div>
-  <div class="albl sm" style="left:60px; top:306px; width:190px; color:#9ec2ff;">live progress updates</div>
+  <div class="albl sm" style="left:440px; top:430px; width:210px; text-align:left;">Orca checks in on each gig</div>
+  <div class="albl sm" style="left:50px; top:308px; width:200px; color:#9ec2ff;">simple progress + link</div>
 
-  <!-- step badges -->
+  <!-- badges -->
   <div class="badge" style="left:241px; top:165px;">1</div>
   <div class="badge" style="left:405px; top:255px;">2</div>
   <div class="badge" style="left:560px; top:286px;">3</div>
-  <div class="badge" style="left:820px; top:405px;">4</div>
-  <div class="badge" style="left:405px; top:428px;">5</div>
-  <div class="badge" style="left:139px; top:319px;">6</div>
+  <div class="badge" style="left:820px; top:398px;">4</div>
+  <div class="badge" style="left:405px; top:425px;">5</div>
+  <div class="badge" style="left:159px; top:329px;">6</div>
 
   <!-- footer -->
   <div class="fl">GIGLER <span>ORCA</span> · GIG ORCHESTRATION LIFECYCLE</div>
