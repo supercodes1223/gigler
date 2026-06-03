@@ -209,13 +209,13 @@ export default function HomePage() {
                 keep the work on track yourself.
               </p>
               <p>
-                Powered by Orca, our own model designed and trained for AI
-                orchestration across platforms, Gigler breaks a gig into steps,
-                chooses the right mix, and coordinates frontier agents across
-                platforms. One step might go to a frontier coding agent, another
-                to a cloud or browser tool, and another to an AI agent with
-                specialized capabilities, all coordinated toward the completed
-                gig.
+                Users ask for the outcome, and Orca, our own model designed and
+                trained to route gigs across frontier AI agents, models, tools,
+                and leading platforms, breaks the gig into steps, chooses the
+                right mix, and coordinates the work across systems. One step
+                might go to a frontier coding agent, another to a cloud or
+                browser tool, and another to an AI agent with specialized
+                capabilities, all coordinated toward the completed gig.
               </p>
               <p>
                 Gigler looks at the work as a Gig, not a pile of tokens. The
