@@ -19,6 +19,60 @@ const HIGHLIGHTS: { title: string; body: string }[] = [
   },
 ];
 
+function GigStatusPreview() {
+  return (
+    <div className="mt-8">
+      <style>{`
+        @keyframes ggShimmer { 0% { transform: translateX(-130%); } 100% { transform: translateX(360%); } }
+      `}</style>
+      <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-3">
+        What the user sees
+      </p>
+      <div className="max-w-md rounded-xl border border-brand-border bg-brand-surface overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-brand-border">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-border" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-border" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-border" />
+          <span className="ml-2 rounded-md border border-brand-border bg-background px-3 py-1 text-xs text-brand-accent font-mono">
+            gigler.ai/gig/a13
+          </span>
+        </div>
+        <div className="p-5">
+          <div className="text-base font-bold text-foreground mb-4">
+            Your gig — on the way…
+          </div>
+          <div className="h-3.5 w-full rounded-full bg-background overflow-hidden">
+            <div
+              className="relative h-full rounded-full"
+              style={{
+                width: "62%",
+                background: "linear-gradient(90deg, var(--brand-accent), #7aa9ff)",
+              }}
+            >
+              <div
+                className="absolute inset-y-0 w-1/3"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
+                  animation: "ggShimmer 1.8s ease-in-out infinite",
+                }}
+              />
+            </div>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between">
+            <span className="text-sm font-bold text-brand-accent">62%</span>
+            <span className="text-xs text-brand-muted">almost there</span>
+          </div>
+          <p className="mt-4 text-xs text-brand-muted leading-relaxed">
+            One simple link, one moving bar. We&rsquo;ll text you the deliverable
+            the moment it&rsquo;s done — no dashboards, no machinery to manage.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DownloadIcon() {
   return (
     <svg
@@ -77,17 +131,14 @@ export default function ArchitectureTabs() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/architecture/gigler-orca-tech-diagram.png"
-              alt="Gigler Orca technical architecture diagram: the request lifecycle across Cloudflare Workers and the Agents SDK — ingress (Twilio, Email Routing, voice, dashboard), the edge Worker and resolver, a per-gig GigAgent Durable Object running the Orca loop, orchestrated execution services (frontier LLM, sandbox, browser run, HTML-to-PDF, human-in-the-loop), and egress to R2, email, SMS, and a deliverable link."
+              alt="Gigler Orca gig orchestration lifecycle: a new gig request creates a unique per-gig email inbox, Orca classifies and plans then assigns the work to specialized AI agents (research, builder, browser, comms) that hand off to one another and return results to Orca, scheduled interval check-ins poll each gig, and the user follows a single moving progress bar on a simple gigler.ai/gig link until the deliverable is delivered."
               className="w-full h-auto block"
             />
           </figure>
-          <figcaption className="mt-3 text-sm text-brand-muted">
-            Request lifecycle &amp; bindings — email-native gig agents on
-            Cloudflare Workers + Agents SDK. Orca is model-agnostic and routes
-            each step to the best-fit frontier model.
-          </figcaption>
 
-          <div className="mt-8 flex flex-wrap gap-4">
+          <GigStatusPreview />
+
+          <div className="mt-10 flex flex-wrap gap-4">
             <a
               href="/architecture/gigler-orca-architecture.pdf"
               download="gigler-orca-architecture.pdf"

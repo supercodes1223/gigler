@@ -41,12 +41,9 @@ export default function ArchitecturePage() {
 
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-4">
+          <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-8">
             System Architecture · Gigler Orca
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-8">
-            How Gigler turns a request into completed work
-          </h1>
 
           <ArchitectureTabs />
 
