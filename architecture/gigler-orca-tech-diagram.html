@@ -66,6 +66,7 @@
     <defs>
       <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#cbd5e1"/></marker>
       <marker id="ahb" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#60a5fa"/></marker>
+      <marker id="ahv" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#a78bfa"/></marker>
     </defs>
     <g stroke="#cbd5e1" stroke-width="2" fill="none">
       <line x1="200" y1="176" x2="304" y2="176" marker-end="url(#ah)"/>            <!-- 1 -->
@@ -80,6 +81,14 @@
     </g>
     <g stroke="#60a5fa" stroke-width="2" fill="none">
       <polyline points="304,340 170,340 170,358" marker-end="url(#ahb)"/>          <!-- 6 progress -->
+    </g>
+    <g stroke="#a78bfa" stroke-width="2" fill="none">
+      <line x1="671" y1="452" x2="671" y2="500" marker-end="url(#ahv)"/>           <!-- draft in -->
+      <line x1="730" y1="529" x2="748" y2="529" marker-end="url(#ahv)"/>           <!-- vis -> critic A -->
+      <line x1="865" y1="529" x2="857" y2="529" marker-end="url(#ahv)"/>           <!-- debate <- -->
+      <line x1="865" y1="529" x2="873" y2="529" marker-end="url(#ahv)"/>           <!-- debate -> -->
+      <line x1="982" y1="529" x2="1000" y2="529" marker-end="url(#ahv)"/>          <!-- critic B -> judge -->
+      <line x1="1059" y1="500" x2="1059" y2="452" marker-end="url(#ahv)"/>         <!-- approved edits out -->
     </g>
   </svg>
 
@@ -146,6 +155,30 @@
 
   <div class="albl sm" style="left:614px; top:340px; width:602px; color:#7e8aa0;">each agent uses: Frontier LLM (model-agnostic) · Sandbox · Browser Run · MCP tools</div>
 
+  <!-- QUALITY LOOP -->
+  <div class="grp" style="left:600px; top:466px; width:632px; height:116px; border-color:#7c5cff;"></div>
+  <div class="grp-title" style="left:760px; top:458px; color:#a78bfa; border-color:#7c5cff;">Quality loop · invoked selectively by Orca</div>
+
+  <div class="box" style="left:612px; top:500px; width:118px; height:56px; border-color:#3b3168;">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+    <div class="lab">Visualizer</div><div class="sub">views result · vision</div>
+  </div>
+  <div class="box" style="left:748px; top:500px; width:110px; height:56px; border-color:#3b3168;">
+    <div class="lab">Critic A</div><div class="sub">proposes edits</div>
+  </div>
+  <div class="box" style="left:872px; top:500px; width:110px; height:56px; border-color:#3b3168;">
+    <div class="lab">Critic B</div><div class="sub">challenges · refines</div>
+  </div>
+  <div class="box" style="left:1000px; top:500px; width:118px; height:56px; border-color:#3b3168;">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M7 7l-3 6h6l-3-6z"/><path d="M17 7l-3 6h6l-3-6z"/></svg></span>
+    <div class="lab">Judge</div><div class="sub">keeps only the best</div>
+  </div>
+
+  <div class="albl sm" style="left:606px; top:561px; width:520px; color:#9b8fc4;">Visualizer reviews the draft · Critics A &amp; B debate the edits · Judge applies only the best</div>
+  <div class="albl sm" style="left:578px; top:470px; width:74px; color:#9b8fc4; text-align:right;">draft</div>
+  <div class="albl sm" style="left:1066px; top:470px; width:96px; color:#9b8fc4; text-align:left;">best edits</div>
+  <div class="albl sm" style="left:825px; top:474px; width:80px; color:#9b8fc4;">debate</div>
+
   <!-- labels -->
   <div class="albl" style="left:170px; top:152px; width:170px;">New gig request</div>
   <div class="albl sm" style="left:432px; top:256px; width:160px; text-align:left;">classify &amp; plan</div>
@@ -161,6 +194,7 @@
   <div class="badge" style="left:820px; top:398px;">4</div>
   <div class="badge" style="left:405px; top:425px;">5</div>
   <div class="badge" style="left:159px; top:329px;">6</div>
+  <div class="badge" style="left:660px; top:464px; background:#7c5cff;">7</div>
 
   <!-- footer -->
   <div class="fl">GIGLER <span>ORCA</span> · GIG ORCHESTRATION LIFECYCLE</div>
