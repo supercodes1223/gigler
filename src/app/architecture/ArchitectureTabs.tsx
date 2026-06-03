@@ -20,16 +20,17 @@ const HIGHLIGHTS: { title: string; body: string }[] = [
 ];
 
 const GIG_FEED: { date: string; text: string; link?: boolean }[] = [
-  { date: "6/3/26", text: "Itinerary v2", link: true },
-  { date: "6/3/26", text: "Itinerary v1", link: true },
-  { date: "6/2/26", text: "“Plan & book my weekend trip” gig request received." },
+  { date: "6/3/26", text: "Landing page v2", link: true },
+  { date: "6/3/26", text: "Landing page v1", link: true },
+  { date: "6/2/26", text: "“Build my landing page” gig request received." },
 ];
 
-const GIG_REQUIREMENTS = [
-  "2 nights in Austin, mid-range budget (~$600)",
-  "Compare flights and hotels; book the best value",
-  "Day-by-day itinerary with restaurant reservations",
-  "Confirm with me before booking; text me confirmations",
+const GIG_SPEC: { label: string; value: string }[] = [
+  { label: "Business type", value: "Flower shop" },
+  { label: "Online ordering", value: "Yes" },
+  { label: "Booking system", value: "No" },
+  { label: "Domain", value: "bloomandpetal.com" },
+  { label: "Contact phone", value: "(555) 123-4567" },
 ];
 
 function GigStatusPreview() {
@@ -37,9 +38,6 @@ function GigStatusPreview() {
 
   return (
     <div className="mt-8">
-      <style>{`
-        @keyframes ggShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(220%); } }
-      `}</style>
       <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-3">
         What the user sees
       </p>
@@ -53,30 +51,46 @@ function GigStatusPreview() {
           </span>
         </div>
         <div className="p-5">
-          <div className="text-base font-bold text-foreground mb-4">
-            Your gig — on the way…
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-base font-bold text-foreground">
+              Your landing page is live
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              Live · v2
+            </span>
           </div>
-          <div className="h-3.5 w-full rounded-full bg-background overflow-hidden">
-            <div
-              className="relative h-full overflow-hidden rounded-full"
-              style={{
-                width: "62%",
-                background: "linear-gradient(90deg, var(--brand-accent), #7aa9ff)",
-              }}
-            >
-              <div
-                className="absolute inset-y-0 left-0 w-1/4"
-                style={{
-                  background:
-                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)",
-                  animation: "ggShimmer 2.4s ease-in-out infinite",
-                }}
-              />
+
+          {/* delivered landing page preview */}
+          <div className="relative overflow-hidden rounded-lg border border-brand-border bg-white">
+            <div className="flex items-center justify-between border-b border-black/5 px-3 py-1.5">
+              <span className="text-[10px] font-extrabold text-gray-900">
+                Bloom &amp; Petal
+              </span>
+              <div className="flex gap-2 text-[8px] text-gray-500">
+                <span>Shop</span>
+                <span>About</span>
+                <span>Contact</span>
+              </div>
             </div>
-          </div>
-          <div className="mt-2.5 flex items-center justify-between">
-            <span className="text-sm font-bold text-brand-accent">62%</span>
-            <span className="text-xs text-brand-muted">almost there</span>
+            <div
+              className="px-4 py-5"
+              style={{ background: "linear-gradient(135deg, #fb7185, #e11d48)" }}
+            >
+              <div className="text-sm font-extrabold leading-tight text-white">
+                Fresh flowers,
+                <br />
+                delivered daily
+              </div>
+              <div className="mt-2.5 flex gap-1.5">
+                <span className="rounded bg-white px-2 py-0.5 text-[9px] font-bold text-rose-600">
+                  Order online
+                </span>
+                <span className="rounded border border-white/70 px-2 py-0.5 text-[9px] font-semibold text-white">
+                  Call us
+                </span>
+              </div>
+            </div>
           </div>
 
           <ul className="mt-5 space-y-3">
@@ -107,12 +121,28 @@ function GigStatusPreview() {
             See gig requirements
           </button>
           {showReqs && (
-            <ul className="mt-2 list-disc space-y-1 rounded-lg border border-brand-border bg-background p-3 pl-7 text-xs leading-relaxed text-brand-muted">
-              {GIG_REQUIREMENTS.map((r) => (
-                <li key={r}>{r}</li>
+            <dl className="mt-2 divide-y divide-brand-border rounded-lg border border-brand-border bg-background px-3 text-xs">
+              {GIG_SPEC.map((s) => (
+                <div key={s.label} className="flex justify-between gap-3 py-2">
+                  <dt className="text-brand-muted">{s.label}</dt>
+                  <dd className="font-medium text-foreground">{s.value}</dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           )}
+
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-brand-border bg-background px-3 py-2">
+            <span className="flex-1 text-xs text-brand-muted">
+              Reply to request changes…
+            </span>
+            <span className="text-brand-accent" aria-hidden="true">
+              ↩
+            </span>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-brand-muted">
+            Come back to this gig anytime — reply to tweak your site and Gigler
+            ships a new version.
+          </p>
         </div>
       </div>
     </div>
