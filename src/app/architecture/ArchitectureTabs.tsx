@@ -19,38 +19,21 @@ const HIGHLIGHTS: { title: string; body: string }[] = [
   },
 ];
 
-const GIG_STEPS = [
-  "Got your request",
-  "Planned the steps",
-  "Researched the details",
-  "Built your landing page",
-  "Captured a preview",
+const GIG_FEED: { date: string; text: string; link?: boolean }[] = [
+  { date: "6/3/26", text: "Version 2", link: true },
+  { date: "6/3/26", text: "Version 1", link: true },
+  { date: "6/2/26", text: "“Build Landing Page” gig request received." },
 ];
 
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className="h-4 w-4 shrink-0 text-brand-accent"
-      aria-hidden="true"
-    >
-      <circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.15" />
-      <path
-        d="M6 10.5l2.5 2.5L14 7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+const GIG_REQUIREMENTS = [
+  "One-page site for a dog-walking business",
+  "Hero, services, pricing, and a contact form",
+  "Brand colors and a simple logo",
+  "Mobile-friendly, deployed with a shareable link",
+];
 
 function GigStatusPreview() {
-  const [showAll, setShowAll] = useState(false);
-  const visibleSteps = showAll ? GIG_STEPS : GIG_STEPS.slice(0, 3);
-  const hiddenCount = GIG_STEPS.length - 3;
+  const [showReqs, setShowReqs] = useState(false);
 
   return (
     <div className="mt-8">
@@ -96,26 +79,39 @@ function GigStatusPreview() {
             <span className="text-xs text-brand-muted">almost there</span>
           </div>
 
-          <ul className="mt-4 space-y-2">
-            {visibleSteps.map((step) => (
-              <li
-                key={step}
-                className="flex items-center gap-2.5 text-sm text-foreground"
-              >
-                <CheckIcon />
-                <span>{step}</span>
+          <ul className="mt-5 space-y-3">
+            {GIG_FEED.map((item, i) => (
+              <li key={i} className="flex gap-3 text-sm leading-snug">
+                <span className="w-14 shrink-0 pt-px font-mono text-xs text-brand-muted">
+                  {item.date}
+                </span>
+                <span className="text-foreground">
+                  {item.text}
+                  {item.link && (
+                    <span className="ml-1.5 cursor-pointer font-medium text-brand-accent underline underline-offset-2">
+                      Link
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
 
-          {hiddenCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="mt-3 text-xs font-semibold text-brand-accent hover:underline"
-            >
-              {showAll ? "Show less" : `Show ${hiddenCount} more`}
-            </button>
+          <button
+            type="button"
+            onClick={() => setShowReqs((v) => !v)}
+            aria-expanded={showReqs}
+            className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-brand-accent hover:underline"
+          >
+            <span className="text-[10px]">{showReqs ? "▾" : "▸"}</span>
+            See gig requirements
+          </button>
+          {showReqs && (
+            <ul className="mt-2 list-disc space-y-1 rounded-lg border border-brand-border bg-background p-3 pl-7 text-xs leading-relaxed text-brand-muted">
+              {GIG_REQUIREMENTS.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
