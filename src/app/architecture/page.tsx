@@ -41,6 +41,32 @@ export default function ArchitecturePage() {
 
       <section className="pt-32 pb-24 px-6">
         <div className="mx-auto max-w-5xl">
+          <div className="mb-12 rounded-2xl border border-brand-border bg-brand-surface p-8">
+            <p className="text-sm font-semibold uppercase tracking-widest text-brand-accent mb-3">
+              You ask. Orca handles the rest.
+            </p>
+            <p className="text-xl text-foreground leading-relaxed max-w-3xl">
+              Orca abstracts away the technical complexity. For every step it
+              picks the best AI models and tools in the world and orchestrates
+              them to deliver the best result — so you never have to choose a
+              model, wire up a tool, or manage a workflow.
+            </p>
+            <p className="mt-4 text-base text-brand-muted leading-relaxed max-w-3xl">
+              You just say what you want. Progress updates and finished
+              deliverables come back to you over the channels you already use.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {["Text", "Email", "Voice"].map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full border border-brand-border bg-background px-4 py-1.5 text-sm font-medium text-foreground"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+
           <ArchitectureTabs />
         </div>
       </section>
