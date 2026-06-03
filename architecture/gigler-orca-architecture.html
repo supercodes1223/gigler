@@ -159,7 +159,7 @@
       <div class="row" style="flex:1;">
         <div class="node"><div class="t1">SMS / MMS</div><div class="t2">Twilio · shared number, sender = identity</div></div>
         <div class="node"><div class="t1">Email</div><div class="t2">unique address per gig · gig+{code}@gigler.ai</div></div>
-        <div class="node"><div class="t1">Voice</div><div class="t2">Gemini Live + Pipecat real-time call</div></div>
+        <div class="node"><div class="t1">Voice</div><div class="t2">realtime speech-to-speech + Pipecat</div></div>
         <div class="node"><div class="t1">Web dashboard</div><div class="t2">live gig state &amp; review</div></div>
       </div>
     </div>
@@ -169,7 +169,7 @@
       <div class="row" style="flex:1;">
         <div class="node blue" style="flex:2;"><div class="t1">ORCA — orchestration layer</div><div class="t2">intent &amp; gig-type classification · step planning · tool/model routing · progress &amp; memory · human-checkpoint policy</div></div>
         <div class="conn">↔</div>
-        <div class="node dark"><div class="t1">Gemini</div><div class="t2">reasoning, vision, generation, function-calling</div></div>
+        <div class="node dark"><div class="t1">Frontier LLM</div><div class="t2">model-agnostic · reasoning, vision, generation, function-calling</div></div>
       </div>
     </div>
     <div class="arrow-down">▼</div>
@@ -222,7 +222,7 @@
       <table class="t" style="margin-top:0.1in;">
         <tr><th>Need</th><th>Orca chooses</th></tr>
         <tr><td>Structured data exists</td><td class="em">Direct API</td></tr>
-        <tr><td>Read a doc / receipt / screenshot</td><td class="em">Gemini Vision</td></tr>
+        <tr><td>Read a doc / receipt / screenshot</td><td class="em">Model vision</td></tr>
         <tr><td>Login, SPA, anti-bot, CSRF</td><td class="em">Real browser + HITL</td></tr>
         <tr><td>Build / run / deploy code</td><td class="em">Sandbox container</td></tr>
         <tr><td>Designed document or card</td><td class="em">HTML→Chrome→PDF/PNG</td></tr>
@@ -385,8 +385,8 @@
     </div>
     <div class="card">
       <div class="icon">Vision &amp; reasoning</div>
-      <h3>Gemini</h3>
-      <p>Reads PDFs, receipts, and screenshots; drafts copy; classifies intent; calls functions. The reasoning core behind every gig.</p>
+      <h3>Frontier LLM (model-agnostic)</h3>
+      <p>Reads PDFs, receipts, and screenshots; drafts copy; classifies intent; calls functions. The reasoning core behind every gig — routed to the best-fit model via a gateway.</p>
     </div>
     <div class="card">
       <div class="icon">Third-party platforms</div>
@@ -395,8 +395,8 @@
     </div>
     <div class="card">
       <div class="icon">Scheduling &amp; voice</div>
-      <h3>Reminders + Gemini Live</h3>
-      <p>Durable reminders, wake-up calls, check-ins. Real-time voice via Gemini Live for hands-free gig updates.</p>
+      <h3>Reminders + realtime voice</h3>
+      <p>Durable reminders, wake-up calls, check-ins. Real-time speech-to-speech voice for hands-free gig updates.</p>
     </div>
   </div>
   <p class="note">Every action that touches the outside world is captured (screenshot + metadata) as irrefutable proof of work, stored and searchable from the dashboard.</p>
@@ -426,7 +426,7 @@
         <div class="node"><div class="t1">media-processor</div><div class="t2">MMS / image gen</div></div>
         <div class="node"><div class="t1">deliverable-gen</div><div class="t2">PDF / site</div></div>
         <div class="node"><div class="t1">reminder-sched</div><div class="t2">cron dispatch</div></div>
-        <div class="node"><div class="t1">voice-bridge</div><div class="t2">Gemini Live</div></div>
+        <div class="node"><div class="t1">voice-bridge</div><div class="t2">realtime voice</div></div>
         <div class="node"><div class="t1">email-handler</div><div class="t2">SES inbound</div></div>
         <div class="node"><div class="t1">3rd-party</div><div class="t2">bookings</div></div>
       </div>
@@ -437,13 +437,13 @@
       <div class="row" style="flex:1;">
         <div class="node"><div class="t1">DynamoDB</div><div class="t2">10 tables, GSI-indexed</div></div>
         <div class="node"><div class="t1">S3 + CloudFront</div><div class="t2">media &amp; deliverables</div></div>
-        <div class="node dark"><div class="t1">Google Gemini</div><div class="t2">reasoning · vision · generation</div></div>
+        <div class="node dark"><div class="t1">Frontier LLM</div><div class="t2">model gateway · reasoning · vision</div></div>
         <div class="node"><div class="t1">Cognito</div><div class="t2">dashboard auth</div></div>
         <div class="node"><div class="t1">Stripe</div><div class="t2">billing</div></div>
       </div>
     </div>
   </div>
-  <p class="note">Stack: AWS Amplify Gen 2 · Next.js 16 · Twilio · Gemini · Stripe. Proven end-to-end (real gigs, real deliverables) — the foundation we are now optimizing for reliability and scale.</p>
+  <p class="note">Stack: AWS Amplify Gen 2 · Next.js 16 · Twilio · model gateway (provider-agnostic LLMs) · Stripe. Proven end-to-end (real gigs, real deliverables) — the foundation we are now optimizing for reliability and scale.</p>
   <div class="slide-num">09</div>
 </section>
 
@@ -474,21 +474,21 @@
   <div class="slide-num">11</div>
 </section>
 
-<!-- 12. Google Cloud / Gemini + mandatory tech alignment -->
+<!-- 12. Model-agnostic orchestration + ADK/MCP alignment -->
 <section class="slide">
   <div class="brand-mark">GIGLER</div>
-  <div class="kicker">Google AI stack</div>
-  <h2>Built on Gemini, aligned with ADK &amp; MCP</h2>
+  <div class="kicker">Orchestration model</div>
+  <h2>Model-agnostic orchestration, aligned with ADK &amp; MCP</h2>
   <div class="two-col" style="grid-template-columns:1fr 1fr; gap:0.4in;">
     <div>
-      <h3 style="color:#2563eb;">Gemini across the gig lifecycle</h3>
+      <h3 style="color:#2563eb;">AI across the gig lifecycle</h3>
       <ul class="bullets" style="margin-top:0.1in;">
         <li><strong>Intent &amp; gig-type classification</strong> on every inbound message</li>
         <li><strong>Multi-step reasoning &amp; planning</strong> inside the Orca loop</li>
         <li><strong>Vision</strong> — reads PDFs, receipts, screenshots, uploaded photos</li>
         <li><strong>Generation</strong> — drafts copy, designed HTML, and images</li>
         <li><strong>Function-calling</strong> — the tool interface Orca routes through</li>
-        <li><strong>Gemini Live</strong> — real-time voice for hands-free gigs</li>
+        <li><strong>Realtime voice</strong> — speech-to-speech for hands-free gigs</li>
       </ul>
     </div>
     <div>
@@ -496,12 +496,12 @@
       <ul class="bullets" style="margin-top:0.1in;">
         <li><strong>MCP</strong> — tools (email, browser, code) exposed as Model Context Protocol servers Orca can securely call</li>
         <li><strong>ADK-aligned</strong> — declarative agent + tool definitions; Orca maps cleanly onto the Agent Development Kit pattern</li>
-        <li><strong>Model gateway</strong> — Gemini is primary; a thin gateway keeps routing portable across models &amp; providers</li>
-        <li><strong>Google Cloud ready</strong> — credits applied to evaluation, optimization, and a path toward Marketplace / Gemini Enterprise</li>
+        <li><strong>Model gateway</strong> — a thin gateway routes each step to the best-fit frontier model; no lock-in to any single lab or provider</li>
+        <li><strong>Google Cloud ready</strong> — credits applied to evaluation, optimization, and a path toward Marketplace listing</li>
       </ul>
     </div>
   </div>
-  <p class="note">Orca is not "another chat model." It is an orchestration layer that selects and coordinates the right model, agent, tool, and platform per step — and improves its routing as more gigs complete.</p>
+  <p class="note">Orca is not "another chat model." It is an orchestration layer that selects and coordinates the right model, agent, tool, and platform per step — provider-agnostic by design — and improves its routing as more gigs complete.</p>
   <div class="slide-num">12</div>
 </section>
 
