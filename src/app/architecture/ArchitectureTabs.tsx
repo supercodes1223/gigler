@@ -20,16 +20,16 @@ const HIGHLIGHTS: { title: string; body: string }[] = [
 ];
 
 const GIG_FEED: { date: string; text: string; link?: boolean }[] = [
-  { date: "6/3/26", text: "Version 2", link: true },
-  { date: "6/3/26", text: "Version 1", link: true },
-  { date: "6/2/26", text: "“Build Landing Page” gig request received." },
+  { date: "6/3/26", text: "Itinerary v2", link: true },
+  { date: "6/3/26", text: "Itinerary v1", link: true },
+  { date: "6/2/26", text: "“Plan & book my weekend trip” gig request received." },
 ];
 
 const GIG_REQUIREMENTS = [
-  "One-page site for a dog-walking business",
-  "Hero, services, pricing, and a contact form",
-  "Brand colors and a simple logo",
-  "Mobile-friendly, deployed with a shareable link",
+  "2 nights in Austin, mid-range budget (~$600)",
+  "Compare flights and hotels; book the best value",
+  "Day-by-day itinerary with restaurant reservations",
+  "Confirm with me before booking; text me confirmations",
 ];
 
 function GigStatusPreview() {
