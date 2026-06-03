@@ -181,7 +181,7 @@ export default function ArchitectureTabs() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/architecture/gigler-orca-tech-diagram.png"
-              alt="Gigler Orca gig orchestration lifecycle: a new gig request creates a unique per-gig email inbox, Orca classifies and plans then assigns the work to specialized AI agents (research, builder, browser, comms) that hand off to one another and return results to Orca, scheduled interval check-ins poll each gig, and the user follows a single moving progress bar on a simple gigler.ai/gig link until the deliverable is delivered."
+              alt="Gigler Orca gig orchestration lifecycle: a new gig request creates a unique per-gig email inbox, Orca classifies and plans then assigns the work to specialized AI agents (research, builder, browser, comms) that hand off to one another and return results to Orca. For high-stakes visual deliverables, Orca selectively invokes a quality loop where a vision Visualizer reviews the draft, two critic agents debate the edits, and a Judge applies only the best. Scheduled interval check-ins poll each gig, and the user follows a single moving progress bar on a simple gigler.ai/gig link until the deliverable is delivered."
               className="w-full h-auto block"
             />
           </figure>
