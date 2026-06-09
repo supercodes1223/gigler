@@ -47,12 +47,13 @@ void main() {
   p.x *= aspect;
   vec2 ptr = vec2(u_ptr.x / u_res.x * aspect, 1.0 - u_ptr.y / u_res.y);
 
-  // Bend the field around the cursor: a soft lens that pushes the sampled
-  // coordinates outward, so waves visibly flow around the pointer.
+  // Bend the field around the cursor: a soft lens. Displacement scales with
+  // d itself (not its normalized direction), so it falls to zero at the
+  // cursor center — a smooth bulge with no singularity/starburst.
   vec2 d = p - ptr;
   float r = length(d);
   float lens = exp(-r * r * 9.0) * u_bend;
-  p += (d / max(r, 0.002)) * lens * 0.30;
+  p += d * lens * 1.1;
 
   float t = u_time * 0.10;
 
