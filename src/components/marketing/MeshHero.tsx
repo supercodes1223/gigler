@@ -42,6 +42,7 @@ export function MeshHero() {
     const pos = { x: 0, y: 0 };
     const last = { x: 0, y: 0, seen: false };
     let energy = 0;
+    let displayed = 0; // lerped follower of energy — keeps shader ramps smooth
     let lastStir = 0;
     let raf = 0;
 
@@ -67,10 +68,13 @@ export function MeshHero() {
       pos.x += (target.x - pos.x) * 0.06;
       pos.y += (target.y - pos.y) * 0.06;
       energy *= 0.97;
+      // Ease the displayed value toward energy, then quantize finely (1/64):
+      // each prop update is a tiny morph, never a visible pop.
+      displayed += (energy - displayed) * 0.05;
       if (meshRef.current) {
         meshRef.current.style.transform = `translate3d(${pos.x * 40}px, ${pos.y * 40}px, 0) scale(1.12)`;
       }
-      const quantized = Math.round(energy * 8) / 8;
+      const quantized = Math.round(displayed * 64) / 64;
       if (quantized !== lastStir) {
         lastStir = quantized;
         setStir(quantized);
@@ -91,14 +95,19 @@ export function MeshHero() {
       ref={sectionRef}
       className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6"
     >
-      {/* Mesh canvas, oversized so the parallax never shows an edge */}
-      <div ref={meshRef} className="absolute inset-0 scale-[1.12] will-change-transform">
+      {/* Mesh canvas, oversized so the parallax never shows an edge.
+          Slight contrast/saturation lift keeps the wave edges legible. */}
+      <div
+        ref={meshRef}
+        className="absolute inset-0 scale-[1.12] will-change-transform"
+        style={{ filter: "saturate(1.12) contrast(1.07)" }}
+      >
         <MeshGradient
           colors={MESH_COLORS}
           distortion={BASE_DISTORTION + stir * STIR_DISTORTION}
           swirl={BASE_SWIRL + stir * STIR_SWIRL}
-          speed={reducedMotion ? 0 : 0.4 + stir * 0.5}
-          grainMixer={0.12}
+          speed={reducedMotion ? 0 : 0.4}
+          grainMixer={0.16}
           grainOverlay={0}
           className="h-full w-full"
         />
