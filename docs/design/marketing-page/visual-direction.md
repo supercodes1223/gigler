@@ -90,14 +90,19 @@ Spec (the vibe constraints matter more than the library):
 plus a light pointer-distortion layer; if the cursor feel isn't fluid enough,
 build the hero in Unicorn Studio.
 
-**Outcome (2026-06-09): custom shader.** Paper Shaders was tried and failed the
-cursor requirement two ways: it has no pointer uniform, and live changes to its
-distortion/swirl parameters make the pattern jump (flicker). The hero now uses
-a hand-written ~60-line GLSL fragment shader (`SpringMesh.tsx`, zero deps):
-five drifting pastel spots, domain-warped noise edges, fine grain, and the
-cursor as a true uniform — a soft lens that bends the waves around the pointer
-per-pixel. Smooth by construction; pauses offscreen; static under
-prefers-reduced-motion; bend is mouse-only.
+**Outcome (2026-06-09): Paper Shaders, cursor via CSS transforms.** Two notes
+for whoever touches this next:
+
+- Paper Shaders' MeshGradient has **no pointer uniform**, and live changes to
+  its `distortion`/`swirl`/`speed` props make the pattern jump (flicker) — do
+  not modulate its uniforms at runtime. The shipped hero keeps the shader's
+  parameters fixed and drives cursor influence purely with CSS transforms on
+  the canvas (parallax + swell + slight tilt).
+- A custom GLSL shader (`SpringMesh.tsx`) with a true pointer uniform was
+  built and **reverted**: the cursor bend worked, but the field itself read as
+  flat radial color sweeps, not Paper-Shaders-quality waves. If true
+  bend-around-cursor is attempted again, the wave field generation needs to be
+  much better (richer noise/fbm), or use Unicorn Studio.
 
 ## Layout & structure
 
