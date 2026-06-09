@@ -1,11 +1,48 @@
 # Inspiration
 
-> Reference pages, patterns, screenshots, and tone we like — and what specifically
-> to take from each.
+> Reference pages, patterns, and tone we like — and what specifically to take from
+> each. The synthesis of all of this lives in [../visual-direction.md](../visual-direction.md).
 
-Add one section per reference. Screenshots can live in this folder next to the notes.
+## t3.codes
 
-## Format
+- **What works:** page structure and hero
+- **What to steal:** the overall structure of the page and the hero approach
+- **What to avoid:** developer-audience framing
+
+## shadcn/ui
+
+- **What works:** component design language — clean, small, precise lines
+- **What to steal:** the component vocabulary itself (build the page on shadcn components)
+- **What to avoid:** default/unstyled look — must feel branded, not template
+
+## Vercel
+
+- **What works:** clean UI and layout
+- **What to steal:** layout cleanliness and restraint — but **simpler** than Vercel
+- **What to avoid:** density, developer jargon, enterprise sprawl
+
+## Apple
+
+- **What works:** messaging, light/dark aesthetic, fonts, product demos
+- **What to steal:** plain confident copywriting; typography; the way product demos
+  are polished, focused, show-don't-tell
+- **What to avoid:** nothing in tone — Apple is the messaging ceiling we aim at
+
+## Luma (lu.ma)
+
+- **What works:** clean Apple-like design; frosted glass aesthetic
+- **What to steal:** frosted glass surfaces, soft premium feel
+- **What to avoid:** event-platform-specific patterns
+
+## Cursor
+
+- **What works:** clean, small, precise lines
+- **What to steal:** hairline borders, fine dividers, restrained line work
+- **What to avoid:** dark-first developer aesthetic
+
+---
+
+## Format for new references
 
 ```
 ## <Site / page name>
@@ -14,7 +51,3 @@ Add one section per reference. Screenshots can live in this folder next to the n
 - What to steal:
 - What to avoid:
 ```
-
-## References
-
-<!-- Add references below -->

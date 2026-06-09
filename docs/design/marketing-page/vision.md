@@ -11,6 +11,17 @@
 
 TBD
 
+## The core messaging challenge
+
+Gigler has effectively **infinite use cases** — which means infinite ways for a
+visitor to *not* see the value, not get what the product is, or file it under
+"vague AI thing." Brand messaging must therefore be **extremely clear**. Every
+section answers a concrete question; nothing relies on the visitor inferring
+what Gigler is from a list of possibilities.
+
+Rule of thumb: clarity beats cleverness, and the specific beats the general.
+A few vivid, concrete moments beat any attempt to communicate "it can do anything."
+
 ## What the page must accomplish
 
 <!-- e.g. instantly communicate what Gigler is, build trust, drive one primary CTA -->
@@ -19,15 +30,20 @@ TBD
 
 ## Primary CTA
 
-<!-- What is THE action? (Join waitlist? Get your assistant's number? Request invite?) -->
+**Join the waitlist.** This is THE action — hero and final CTA both drive it.
+One primary CTA on the whole page; everything else is secondary.
 
-TBD
+Pricing is not shown anywhere yet — it's "coming soon." No pricing page,
+no pricing section, no dollar amounts on the marketing page.
 
 ## Tone & feel
 
-<!-- Human, plain-spoken, zero jargon? Warm? Premium? -->
+**Technical but human.** Signify polish and trust while being tech-forward.
+Apple-grade messaging: plain, confident, concrete. Premium and calm, never hypey.
 
-TBD
+We are iOS-first with an Apple-quality iOS companion app coming; the page should
+feel like the website of that product. Full aesthetic brief:
+[visual-direction.md](visual-direction.md).
 
 ## What the page must NOT be
 
