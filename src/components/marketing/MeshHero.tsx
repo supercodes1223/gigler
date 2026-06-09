@@ -24,15 +24,15 @@ const STIR_SWIRL = 0.45;
 export function MeshHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const meshRef = useRef<HTMLDivElement>(null);
-  const cursorRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   // Quantized cursor energy (0–1 in eighths) so shader props update on
   // threshold crossings, not at 60fps.
   const [stir, setStir] = useState(0);
 
-  // Pointer layer: parallax on the mesh canvas, a glass lens + tinted glow
-  // trailing the cursor (DOM transforms, no re-renders), and cursor velocity
-  // feeding the shader's distortion/swirl through the quantized `stir` state.
+  // Pointer influence is deliberately invisible: no element renders at the
+  // cursor. The cursor only (1) parallaxes the mesh canvas and (2) pumps a
+  // velocity signal into the shader's distortion/swirl, so moving the mouse
+  // stirs the waves — noticeable, never a visible artifact.
   useEffect(() => {
     const section = sectionRef.current;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -40,8 +40,6 @@ export function MeshHero() {
 
     const target = { x: 0, y: 0 };
     const pos = { x: 0, y: 0 };
-    const cursorTarget = { x: 0, y: 0 };
-    const cursorPos = { x: 0, y: 0 };
     const last = { x: 0, y: 0, seen: false };
     let energy = 0;
     let lastStir = 0;
@@ -51,21 +49,16 @@ export function MeshHero() {
       const rect = section.getBoundingClientRect();
       target.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       target.y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      cursorTarget.x = e.clientX - rect.left;
-      cursorTarget.y = e.clientY - rect.top;
       if (!last.seen) {
         last.seen = true;
-        last.x = cursorTarget.x;
-        last.y = cursorTarget.y;
-        cursorPos.x = cursorTarget.x;
-        cursorPos.y = cursorTarget.y;
-        if (cursorRef.current) cursorRef.current.style.opacity = "1";
+        last.x = e.clientX;
+        last.y = e.clientY;
         return;
       }
-      const dx = cursorTarget.x - last.x;
-      const dy = cursorTarget.y - last.y;
-      last.x = cursorTarget.x;
-      last.y = cursorTarget.y;
+      const dx = e.clientX - last.x;
+      const dy = e.clientY - last.y;
+      last.x = e.clientX;
+      last.y = e.clientY;
       // Movement pumps energy in; the tick loop bleeds it back out.
       energy = Math.min(1, energy + Math.hypot(dx, dy) * 0.012);
     };
@@ -73,14 +66,9 @@ export function MeshHero() {
     const tick = () => {
       pos.x += (target.x - pos.x) * 0.06;
       pos.y += (target.y - pos.y) * 0.06;
-      cursorPos.x += (cursorTarget.x - cursorPos.x) * 0.12;
-      cursorPos.y += (cursorTarget.y - cursorPos.y) * 0.12;
       energy *= 0.97;
       if (meshRef.current) {
         meshRef.current.style.transform = `translate3d(${pos.x * 40}px, ${pos.y * 40}px, 0) scale(1.12)`;
-      }
-      if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${cursorPos.x}px, ${cursorPos.y}px, 0) translate(-50%, -50%)`;
       }
       const quantized = Math.round(energy * 8) / 8;
       if (quantized !== lastStir) {
@@ -113,33 +101,6 @@ export function MeshHero() {
           grainMixer={0.12}
           grainOverlay={0}
           className="h-full w-full"
-        />
-      </div>
-
-      {/* Cursor layer: tinted glow + liquid-glass lens trailing the pointer */}
-      <div
-        ref={cursorRef}
-        aria-hidden
-        className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-500 will-change-transform"
-      >
-        {/* Spring-tinted glow, visible against the pastel canvas */}
-        <div
-          className="absolute left-1/2 top-1/2 size-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(143,201,168,0.4) 0%, rgba(207,229,247,0.28) 36%, transparent 64%)",
-            filter: "blur(8px)",
-          }}
-        />
-        {/* Glass lens — bends the light under it, iOS Liquid Glass style */}
-        <div
-          className="absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60"
-          style={{
-            backdropFilter: "blur(14px) saturate(1.9) brightness(1.07)",
-            WebkitBackdropFilter: "blur(14px) saturate(1.9) brightness(1.07)",
-            boxShadow:
-              "inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -10px 24px rgba(255,255,255,0.35), 0 8px 32px -12px rgba(20,30,40,0.18)",
-          }}
         />
       </div>
 
