@@ -34,6 +34,13 @@
 - **What to steal:** frosted glass surfaces, soft premium feel
 - **What to avoid:** event-platform-specific patterns
 
+## Stripe
+
+- **What works:** bento-grid feature showcases
+- **What to steal:** the bento format for the use-cases section — one large
+  hero tile + smaller supporting tiles, varied spans, content-rich cards
+- **What to avoid:** Stripe's density and dev-audience copy
+
 ## Cursor
 
 - **What works:** clean, small, precise lines

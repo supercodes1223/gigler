@@ -32,19 +32,27 @@ user: "Get us a table for 4 somewhere good Friday at 7" → Gigler proposes a
 restaurant → user confirms → Gigler returns the confirmation (proof). Exact
 bubble-by-bubble script lives with the component; keep it under ~6 bubbles.
 
-### Use cases (section 3) — DECIDED picks
+### Use cases (section 3) — DECIDED picks (rev. 2: action-forward bento)
 
-All three pass the chatbot-differentiation rule (see vision.md):
+Layout: **bento grid, Stripe.com-inspired** — one large hero tile + two stacked
+tiles. Every tile must show Gigler *taking action* a chatbot can't, with an
+explicit ask-→-approve-→-done arc where possible ("Should I book it for you
+now?" → "Booked ✓").
 
-1. **It texts YOU first** — "Remind me to call Mom Sunday" → Sunday 4pm, Gigler
-   nudges you. Proactivity.
-2. **Works while you live** — ask at lunch; it hunts in the background and texts
-   you the result at 3pm with proof. Async background work.
+1. **It books it (large tile)** — "Find me a flight to NYC under $300 next
+   Friday" → "Found you this one — Delta nonstop, $284, lands 9:40 AM. Should I
+   book it for you now?" → "Yes" → "Booked ✓ confirmation's in your email."
+   Async background work + real action + confirm-first, in one arc.
+2. **It thinks ahead** — replaces the old reminder card. Gigler texts first
+   *with the move already planned*: "Mom's birthday is Thursday. Want me to
+   send the peonies she liked? $45, arrives Wednesday." → "yes" → "Ordered ✓".
+   Proactivity with action attached, not a bare reminder.
 3. **Forward it an email** — forward the confusing insurance email, say "deal
    with this." It replies, schedules, follows up. Email channel.
 
 Note: no call scenario in the cards (Charles's pick); voice is carried by the
-H1 + subhead.
+H1 + subhead. The confirm-before-acting beat in tiles 1–2 doubles as trust
+messaging and matches the product's confirm-first policy.
 
 ### How it works / Trust
 
