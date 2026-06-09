@@ -22,6 +22,15 @@ what Gigler is from a list of possibilities.
 Rule of thumb: clarity beats cleverness, and the specific beats the general.
 A few vivid, concrete moments beat any attempt to communicate "it can do anything."
 
+**The chatbot-differentiation rule:** every use case and demo on the page must be
+something ChatGPT or Claude *can't* do (or does clearly worse). That means:
+real-world action with proof (reservations made, emails sent), proactive outreach
+(it texts *you* first, at the right moment), persistent cross-channel memory
+(text it, then call it — it knows), living in iMessage/phone/email with no app,
+and background work that finishes after you've moved on. Never showcase pure
+content generation (drafting, planning, answering questions) as a headline use
+case — that's chatbot territory and invites the "isn't this just ChatGPT?" kill shot.
+
 ## What the page must accomplish
 
 <!-- e.g. instantly communicate what Gigler is, build trust, drive one primary CTA -->

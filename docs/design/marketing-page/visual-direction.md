@@ -51,6 +51,45 @@ clean light canvas," not toward "sharp dev-tool grid" and not toward
 The blend is the point: organic + glass + precise lines = technical but human.
 No single ingredient should dominate.
 
+## Hero interactive element
+
+**Decision direction: a cursor-reactive mesh gradient** — soft color blobs on the
+light canvas that drift slowly on their own and respond fluidly to cursor movement.
+
+Spec (the vibe constraints matter more than the library):
+
+- **Palette:** spring pastels on white — soft greens, sky blues, lilac; never neon
+- **Motion:** slow, fluid, calm. The cursor adds gentle distortion/attraction —
+  a ripple, not a chase. It should feel like light under frosted glass.
+- **Restraint:** the mesh sits *behind* the H1/CTA and must never fight them for
+  attention. If in doubt, lower the opacity.
+- **Grain:** a subtle grain pass over the mesh ties into the "grainy organic"
+  accent without needing photography.
+- **Fallbacks:** idle ambient animation on touch devices (no cursor); static
+  gradient for `prefers-reduced-motion`; pause when offscreen.
+
+### Library candidates (researched 2026-06)
+
+1. **`@paper-design/shaders-react`** (Paper Shaders) — zero-dependency canvas
+   shaders, npm-installable, "ultra fast." Has `MeshGradient`, *static mesh
+   gradient*, and a **grain gradient** that matches our grain note. Cursor
+   reactivity not built in everywhere — may pair with a small pointer-uniform
+   layer. Best fit for our stack (Next.js, lightweight, code-owned).
+2. **Unicorn Studio** — designer WebGL tool with native mouse-interaction
+   effects, ~29kb runtime, pauses offscreen, exports embeds. Fastest path to a
+   truly fluid cursor ripple without writing GLSL; tradeoff is an external
+   tool/embed rather than code we own.
+3. **`@mesh-gradient/react`** — "Apple-inspired" WebGL mesh gradient component,
+   up to 4 colors, auto-pauses out of viewport. Simple, but interaction depth unclear.
+4. **Stripe-style mesh (whatamesh)** — the canonical ambient mesh; animated but
+   not cursor-reactive out of the box.
+5. **Custom shader (React Three Fiber / OGL)** — full control, real fluid
+   cursor distortion; most effort. Reserve as the "if nothing else feels right" path.
+
+**Recommendation:** prototype with Paper Shaders (mesh + grain, light palette)
+plus a light pointer-distortion layer; if the cursor feel isn't fluid enough,
+build the hero in Unicorn Studio.
+
 ## Layout & structure
 
 - Structure and hero: **t3.codes**-inspired

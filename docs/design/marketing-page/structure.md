@@ -91,6 +91,17 @@ land the multi-channel story (text it, call it, email it — same assistant).
 
 ## Decided
 
+- **H1:** "Text it. Call it. Email it. Done." — subhead + CTA per copy.md
+- **iPhone demo scenario:** dinner reservation arc
+- **Use cases:** texts-you-first, works-while-you-live, forward-an-email
+  (no call card; voice carried by H1/subhead)
+- **Nav:** Luma-style floating frosted-glass pill — logo left, waitlist button
+  right, no other links
+- **Font:** Geist (replaces Nunito)
+- **Waitlist:** button → glass modal (shadcn dialog), success state only for now
+- **Teardown scope:** all public pages removed on this branch; site is the new
+  landing page + dashboard ([shortCode] deliverable pages and APIs stay — they're
+  product, not marketing)
 - **Primary CTA: join the waitlist** (hero + final CTA, same action)
 - **No pricing anywhere** — "coming soon"; no pricing page, section, or dollar amounts
 - **All six sections ship**, including "How it works" and "Trust" (both kept small —
