@@ -1,13 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
-import { Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -16,30 +12,29 @@ const geistMono = Geist_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gigler.ai";
 
+const siteTitle = "Gigler — Your personal assistant, one text away";
+const siteDescription =
+  "Gigler is a personal assistant you text, call, and email like a real person. It remembers your life and actually gets things done. No app to download.";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#06b6d4",
+  themeColor: "#fbfbfa",
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Gigler — AI Work Orchestration for Real Work",
+    default: siteTitle,
     template: "%s | Gigler",
   },
-  description:
-    "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
+  description: siteDescription,
   keywords: [
+    "personal assistant",
     "AI assistant",
-    "SMS assistant",
-    "text AI",
-    "gig work",
-    "AI event planner",
-    "AI coding assistant",
-    "AI business consultant",
-    "AI over text",
-    "no-app AI",
+    "text assistant",
+    "assistant you can text",
+    "no-app assistant",
   ],
   authors: [{ name: "Gigler" }],
   creator: "Gigler",
@@ -60,23 +55,21 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: siteUrl,
     siteName: "Gigler",
-    title: "Gigler — AI Work Orchestration for Real Work",
-    description:
-      "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
+    title: siteTitle,
+    description: siteDescription,
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Gigler — AI Work Orchestration for Real Work",
+        alt: "Gigler — Text it. Call it. Email it. Done.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gigler — AI Work Orchestration for Real Work",
-    description:
-      "Gigler orchestrates the work behind every text, email, or voice request, then delivers the results — coding, planning, documents, workflows, and more.",
+    title: siteTitle,
+    description: siteDescription,
     images: ["/og-image.png"],
   },
   alternates: {
@@ -92,66 +85,8 @@ function JsonLd() {
       name: "Gigler",
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
-      description:
-        "AI work orchestration that turns simple text, email, or voice requests into delivered results.",
+      description: siteDescription,
       sameAs: [],
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      name: "Gigler",
-      url: siteUrl,
-      applicationCategory: "Productivity",
-      operatingSystem: "Any (SMS-based)",
-      offers: {
-        "@type": "AggregateOffer",
-        lowPrice: "0",
-        highPrice: "100",
-        priceCurrency: "USD",
-        offerCount: 4,
-      },
-      description:
-        "AI work orchestration for coding, planning, documents, workflows, and real work through text, email, or voice.",
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: "Gigler AI",
-      description:
-        "AI gig worker for managing projects, events, coding, business tasks, and more.",
-      brand: { "@type": "Brand", name: "Gigler" },
-      offers: [
-        {
-          "@type": "Offer",
-          name: "Free",
-          price: "0",
-          priceCurrency: "USD",
-          description: "5 active gigs, SMS only, basic AI",
-        },
-        {
-          "@type": "Offer",
-          name: "Pro",
-          price: "25",
-          priceCurrency: "USD",
-          priceSpecification: {
-            "@type": "UnitPriceSpecification",
-            billingDuration: "P1M",
-          },
-          description:
-            "Unlimited gigs, voice calls, group gigs, unlimited deliverables",
-        },
-        {
-          "@type": "Offer",
-          name: "Team",
-          price: "100",
-          priceCurrency: "USD",
-          priceSpecification: {
-            "@type": "UnitPriceSpecification",
-            billingDuration: "P1M",
-          },
-          description: "Up to 10 users, shared workspaces, team admin",
-        },
-      ],
     },
   ];
 
@@ -176,12 +111,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${nunito.variable} ${geistMono.variable} antialiased`}
+      className={cn("antialiased font-sans", geist.variable, geistMono.variable)}
     >
       <head>
         <JsonLd />
       </head>
-      <body className="min-h-screen flex flex-col bg-background text-foreground">{children}</body>
+      <body className="min-h-screen flex flex-col bg-background text-foreground">
+        {children}
+      </body>
     </html>
   );
 }
