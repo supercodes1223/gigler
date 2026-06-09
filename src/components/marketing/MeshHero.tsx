@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MeshGradient } from "@paper-design/shaders-react";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,15 +15,24 @@ const MESH_COLORS = [
   "#f7efd8", // spring butter
 ];
 
+// Cursor velocity stirs the shader between these resting/agitated values.
+const BASE_DISTORTION = 0.72;
+const BASE_SWIRL = 0.5;
+const STIR_DISTORTION = 0.28; // added at full stir
+const STIR_SWIRL = 0.45;
+
 export function MeshHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const meshRef = useRef<HTMLDivElement>(null);
-  const blobRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
+  // Quantized cursor energy (0–1 in eighths) so shader props update on
+  // threshold crossings, not at 60fps.
+  const [stir, setStir] = useState(0);
 
-  // Pointer-distortion layer: the shader animates itself; the cursor adds a
-  // gentle parallax on the mesh canvas plus a trailing light blob. Pure DOM
-  // transforms — no React re-renders, no shader uniform churn.
+  // Pointer layer: parallax on the mesh canvas, a glass lens + tinted glow
+  // trailing the cursor (DOM transforms, no re-renders), and cursor velocity
+  // feeding the shader's distortion/swirl through the quantized `stir` state.
   useEffect(() => {
     const section = sectionRef.current;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -31,35 +40,52 @@ export function MeshHero() {
 
     const target = { x: 0, y: 0 };
     const pos = { x: 0, y: 0 };
-    const blobTarget = { x: 0, y: 0 };
-    const blobPos = { x: 0, y: 0 };
-    let blobSeen = false;
+    const cursorTarget = { x: 0, y: 0 };
+    const cursorPos = { x: 0, y: 0 };
+    const last = { x: 0, y: 0, seen: false };
+    let energy = 0;
+    let lastStir = 0;
     let raf = 0;
 
     const onMove = (e: PointerEvent) => {
       const rect = section.getBoundingClientRect();
       target.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       target.y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      blobTarget.x = e.clientX - rect.left;
-      blobTarget.y = e.clientY - rect.top;
-      if (!blobSeen && blobRef.current) {
-        blobSeen = true;
-        blobPos.x = blobTarget.x;
-        blobPos.y = blobTarget.y;
-        blobRef.current.style.opacity = "1";
+      cursorTarget.x = e.clientX - rect.left;
+      cursorTarget.y = e.clientY - rect.top;
+      if (!last.seen) {
+        last.seen = true;
+        last.x = cursorTarget.x;
+        last.y = cursorTarget.y;
+        cursorPos.x = cursorTarget.x;
+        cursorPos.y = cursorTarget.y;
+        if (cursorRef.current) cursorRef.current.style.opacity = "1";
+        return;
       }
+      const dx = cursorTarget.x - last.x;
+      const dy = cursorTarget.y - last.y;
+      last.x = cursorTarget.x;
+      last.y = cursorTarget.y;
+      // Movement pumps energy in; the tick loop bleeds it back out.
+      energy = Math.min(1, energy + Math.hypot(dx, dy) * 0.012);
     };
 
     const tick = () => {
-      pos.x += (target.x - pos.x) * 0.05;
-      pos.y += (target.y - pos.y) * 0.05;
-      blobPos.x += (blobTarget.x - blobPos.x) * 0.09;
-      blobPos.y += (blobTarget.y - blobPos.y) * 0.09;
+      pos.x += (target.x - pos.x) * 0.06;
+      pos.y += (target.y - pos.y) * 0.06;
+      cursorPos.x += (cursorTarget.x - cursorPos.x) * 0.12;
+      cursorPos.y += (cursorTarget.y - cursorPos.y) * 0.12;
+      energy *= 0.97;
       if (meshRef.current) {
-        meshRef.current.style.transform = `translate3d(${pos.x * 18}px, ${pos.y * 18}px, 0) scale(1.08)`;
+        meshRef.current.style.transform = `translate3d(${pos.x * 40}px, ${pos.y * 40}px, 0) scale(1.12)`;
       }
-      if (blobRef.current) {
-        blobRef.current.style.transform = `translate3d(${blobPos.x}px, ${blobPos.y}px, 0) translate(-50%, -50%)`;
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${cursorPos.x}px, ${cursorPos.y}px, 0) translate(-50%, -50%)`;
+      }
+      const quantized = Math.round(energy * 8) / 8;
+      if (quantized !== lastStir) {
+        lastStir = quantized;
+        setStir(quantized);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -77,30 +103,45 @@ export function MeshHero() {
       ref={sectionRef}
       className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6"
     >
-      {/* Mesh canvas, slightly oversized so the parallax never shows an edge */}
-      <div ref={meshRef} className="absolute inset-0 scale-[1.08] will-change-transform">
+      {/* Mesh canvas, oversized so the parallax never shows an edge */}
+      <div ref={meshRef} className="absolute inset-0 scale-[1.12] will-change-transform">
         <MeshGradient
           colors={MESH_COLORS}
-          distortion={0.9}
-          swirl={0.6}
-          speed={reducedMotion ? 0 : 0.4}
+          distortion={BASE_DISTORTION + stir * STIR_DISTORTION}
+          swirl={BASE_SWIRL + stir * STIR_SWIRL}
+          speed={reducedMotion ? 0 : 0.4 + stir * 0.5}
           grainMixer={0.12}
           grainOverlay={0}
           className="h-full w-full"
         />
       </div>
 
-      {/* Cursor light — reads as light moving under frosted glass */}
+      {/* Cursor layer: tinted glow + liquid-glass lens trailing the pointer */}
       <div
-        ref={blobRef}
+        ref={cursorRef}
         aria-hidden
-        className="pointer-events-none absolute left-0 top-0 size-[34rem] rounded-full opacity-0 transition-opacity duration-700 will-change-transform"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.18) 38%, transparent 62%)",
-          mixBlendMode: "soft-light",
-        }}
-      />
+        className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-500 will-change-transform"
+      >
+        {/* Spring-tinted glow, visible against the pastel canvas */}
+        <div
+          className="absolute left-1/2 top-1/2 size-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(143,201,168,0.4) 0%, rgba(207,229,247,0.28) 36%, transparent 64%)",
+            filter: "blur(8px)",
+          }}
+        />
+        {/* Glass lens — bends the light under it, iOS Liquid Glass style */}
+        <div
+          className="absolute left-1/2 top-1/2 size-44 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60"
+          style={{
+            backdropFilter: "blur(14px) saturate(1.9) brightness(1.07)",
+            WebkitBackdropFilter: "blur(14px) saturate(1.9) brightness(1.07)",
+            boxShadow:
+              "inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -10px 24px rgba(255,255,255,0.35), 0 8px 32px -12px rgba(20,30,40,0.18)",
+          }}
+        />
+      </div>
 
       {/* Veil into the white page below */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />
