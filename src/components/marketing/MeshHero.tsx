@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { MeshGradient } from "@paper-design/shaders-react";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,24 +15,18 @@ const MESH_COLORS = [
   "#f7efd8", // spring butter
 ];
 
-// Cursor velocity stirs the shader between these resting/agitated values.
-const BASE_DISTORTION = 0.72;
-const BASE_SWIRL = 0.5;
-const STIR_DISTORTION = 0.28; // added at full stir
-const STIR_SWIRL = 0.45;
-
 export function MeshHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const meshRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  // Quantized cursor energy (0–1 in eighths) so shader props update on
-  // threshold crossings, not at 60fps.
-  const [stir, setStir] = useState(0);
 
-  // Pointer influence is deliberately invisible: no element renders at the
-  // cursor. The cursor only (1) parallaxes the mesh canvas and (2) pumps a
-  // velocity signal into the shader's distortion/swirl, so moving the mouse
-  // stirs the waves — noticeable, never a visible artifact.
+  // Cursor influence is invisible and lives entirely on the compositor.
+  // The shader's uniforms are never touched at runtime — live updates to
+  // distortion/swirl/speed make the pattern jump (the field is not continuous
+  // under parameter changes), which reads as flicker. Instead the cursor
+  // drives CSS transforms on the canvas: position sways the whole field
+  // (parallax + slight tilt) and movement speed makes it swell. Continuous
+  // math, GPU-composited, smooth by construction.
   useEffect(() => {
     const section = sectionRef.current;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -42,8 +36,7 @@ export function MeshHero() {
     const pos = { x: 0, y: 0 };
     const last = { x: 0, y: 0, seen: false };
     let energy = 0;
-    let displayed = 0; // lerped follower of energy — keeps shader ramps smooth
-    let lastStir = 0;
+    let swell = 0; // eased follower of energy
     let raf = 0;
 
     const onMove = (e: PointerEvent) => {
@@ -68,16 +61,11 @@ export function MeshHero() {
       pos.x += (target.x - pos.x) * 0.06;
       pos.y += (target.y - pos.y) * 0.06;
       energy *= 0.97;
-      // Ease the displayed value toward energy, then quantize finely (1/64):
-      // each prop update is a tiny morph, never a visible pop.
-      displayed += (energy - displayed) * 0.05;
+      swell += (energy - swell) * 0.06;
       if (meshRef.current) {
-        meshRef.current.style.transform = `translate3d(${pos.x * 40}px, ${pos.y * 40}px, 0) scale(1.12)`;
-      }
-      const quantized = Math.round(displayed * 64) / 64;
-      if (quantized !== lastStir) {
-        lastStir = quantized;
-        setStir(quantized);
+        const scale = 1.16 + swell * 0.05;
+        const rot = pos.x * (0.4 + swell * 0.8);
+        meshRef.current.style.transform = `translate3d(${pos.x * 44}px, ${pos.y * 44}px, 0) scale(${scale.toFixed(4)}) rotate(${rot.toFixed(3)}deg)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -99,13 +87,13 @@ export function MeshHero() {
           Slight contrast/saturation lift keeps the wave edges legible. */}
       <div
         ref={meshRef}
-        className="absolute inset-0 scale-[1.12] will-change-transform"
+        className="absolute inset-0 scale-[1.16] will-change-transform"
         style={{ filter: "saturate(1.12) contrast(1.07)" }}
       >
         <MeshGradient
           colors={MESH_COLORS}
-          distortion={BASE_DISTORTION + stir * STIR_DISTORTION}
-          swirl={BASE_SWIRL + stir * STIR_SWIRL}
+          distortion={0.85}
+          swirl={0.6}
           speed={reducedMotion ? 0 : 0.4}
           grainMixer={0.16}
           grainOverlay={0}
