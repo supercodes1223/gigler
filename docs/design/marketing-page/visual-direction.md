@@ -90,6 +90,15 @@ Spec (the vibe constraints matter more than the library):
 plus a light pointer-distortion layer; if the cursor feel isn't fluid enough,
 build the hero in Unicorn Studio.
 
+**Outcome (2026-06-09): custom shader.** Paper Shaders was tried and failed the
+cursor requirement two ways: it has no pointer uniform, and live changes to its
+distortion/swirl parameters make the pattern jump (flicker). The hero now uses
+a hand-written ~60-line GLSL fragment shader (`SpringMesh.tsx`, zero deps):
+five drifting pastel spots, domain-warped noise edges, fine grain, and the
+cursor as a true uniform — a soft lens that bends the waves around the pointer
+per-pixel. Smooth by construction; pauses offscreen; static under
+prefers-reduced-motion; bend is mouse-only.
+
 ## Layout & structure
 
 - Structure and hero: **t3.codes**-inspired

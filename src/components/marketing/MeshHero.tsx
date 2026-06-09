@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { MeshGradient } from "@paper-design/shaders-react";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
+import { SpringMesh } from "./SpringMesh";
 import { WaitlistButton } from "./WaitlistButton";
 
-const MESH_COLORS = [
+const MESH_COLORS: [string, string, string, string, string] = [
   "#fdfdfb", // airy white keeps the canvas light
   "#c9ecd9", // spring mint
   "#cfe5f7", // spring sky
@@ -16,89 +14,12 @@ const MESH_COLORS = [
 ];
 
 export function MeshHero() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const meshRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = usePrefersReducedMotion();
-
-  // Cursor influence is invisible and lives entirely on the compositor.
-  // The shader's uniforms are never touched at runtime — live updates to
-  // distortion/swirl/speed make the pattern jump (the field is not continuous
-  // under parameter changes), which reads as flicker. Instead the cursor
-  // drives CSS transforms on the canvas: position sways the whole field
-  // (parallax + slight tilt) and movement speed makes it swell. Continuous
-  // math, GPU-composited, smooth by construction.
-  useEffect(() => {
-    const section = sectionRef.current;
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-    if (!section || reducedMotion || !finePointer.matches) return;
-
-    const target = { x: 0, y: 0 };
-    const pos = { x: 0, y: 0 };
-    const last = { x: 0, y: 0, seen: false };
-    let energy = 0;
-    let swell = 0; // eased follower of energy
-    let raf = 0;
-
-    const onMove = (e: PointerEvent) => {
-      const rect = section.getBoundingClientRect();
-      target.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      target.y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      if (!last.seen) {
-        last.seen = true;
-        last.x = e.clientX;
-        last.y = e.clientY;
-        return;
-      }
-      const dx = e.clientX - last.x;
-      const dy = e.clientY - last.y;
-      last.x = e.clientX;
-      last.y = e.clientY;
-      // Movement pumps energy in; the tick loop bleeds it back out.
-      energy = Math.min(1, energy + Math.hypot(dx, dy) * 0.012);
-    };
-
-    const tick = () => {
-      pos.x += (target.x - pos.x) * 0.06;
-      pos.y += (target.y - pos.y) * 0.06;
-      energy *= 0.97;
-      swell += (energy - swell) * 0.06;
-      if (meshRef.current) {
-        const scale = 1.16 + swell * 0.05;
-        const rot = pos.x * (0.4 + swell * 0.8);
-        meshRef.current.style.transform = `translate3d(${pos.x * 44}px, ${pos.y * 44}px, 0) scale(${scale.toFixed(4)}) rotate(${rot.toFixed(3)}deg)`;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    section.addEventListener("pointermove", onMove);
-    raf = requestAnimationFrame(tick);
-    return () => {
-      section.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, [reducedMotion]);
-
   return (
-    <section
-      ref={sectionRef}
-      className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6"
-    >
-      {/* Mesh canvas, oversized so the parallax never shows an edge.
-          Slight contrast/saturation lift keeps the wave edges legible. */}
-      <div
-        ref={meshRef}
-        className="absolute inset-0 scale-[1.16] will-change-transform"
-        style={{ filter: "saturate(1.12) contrast(1.07)" }}
-      >
-        <MeshGradient
-          colors={MESH_COLORS}
-          distortion={0.85}
-          swirl={0.6}
-          speed={reducedMotion ? 0 : 0.4}
-          grainMixer={0.16}
-          grainOverlay={0}
-          className="h-full w-full"
-        />
+    <section className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
+      {/* Custom shader canvas — the cursor is a uniform, so the waves bend
+          around it per-pixel. All pointer handling lives in SpringMesh. */}
+      <div className="absolute inset-0">
+        <SpringMesh colors={MESH_COLORS} className="block h-full w-full" />
       </div>
 
       {/* Veil into the white page below */}
