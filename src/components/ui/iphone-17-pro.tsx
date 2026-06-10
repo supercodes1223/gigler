@@ -78,15 +78,18 @@ export function Iphone17Pro({ children, className }: Iphone17ProProps) {
           fill="#000000"
           d="M119.61,33.86h-38.93c-10.48-.18-10.5-15.78,0-15.96,0,0,38.93,0,38.93,0,4.41,0,7.98,3.57,7.98,7.98,0,4.41-3.57,7.98-7.98,7.98Z"
         />
-        <path
-          fill="#080d4c"
-          d="M118.78,29.21c-4.32.06-4.32-6.73,0-6.66,4.32-.06,4.32,6.73,0,6.66Z"
-        />
-        {/* Lens glint */}
-        <circle cx="117.85" cy="24.85" r="0.85" fill="#4456c7" opacity="0.85" />
-        <circle cx="117.35" cy="24.25" r="0.35" fill="#aab4f0" opacity="0.9" />
+        {/* Camera: housing ring + glass lens + glint, drawn as full circles so
+            the lens reads as complete against the black island */}
+        <circle cx="118.78" cy="25.88" r="4.5" fill="#1b1e20" />
+        <circle cx="118.78" cy="25.88" r="3.3" fill="url(#iphone17-lens)" />
+        <circle cx="117.55" cy="24.55" r="0.8" fill="#b9c4f4" opacity="0.9" />
 
         <defs>
+          <radialGradient id="iphone17-lens" cx="0.4" cy="0.35" r="0.8">
+            <stop offset="0" stopColor="#3450a8" />
+            <stop offset="0.45" stopColor="#15205e" />
+            <stop offset="1" stopColor="#05071f" />
+          </radialGradient>
           <linearGradient
             id="iphone17-frame-metal"
             x1="0"
