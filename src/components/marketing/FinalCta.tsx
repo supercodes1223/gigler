@@ -26,14 +26,26 @@ export function MarketingFooter() {
   return (
     <footer className="hairline relative overflow-hidden border-t pt-12">
       <span className="sr-only">© 2026 Gigler</span>
-      {/* Giant wordmark folding under the bottom edge of the page — the
-          word reads in full; only the baseline/descender crops against
-          overflow-hidden. */}
-      <div
-        aria-hidden
-        className="pointer-events-none -mb-[0.2em] select-none whitespace-nowrap text-center text-[20.5vw] font-semibold leading-none tracking-tight text-foreground/[0.045]"
-      >
-        Gigler
+      {/* Giant wordmark. SVG textLength stretches the word to exactly fill
+          its box, so it always spans 95% of the page width with the whole
+          word (descender included) visible. */}
+      <div aria-hidden className="pointer-events-none flex select-none justify-center pb-2">
+        <svg viewBox="0 0 273 102" className="w-[95%]">
+          <text
+            x="50%"
+            y="78"
+            textAnchor="middle"
+            textLength="271"
+            lengthAdjust="spacingAndGlyphs"
+            fontSize="100"
+            fontWeight="600"
+            letterSpacing="-2"
+            className="fill-foreground/[0.045]"
+            style={{ fontFamily: "var(--font-sans), sans-serif" }}
+          >
+            Gigler
+          </text>
+        </svg>
       </div>
     </footer>
   );
