@@ -20,20 +20,17 @@ const STEPS = [
   {
     title: "Save Gigler as a contact",
     body: "Gigler is a phone number, not another app. Add it to your contacts once and that's the whole setup.",
-    badge:
-      "bg-gradient-to-b from-[#e9f6ee] to-[#cfe9da] text-[#35795a] ring-[#35795a]/15",
+    badge: "bg-[#f3f8f5] text-[#4a8367] ring-[#35795a]/10",
   },
   {
     title: "Ask for what you need",
     body: "Text it, call it, or forward it an email. Plain English, like you'd ask a friend. No commands to learn.",
-    badge:
-      "bg-gradient-to-b from-[#e9f1fa] to-[#cfe1f3] text-[#3a6b9e] ring-[#3a6b9e]/15",
+    badge: "bg-[#f2f6fb] text-[#4f74a0] ring-[#3a6b9e]/10",
   },
   {
     title: "Gigler gets it done",
     body: "It books the table, sends the email, makes the call, then reports back. Anything big, it asks you first.",
-    badge:
-      "bg-gradient-to-b from-[#f1ecfa] to-[#ded2f1] text-[#69519e] ring-[#69519e]/15",
+    badge: "bg-[#f6f4fb] text-[#7763a6] ring-[#69519e]/10",
   },
 ];
 
