@@ -221,6 +221,14 @@ section {
   scroll-margin-top: 5rem;
 }
 
+/* In-page anchors (hero "See it in action", footer "Demo") glide instead of
+   jumping; respects reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Apple system font for content rendered "on the iPhone" — resolves to
    SF Pro on Apple devices, falls back gracefully elsewhere. Antialiased
    smoothing matches iOS rendering; default subpixel smoothing reads bolder
