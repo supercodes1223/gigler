@@ -1,5 +1,7 @@
 import { ChevronLeft, MessageSquare, Phone, Mail } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
+import { IosStatusBar } from "@/components/ui/ios-status-bar";
 
 // The three ways to reach Gigler — the action row of a saved iOS contact.
 const CHANNELS = [
@@ -36,24 +38,25 @@ export function HowItWorks() {
         <div className="mt-14 grid items-center gap-12 md:grid-cols-2 md:gap-16">
           {/* A real iPhone Contacts page — same device frame as the hero demo */}
           <div className="relative mx-auto w-[300px] sm:w-[340px]">
-            <div className="rounded-[3.2rem] border border-white/70 bg-white/55 p-2 shadow-[0_24px_80px_-32px_rgba(20,30,40,0.35)] backdrop-blur-xl">
-              <div className="relative flex h-[600px] flex-col overflow-hidden rounded-[2.7rem] border border-black/5 bg-[#f2f2f7]">
-                {/* Dynamic island */}
-                <div className="absolute left-1/2 top-2.5 z-20 h-7 w-28 -translate-x-1/2 rounded-full bg-black" />
+            <Iphone17Pro className="w-full">
+              <div className="font-ios relative h-full bg-[#f2f2f7]">
+                <IosStatusBar className="text-black" />
 
-                {/* Nav bar */}
-                <div className="z-10 flex items-center justify-between bg-[#f2f2f7]/90 px-3 pb-2 pt-12 backdrop-blur-md">
-                  <span className="flex items-center text-[15px] text-[#2f8f63]">
-                    <ChevronLeft className="size-5" aria-hidden />
+                {/* Floating nav — iOS 26 liquid glass capsules */}
+                <div className="absolute inset-x-0 top-[6.3%] z-20 flex items-center justify-between px-2.5">
+                  <span className="glass flex h-8 items-center rounded-full pl-1.5 pr-3 text-[13px] font-medium text-[#2f8f63]">
+                    <ChevronLeft className="size-[18px]" aria-hidden />
                     Lists
                   </span>
-                  <span className="text-[15px] text-[#2f8f63]">Edit</span>
+                  <span className="glass flex h-8 items-center rounded-full px-3.5 text-[13px] font-medium text-[#2f8f63]">
+                    Edit
+                  </span>
                 </div>
 
                 {/* Contact detail */}
-                <div className="flex-1 overflow-hidden px-4 pb-4">
+                <div className="absolute inset-0 overflow-hidden px-4 pb-4 pt-[88px]">
                   {/* Header */}
-                  <div className="flex flex-col items-center pt-2 text-center">
+                  <div className="flex flex-col items-center text-center">
                     <div className="flex size-[84px] items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-4xl font-semibold text-white shadow-sm">
                       G
                     </div>
@@ -68,7 +71,7 @@ export function HowItWorks() {
                     {CHANNELS.map((c) => (
                       <div
                         key={c.label}
-                        className="flex flex-col items-center gap-1 rounded-xl bg-white py-2.5 shadow-sm"
+                        className="flex flex-col items-center gap-1 rounded-2xl bg-white py-2.5 shadow-[0_1px_2px_rgba(20,30,40,0.06)]"
                       >
                         <c.icon className="size-[22px] text-[#2f8f63]" aria-hidden />
                         <span className="text-[11px] font-medium text-[#2f8f63]">
@@ -79,7 +82,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Info rows */}
-                  <div className="mt-4 overflow-hidden rounded-xl bg-white">
+                  <div className="mt-4 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(20,30,40,0.06)]">
                     <div className="px-4 py-2.5">
                       <p className="text-[11px] text-black/45">mobile</p>
                       <p className="text-[15px] text-[#2f8f63]">
@@ -94,7 +97,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Notes */}
-                  <div className="mt-4 rounded-xl bg-white px-4 py-2.5">
+                  <div className="mt-4 rounded-2xl bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(20,30,40,0.06)]">
                     <p className="text-[11px] text-black/45">notes</p>
                     <p className="mt-0.5 text-[14px] leading-snug text-black/80">
                       Just text it like a person. No app, no commands, nothing to
@@ -102,8 +105,11 @@ export function HowItWorks() {
                     </p>
                   </div>
                 </div>
+
+                {/* Home indicator */}
+                <div className="absolute bottom-1.5 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-black/80" />
               </div>
-            </div>
+            </Iphone17Pro>
           </div>
 
           {/* Steps — a quiet numbered list, not three competing cards */}

@@ -10,66 +10,9 @@ import {
   Video,
 } from "lucide-react";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
+import { IosStatusBar } from "@/components/ui/ios-status-bar";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
-
-// iOS status bar. Real iOS centers the time in the left "ear" (screen edge
-// to island, 0-34.1% of screen width) and the radios in the right ear
-// (66-100%), with the row vertically centered on the Dynamic Island
-// (center ~3.5% of screen height -> 39px row). Absolutely positioned so it
-// can never participate in layout shifts. Icon sizes track real iOS
-// proportions at this screen scale (~0.66x of a 393pt device).
-function StatusBar() {
-  return (
-    <div className="absolute inset-x-0 top-0 z-20 flex h-[39px] items-center justify-between">
-      <div className="flex w-[34%] justify-center">
-        <span className="text-[12.5px] font-semibold tracking-[-0.01em] text-black">
-          2:14
-        </span>
-      </div>
-      <div className="flex w-[34%] items-center justify-center gap-[5px]">
-        {/* Cellular bars */}
-        <svg viewBox="0 0 17 11" className="h-[7.5px] w-auto" aria-hidden>
-          <rect x="0" y="6.6" width="3.2" height="4.4" rx="1" fill="black" />
-          <rect x="4.6" y="4.4" width="3.2" height="6.6" rx="1" fill="black" />
-          <rect x="9.2" y="2.2" width="3.2" height="8.8" rx="1" fill="black" />
-          <rect x="13.8" y="0" width="3.2" height="11" rx="1" fill="black" />
-        </svg>
-        {/* Wi-Fi */}
-        <svg viewBox="0 0 15 11" className="h-[7.5px] w-auto" aria-hidden>
-          <path
-            d="M1.2 4.1a8.9 8.9 0 0 1 12.6 0L12.1 5.8a6.5 6.5 0 0 0-9.2 0Z"
-            fill="black"
-          />
-          <path
-            d="M3.6 6.5a5.5 5.5 0 0 1 7.8 0L9.7 8.2a3.1 3.1 0 0 0-4.4 0Z"
-            fill="black"
-          />
-          <path d="M7.5 10.9 5.9 9.3a2.3 2.3 0 0 1 3.2 0Z" fill="black" />
-        </svg>
-        {/* Battery */}
-        <svg viewBox="0 0 25 12" className="h-[8px] w-auto" aria-hidden>
-          <rect
-            x="0.5"
-            y="0.5"
-            width="21"
-            height="11"
-            rx="3.5"
-            stroke="black"
-            strokeOpacity="0.4"
-            fill="none"
-          />
-          <rect x="2" y="2" width="18" height="8" rx="2" fill="black" />
-          <path
-            d="M22.8 3.9v4.2a2.1 2.1 0 0 0 0-4.2Z"
-            fill="black"
-            fillOpacity="0.4"
-          />
-        </svg>
-      </div>
-    </div>
-  );
-}
 
 type Step =
   | { type: "stamp"; text: string; hold: number }
@@ -160,7 +103,7 @@ export function IphoneDemo() {
       <Iphone17Pro className="w-full">
         <div className="font-ios relative h-full bg-white">
           {/* iOS status bar (Dynamic Island renders above this, in the frame) */}
-          <StatusBar />
+          <IosStatusBar className="text-black" />
 
           {/* Top scrim: content fades out beneath the status/nav area */}
           <div

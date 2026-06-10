@@ -1,5 +1,26 @@
+import {
+  MicOff,
+  Grid3x3,
+  Volume2,
+  Plus,
+  Video,
+  User,
+  PhoneOff,
+} from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
+import { IosStatusBar } from "@/components/ui/ios-status-bar";
 import { cn } from "@/lib/utils";
+
+// iOS in-call button grid (mute / keypad / audio, then add / FaceTime / contacts).
+const CALL_CONTROLS = [
+  { icon: MicOff, label: "mute" },
+  { icon: Grid3x3, label: "keypad" },
+  { icon: Volume2, label: "audio" },
+  { icon: Plus, label: "add" },
+  { icon: Video, label: "FaceTime" },
+  { icon: User, label: "contacts" },
+];
 
 function MiniBubble({
   from,
@@ -40,7 +61,7 @@ export function UseCases() {
         <SectionHeader
           eyebrow="What it does"
           title="Things a chatbot can't do."
-          subtitle="Gigler doesn't stop at suggestions. It asks once — then books, sends, and follows through."
+          subtitle="It doesn't just suggest. It asks once, then books, sends, and follows through."
         />
 
         {/* Bento grid: one large action-arc tile + two stacked tiles */}
@@ -62,13 +83,20 @@ export function UseCases() {
                 Booked. I&apos;ll check you in and send you the boarding pass on
                 Thursday.
               </MiniBubble>
+              <MiniBubble from="user" size="md">
+                Perfect, thank you!
+              </MiniBubble>
+              <MiniBubble from="gigler" size="md">
+                Anytime. It&apos;s on your calendar, and I&apos;ll remind you the
+                night before you fly.
+              </MiniBubble>
             </div>
             <h3 className="mt-6 text-xl font-semibold tracking-tight text-foreground md:text-2xl">
               It doesn&apos;t just find it. It books it.
             </h3>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-foreground/65 md:text-base">
               A chatbot hands you links and wishes you luck. Gigler asks once,
-              then handles the booking, the confirmation, and the follow-up —
+              then handles the booking, the confirmation, and the follow-up,
               while your phone sits in your pocket.
             </p>
           </article>
@@ -92,7 +120,7 @@ export function UseCases() {
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
               It knows the dates that matter and shows up with the plan already
-              made — approved with one text.
+              made, approved with one text.
             </p>
           </article>
 
@@ -114,6 +142,126 @@ export function UseCases() {
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
               Slack, your calendar, your inbox. Ask in plain English and it
               checks the right place, then answers. No tabs, no logins.
+            </p>
+          </article>
+
+          {/* Tile: call it — iPhone on a live call with Gigler */}
+          <article className="glass flex flex-col items-center gap-7 rounded-3xl p-7 md:col-span-3 md:flex-row">
+            <div className="shrink-0">
+              <Iphone17Pro className="w-[200px]">
+                {/* Screen content authored at the 300px-frame design scale,
+                    scaled by 2/3 (200/300) so status bar / island geometry
+                    matches the main demo exactly */}
+                <div
+                  className="origin-top-left"
+                  style={{
+                    width: "150%",
+                    height: "150%",
+                    transform: "scale(0.66667)",
+                  }}
+                >
+                  <div className="font-ios relative flex h-full flex-col bg-gradient-to-b from-[#2c3833] to-[#0e120f] text-white">
+                    <IosStatusBar className="text-white" />
+
+                    {/* Caller */}
+                    <div className="flex flex-col items-center pt-[88px] text-center">
+                      <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-3xl font-semibold shadow-lg">
+                        G
+                      </span>
+                      <span className="mt-4 text-[22px] font-semibold tracking-tight">
+                        Gigler
+                      </span>
+                      <span className="mt-1 text-[13px] text-white/55">
+                        00:42
+                      </span>
+                    </div>
+
+                    {/* Call controls — iOS 26 liquid glass circles */}
+                    <div className="mt-auto px-7 pb-12">
+                      <div className="grid grid-cols-3 gap-x-6 gap-y-5">
+                        {CALL_CONTROLS.map((c) => (
+                          <div
+                            key={c.label}
+                            className="flex flex-col items-center gap-1.5"
+                          >
+                            <span className="flex size-14 items-center justify-center rounded-full border border-white/10 bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
+                              <c.icon className="size-6" aria-hidden />
+                            </span>
+                            <span className="text-[11px] text-white/60">
+                              {c.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6 flex justify-center">
+                        <span className="flex size-16 items-center justify-center rounded-full bg-[#ff3b30] text-white shadow-lg">
+                          <PhoneOff className="size-7" aria-hidden />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Home indicator */}
+                    <div className="absolute bottom-2 left-1/2 h-[5px] w-32 -translate-x-1/2 rounded-full bg-white/80" />
+                  </div>
+                </div>
+              </Iphone17Pro>
+            </div>
+
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                Or just call and talk
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/65">
+                Prefer your voice? Call Gigler like you&apos;d call a person. It
+                listens, takes care of it, and texts you the details after you
+                hang up.
+              </p>
+            </div>
+          </article>
+
+          {/* Tile: it sends emails too */}
+          <article className="glass flex flex-col rounded-3xl p-6 md:col-span-3">
+            <div className="flex flex-1 flex-col justify-center rounded-2xl bg-white/55 p-4">
+              {/* A real sent email, not a text thread */}
+              <div className="rounded-2xl border border-black/[0.06] bg-white p-4 shadow-sm">
+                <p className="text-[15px] font-semibold tracking-tight text-black">
+                  Kitchen leak repair request
+                </p>
+                <div className="mt-3 flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-xs font-semibold text-white">
+                    G
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-black">Gigler</p>
+                    <p className="truncate text-[11px] text-black/45">
+                      to Westside Property
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-spring-mint/70 px-2.5 py-0.5 text-[10px] font-medium text-[#2f8f63]">
+                    Sent
+                  </span>
+                </div>
+                <div className="mt-3 h-px bg-black/[0.06]" />
+                <div className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-black/70">
+                  <p>Hi,</p>
+                  <p>
+                    The kitchen sink has been leaking since Monday. Could you
+                    send a plumber out this week?
+                  </p>
+                  <p>
+                    Thanks,
+                    <br />
+                    Alex
+                  </p>
+                </div>
+              </div>
+            </div>
+            <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
+              It sends the emails too
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/65">
+              Ask in a text and it writes the email, sends it, and follows up
+              when they reply.
             </p>
           </article>
         </div>
