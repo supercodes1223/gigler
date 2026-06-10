@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLiquidGlass } from "@/components/ui/liquid-glass";
 import { cn } from "@/lib/utils";
 
 type WaitlistButtonProps = {
@@ -31,6 +32,16 @@ export function WaitlistButton({
 }: WaitlistButtonProps) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Refraction on Chromium; elsewhere the dialog keeps its frosted classes.
+  const {
+    ref: glassRef,
+    style: glassStyle,
+    filter: glassFilter,
+  } = useLiquidGlass<HTMLDivElement>({
+    blur: 14,
+    saturate: 1.6,
+    background: "rgba(255, 255, 255, 0.62)",
+  });
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -51,9 +62,12 @@ export function WaitlistButton({
         </Button>
       </DialogTrigger>
       <DialogContent
+        ref={glassRef}
+        style={glassStyle}
         showCloseButton={false}
         className="gap-6 rounded-[1.75rem] border-white/70 bg-white/85 p-7 shadow-2xl backdrop-blur-2xl sm:max-w-sm"
       >
+        {glassFilter}
         <DialogClose asChild>
           <button
             type="button"
