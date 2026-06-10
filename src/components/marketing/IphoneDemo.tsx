@@ -167,7 +167,7 @@ export function IphoneDemo() {
                 <div key={i} className={cn("bubble-in flex flex-col", isUser && "items-end")}>
                   <p
                     className={cn(
-                      "max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
+                      "w-fit max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
                       isUser
                         ? "bg-[#0a7cff] text-white"
                         : "bg-[#e9e9eb] text-black"
