@@ -21,7 +21,7 @@ const STEPS = [
     title: "Save Gigler as a contact",
     body: "Gigler is a phone number, not another app. Add it to your contacts once and that's the whole setup.",
     badge:
-      "text-[#4a8367] ring-[#35795a]/10 [background-image:radial-gradient(circle_at_25%_20%,#b3e3cb,transparent_75%)]",
+      "text-[#4a8367] ring-[#35795a]/10 [background-image:radial-gradient(circle_at_25%_20%,#9cdcbd,transparent_80%)]",
   },
   {
     title: "Ask for what you need",
