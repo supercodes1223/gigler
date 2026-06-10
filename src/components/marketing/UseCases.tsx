@@ -75,7 +75,7 @@ export function UseCases() {
 
           {/* Tile: proactive with the move already planned */}
           <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
-            <div className="rounded-2xl bg-white/55 p-4">
+            <div className="flex flex-1 flex-col justify-center rounded-2xl bg-white/55 p-4">
               <div className="flex flex-col gap-1.5">
                 <MiniBubble from="gigler" stamp="Monday 9:15 AM">
                   Mom&apos;s birthday is Thursday. Want me to send the peonies
@@ -98,7 +98,7 @@ export function UseCases() {
 
           {/* Tile: connects to your tools */}
           <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
-            <div className="rounded-2xl bg-white/55 p-4">
+            <div className="flex flex-1 flex-col justify-center rounded-2xl bg-white/55 p-4">
               <div className="flex flex-col gap-1.5">
                 <MiniBubble from="user">What&apos;s new in Slack?</MiniBubble>
                 <MiniBubble from="gigler">One sec, checking Slack.</MiniBubble>

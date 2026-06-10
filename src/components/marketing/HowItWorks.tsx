@@ -29,7 +29,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-5xl">
         <SectionHeader
           eyebrow="How it works"
-          title="No app. No setup. No learning curve."
+          title="No setup. No learning curve."
           subtitle="Save one contact, then reach it the way you'd reach an assistant. Text it, call it, or forward it an email. It works on whatever you already use."
         />
 
