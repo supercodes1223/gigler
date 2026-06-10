@@ -33,8 +33,10 @@ export function Trust() {
           {/* Three glow sources with staggered centers — mint anchored on the
               lock, sky drifting up-left, lilac down-right — so the wash reads
               like the hero mesh, not a single bullseye */}
+          {/* Each glow fades out via mask before reaching the eyebrow/title
+              below — same trick as the rings */}
           <div
-            className="absolute -inset-36 -translate-x-16 -translate-y-10 rounded-full blur-3xl"
+            className="absolute -inset-36 -translate-x-16 -translate-y-10 rounded-full blur-3xl [mask-image:linear-gradient(to_bottom,black_55%,transparent_78%)]"
             style={{
               backgroundImage:
                 "radial-gradient(circle, rgba(207,229,247,0.8) 0%, transparent 70%)",
@@ -42,7 +44,7 @@ export function Trust() {
             aria-hidden
           />
           <div
-            className="absolute -inset-32 translate-x-20 translate-y-12 rounded-full blur-3xl"
+            className="absolute -inset-32 translate-x-20 translate-y-12 rounded-full blur-3xl [mask-image:linear-gradient(to_bottom,black_45%,transparent_70%)]"
             style={{
               backgroundImage:
                 "radial-gradient(circle, rgba(226,220,245,0.65) 0%, transparent 72%)",
@@ -50,7 +52,7 @@ export function Trust() {
             aria-hidden
           />
           <div
-            className="absolute -inset-20 rounded-full blur-2xl"
+            className="absolute -inset-20 rounded-full blur-2xl [mask-image:linear-gradient(to_bottom,black_60%,transparent_85%)]"
             style={{
               backgroundImage:
                 "radial-gradient(circle, rgba(143,201,168,0.55) 0%, transparent 65%)",
