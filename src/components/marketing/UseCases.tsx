@@ -47,7 +47,7 @@ export function UseCases() {
         <div className="mt-14 grid gap-5 md:grid-cols-6 md:grid-rows-2">
           {/* Large tile: found it → asks → books it */}
           <article className="glass flex flex-col rounded-[2rem] p-7 md:col-span-4 md:row-span-2 md:p-9">
-            <div className="flex flex-1 flex-col justify-center gap-2.5 rounded-3xl bg-white/55 p-5 md:p-7">
+            <div className="flex flex-1 flex-col justify-center gap-1.5 rounded-3xl bg-white/55 p-5 md:p-7">
               <MiniBubble from="user" stamp="12:31 PM" size="md">
                 Find me a flight to NYC under $300 next Friday
               </MiniBubble>
@@ -76,7 +76,7 @@ export function UseCases() {
           {/* Tile: proactive with the move already planned */}
           <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
             <div className="rounded-2xl bg-white/55 p-4">
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <MiniBubble from="gigler" stamp="Monday 9:15 AM">
                   Mom&apos;s birthday is Thursday. Want me to send the peonies
                   she liked? $45, arrives Wednesday.
@@ -99,7 +99,7 @@ export function UseCases() {
           {/* Tile: email channel */}
           <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
             <div className="rounded-2xl bg-white/55 p-4">
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <div className="rounded-2xl border border-black/8 bg-white px-3 py-2 shadow-sm">
                   <p className="text-[10px] font-medium text-black/40">
                     Fwd: Your policy renewal, action required

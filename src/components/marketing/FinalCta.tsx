@@ -24,7 +24,7 @@ export function FinalCta() {
 
 export function MarketingFooter() {
   return (
-    <footer className="hairline border-t px-6 py-10">
+    <footer className="hairline relative overflow-hidden border-t px-6 pt-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
         <span className="font-semibold tracking-tight text-foreground">Gigler</span>
         <div className="flex items-center gap-6">
@@ -33,6 +33,15 @@ export function MarketingFooter() {
           </a>
           <span>© 2026 Gigler</span>
         </div>
+      </div>
+
+      {/* Giant wordmark folding under the bottom edge of the page —
+          the negative bottom margin crops it against overflow-hidden. */}
+      <div
+        aria-hidden
+        className="pointer-events-none -mb-[0.34em] mt-6 select-none whitespace-nowrap text-center text-[25vw] font-semibold leading-[0.78] tracking-tight text-foreground/[0.045]"
+      >
+        Gigler
       </div>
     </footer>
   );
