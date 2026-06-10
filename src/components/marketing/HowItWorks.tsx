@@ -134,18 +134,22 @@ export function HowItWorks() {
             </Iphone17Pro>
           </div>
 
-          {/* Steps — a quiet numbered list, not three competing cards */}
-          <ol className="space-y-7">
+          {/* Steps — glass cards with gradient number badges, matching the
+              bento tiles' design language */}
+          <ol className="space-y-5">
             {STEPS.map((step, i) => (
-              <li key={step.title} className="flex gap-4">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-foreground/10 text-xs font-semibold text-foreground/50">
+              <li
+                key={step.title}
+                className="glass flex items-start gap-5 rounded-3xl p-6 md:p-7"
+              >
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-lg font-semibold text-white shadow-[0_8px_20px_-8px_rgba(47,143,99,0.6)]">
                   {i + 1}
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold tracking-tight text-foreground">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
                     {step.title}
                   </h3>
-                  <p className="mt-1 text-sm leading-relaxed text-foreground/65">
+                  <p className="mt-1.5 text-sm leading-relaxed text-foreground/65 md:text-[15px]">
                     {step.body}
                   </p>
                 </div>
