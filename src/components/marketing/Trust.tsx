@@ -1,5 +1,5 @@
-import { Lock } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { LockDuotone } from "@/components/ui/sf-icons";
 import { cn } from "@/lib/utils";
 
 const POINTS = [
@@ -70,11 +70,7 @@ export function Trust() {
           <div className="glass relative flex size-20 items-center justify-center rounded-[1.45rem] md:size-24 md:rounded-[1.7rem]">
             {/* Opacity on the element, not the stroke color — alpha strokes
                 double-darken where the shackle overlaps the body */}
-            <Lock
-              className="size-11 text-foreground opacity-75 md:size-12"
-              strokeWidth={1.75}
-              aria-hidden
-            />
+            <LockDuotone className="size-14 text-foreground opacity-75 md:size-16" />
           </div>
         </div>
 

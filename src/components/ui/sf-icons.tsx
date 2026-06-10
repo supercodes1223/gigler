@@ -6,6 +6,10 @@
  * video.fill, mic.slash.fill, ellipsis, phone.down.fill, the keypad dot
  * grid, message.fill, phone.fill, envelope.fill, star.fill). Drawn by hand —
  * SF Symbols artwork itself is licensed for Apple platforms only.
+ *
+ * LockDuotone is the odd one out: not a mockup glyph but the Trust section's
+ * centerpiece, duotone (tinted body, opaque outline) so it reads designed
+ * rather than hand-drawn at large sizes.
  */
 
 type IconProps = { className?: string };
@@ -155,6 +159,39 @@ export function EnvelopeFill({ className }: IconProps) {
       <path
         fill="currentColor"
         d="m22 9.5-8.4 5.3c-1 .62-2.2.62-3.2 0L2 9.5V17a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 17V9.5Z"
+      />
+    </svg>
+  );
+}
+
+export function LockDuotone({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none">
+      {/* Shackle first, flat-capped ending inside the body's opaque stroke
+          band so no cut ends show through the translucent fill */}
+      <path
+        stroke="currentColor"
+        strokeWidth="1.25"
+        d="M8 10.5V7.6a4 4 0 0 1 8 0v2.9"
+      />
+      <rect
+        x="4.6"
+        y="10"
+        width="14.8"
+        height="10"
+        rx="3.4"
+        fill="currentColor"
+        fillOpacity="0.12"
+        stroke="currentColor"
+        strokeWidth="1.25"
+      />
+      {/* Keyhole: dot + short stem */}
+      <circle cx="12" cy="14.3" r="1.3" fill="currentColor" />
+      <path
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        d="M12 15.6v1.8"
       />
     </svg>
   );
