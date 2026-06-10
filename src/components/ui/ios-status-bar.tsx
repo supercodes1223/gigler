@@ -46,10 +46,12 @@ export function IosStatusBar({
         className="flex w-[34%] items-center justify-center"
         style={{ gap: 5 * scale }}
       >
-        {/* Cellular bars */}
+        {/* Cellular bars — overflow-visible: the tallest bar spans the full
+            viewBox height, and the default hidden overflow clips its
+            anti-aliased top edge at fractional render sizes */}
         <svg
           viewBox="0 0 17 11"
-          className="w-auto"
+          className="w-auto overflow-visible"
           style={{ height: 7.5 * scale }}
           aria-hidden
         >

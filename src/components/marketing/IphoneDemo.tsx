@@ -168,7 +168,7 @@ export function IphoneDemo() {
                         <div className="absolute -left-4 bottom-3 h-1.5 w-[140%] -rotate-[8deg] bg-white/80" />
                         {/* location pin */}
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
-                          <div className="size-4 rounded-full border-2 border-white bg-[#ff3b30] shadow-md" />
+                          <div className="size-4 rounded-full border-2 border-white bg-[#0a7cff] shadow-md" />
                         </div>
                       </div>
                       {/* footer */}
