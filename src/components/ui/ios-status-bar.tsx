@@ -12,36 +12,59 @@ import { cn } from "@/lib/utils";
  *
  * Glyphs draw with currentColor — set `text-black` / `text-white` via
  * className to match the screen behind it.
+ *
+ * Pixel values are tuned for the 300px-wide frame; screens rendered in a
+ * narrower frame pass `scale` (e.g. 200/300) so the bar is authored at
+ * native size instead of inside a blurry CSS scale transform.
  */
 export function IosStatusBar({
   time = "2:14",
   className,
+  scale = 1,
 }: {
   time?: string;
   className?: string;
+  scale?: number;
 }) {
   return (
     <div
       className={cn(
-        "absolute inset-x-0 top-0 z-20 flex h-[39px] items-center justify-between",
+        "absolute inset-x-0 top-0 z-20 flex items-center justify-between",
         className
       )}
+      style={{ height: 39 * scale }}
     >
       <div className="flex w-[34%] justify-center">
-        <span className="text-[12.5px] font-semibold tracking-[-0.01em]">
+        <span
+          className="font-semibold tracking-[-0.01em]"
+          style={{ fontSize: 12.5 * scale }}
+        >
           {time}
         </span>
       </div>
-      <div className="flex w-[34%] items-center justify-center gap-[5px]">
+      <div
+        className="flex w-[34%] items-center justify-center"
+        style={{ gap: 5 * scale }}
+      >
         {/* Cellular bars */}
-        <svg viewBox="0 0 17 11" className="h-[7.5px] w-auto" aria-hidden>
+        <svg
+          viewBox="0 0 17 11"
+          className="w-auto"
+          style={{ height: 7.5 * scale }}
+          aria-hidden
+        >
           <rect x="0" y="6.6" width="3.2" height="4.4" rx="1" fill="currentColor" />
           <rect x="4.6" y="4.4" width="3.2" height="6.6" rx="1" fill="currentColor" />
           <rect x="9.2" y="2.2" width="3.2" height="8.8" rx="1" fill="currentColor" />
           <rect x="13.8" y="0" width="3.2" height="11" rx="1" fill="currentColor" />
         </svg>
         {/* Wi-Fi */}
-        <svg viewBox="0 0 15 11" className="h-[7.5px] w-auto" aria-hidden>
+        <svg
+          viewBox="0 0 15 11"
+          className="w-auto"
+          style={{ height: 7.5 * scale }}
+          aria-hidden
+        >
           <path
             d="M1.2 4.1a8.9 8.9 0 0 1 12.6 0L12.1 5.8a6.5 6.5 0 0 0-9.2 0Z"
             fill="currentColor"
@@ -53,7 +76,12 @@ export function IosStatusBar({
           <path d="M7.5 10.9 5.9 9.3a2.3 2.3 0 0 1 3.2 0Z" fill="currentColor" />
         </svg>
         {/* Battery */}
-        <svg viewBox="0 0 25 12" className="h-[8px] w-auto" aria-hidden>
+        <svg
+          viewBox="0 0 25 12"
+          className="w-auto"
+          style={{ height: 8 * scale }}
+          aria-hidden
+        >
           <rect
             x="0.5"
             y="0.5"

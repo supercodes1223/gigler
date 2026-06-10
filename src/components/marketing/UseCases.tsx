@@ -187,67 +187,59 @@ export function UseCases() {
           <article className="glass flex flex-col items-center gap-7 rounded-3xl p-7 md:col-span-3 md:flex-row">
             <div className="shrink-0">
               <Iphone17Pro className="w-[200px]" screenClassName="bg-[#0e120f]">
-                {/* Screen content authored at the 300px-frame design scale,
-                    scaled by 2/3 (200/300) so status bar / island geometry
-                    matches the main demo exactly */}
-                <div
-                  className="origin-top-left"
-                  style={{
-                    width: "150%",
-                    height: "150%",
-                    transform: "scale(0.66667)",
-                  }}
-                >
-                  <div className="font-ios relative flex h-full flex-col bg-gradient-to-b from-[#2c3833] via-[#1b231e] to-[#0e120f] text-white">
-                    <IosStatusBar className="text-white" />
+                {/* Authored at the 200px frame's native scale (design values
+                    ×2/3, rounded to whole px) so strokes and glyphs land on
+                    the pixel grid — a CSS scale transform here rasterizes
+                    everything at fractional pixels and reads blurry */}
+                <div className="font-ios relative flex h-full flex-col bg-gradient-to-b from-[#2c3833] via-[#1b231e] to-[#0e120f] text-white">
+                  <IosStatusBar className="text-white" scale={200 / 300} />
 
-                    {/* Caller — top-left cluster, iOS 26: small avatar beside
-                        timer-over-name */}
-                    <div className="flex items-center gap-3 px-6 pt-[64px]">
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-lg font-semibold">
-                        G
+                  {/* Caller — top-left cluster, iOS 26: small avatar beside
+                      timer-over-name */}
+                  <div className="flex items-center gap-2 px-4 pt-[43px]">
+                    <span className="flex size-[29px] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-[12px] font-semibold">
+                      G
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-medium text-white/60">
+                        00:42
                       </span>
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-white/60">
-                          00:42
-                        </span>
-                        <span className="text-[26px] font-bold leading-tight tracking-tight">
-                          Gigler
-                        </span>
-                      </div>
+                      <span className="text-[17px] font-bold leading-tight tracking-tight">
+                        Gigler
+                      </span>
                     </div>
-
-                    {/* Empty wallpaper middle, then the iOS 26 control grid:
-                        two rows of three labeled glass circles, End red in
-                        the bottom-center */}
-                    <div className="mt-auto px-6 pb-12">
-                      <div className="grid grid-cols-3 gap-x-5 gap-y-5">
-                        {CALL_CONTROLS.map((c) => (
-                          <div
-                            key={c.label}
-                            className="flex flex-col items-center gap-1.5"
-                          >
-                            <span
-                              className={cn(
-                                "flex size-[60px] items-center justify-center rounded-full text-white",
-                                c.end
-                                  ? "bg-[#ff3b30] shadow-lg"
-                                  : "border border-white/10 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md"
-                              )}
-                            >
-                              <c.icon className="size-6" />
-                            </span>
-                            <span className="text-[12px] text-white/80">
-                              {c.label}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Home indicator */}
-                    <div className="absolute bottom-2 left-1/2 h-[5px] w-32 -translate-x-1/2 rounded-full bg-white/80" />
                   </div>
+
+                  {/* Empty wallpaper middle, then the iOS 26 control grid:
+                      two rows of three labeled glass circles, End red in
+                      the bottom-center */}
+                  <div className="mt-auto px-4 pb-8">
+                    <div className="grid grid-cols-3 gap-x-[13px] gap-y-[13px]">
+                      {CALL_CONTROLS.map((c) => (
+                        <div
+                          key={c.label}
+                          className="flex flex-col items-center gap-1"
+                        >
+                          <span
+                            className={cn(
+                              "flex size-10 items-center justify-center rounded-full text-white",
+                              c.end
+                                ? "bg-[#ff3b30] shadow-lg"
+                                : "border border-white/10 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md"
+                            )}
+                          >
+                            <c.icon className="size-4" />
+                          </span>
+                          <span className="text-[8px] text-white/80">
+                            {c.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Home indicator */}
+                  <div className="absolute bottom-[5px] left-1/2 h-[3px] w-[85px] -translate-x-1/2 rounded-full bg-white/80" />
                 </div>
               </Iphone17Pro>
             </div>
