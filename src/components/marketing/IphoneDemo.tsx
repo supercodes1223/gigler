@@ -89,6 +89,12 @@ const SCRIPT: Step[] = [
   { type: "typing", hold: 1500 },
   {
     type: "gigler",
+    text: "Give me one sec to call them and see what tables they have.",
+    hold: 1700,
+  },
+  { type: "typing", hold: 1500 },
+  {
+    type: "gigler",
     text: "Via Carota has Friday, 7:15 for 4. Want it?",
     hold: 1400,
   },
@@ -290,13 +296,13 @@ export function IphoneDemo() {
       </Iphone17Pro>
 
       {/* Floating glass annotations (desktop only) */}
-      <div className="glass absolute -right-36 top-24 hidden w-44 rounded-2xl p-3 lg:block">
+      <div className="absolute -right-36 top-24 hidden w-44 rounded-2xl bg-white/55 p-3 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
         <p className="text-xs font-medium text-foreground">Reservation made</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
           Real bookings, real confirmations. Not just advice.
         </p>
       </div>
-      <div className="glass absolute -left-36 bottom-32 hidden w-44 rounded-2xl p-3 lg:block">
+      <div className="absolute -left-36 bottom-32 hidden w-44 rounded-2xl bg-white/55 p-3 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
         <p className="text-xs font-medium text-foreground">It remembers</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
           &ldquo;You loved Italian last month.&rdquo; No re-explaining.
