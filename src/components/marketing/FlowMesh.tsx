@@ -32,15 +32,22 @@ void main() {
 // Inject the flowmap warp right where the fragment shader picks up its UV.
 const UV_MARKER = "vec2 uv = v_objectUV;";
 const UNIFORM_MARKER = "uniform float u_time;";
+// Color spots orbit the canvas; wave edges only form where two spots crowd
+// each other. Shrinking the orbit radius (0.5 -> SPOT_SPREAD) packs the same
+// 10 spots into a smaller area, so close encounters — and the edges they
+// create — happen far more often. Time scale is untouched.
+const SPREAD_MARKER = "return .5 + .5 * vec2(x, y);";
+const SPOT_SPREAD = 0.4;
 
 function buildMeshFrag(): string {
   const src = meshGradientFragmentShader;
-  if (!src.includes(UV_MARKER) || !src.includes(UNIFORM_MARKER)) {
+  if (!src.includes(UV_MARKER) || !src.includes(UNIFORM_MARKER) || !src.includes(SPREAD_MARKER)) {
     throw new Error(
       "FlowMesh: @paper-design/shaders fragment source changed; flowmap injection markers not found. Re-verify after upgrading the package."
     );
   }
   return src
+    .replace(SPREAD_MARKER, `return .5 + ${SPOT_SPREAD} * vec2(x, y);`)
     .replace(
       UNIFORM_MARKER,
       `${UNIFORM_MARKER}
@@ -101,9 +108,12 @@ const FLOW_STRENGTH = 0.18; // max uv displacement of the waves
 const VELOCITY_GAIN = 8; // pointer delta (uv/frame) -> stamp intensity
 const SPEED = 0.4; // mesh animation speed, matches previous hero
 
+// Higher distortion folds the field into more wave creases; higher swirl
+// shears spot boundaries into longer curling edges. Neither touches u_time,
+// so the animation pace is unchanged — there's just more happening per frame.
 const MESH_PARAMS = {
-  distortion: 0.85,
-  swirl: 0.6,
+  distortion: 1.0,
+  swirl: 0.75,
   grainMixer: 0.16,
   grainOverlay: 0,
 };
