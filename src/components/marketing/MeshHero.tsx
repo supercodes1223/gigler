@@ -132,7 +132,7 @@ export function MeshHero() {
             asChild
             variant="ghost"
             size="lg"
-            className="h-12 rounded-full px-6 text-base text-foreground/70 hover:bg-white/40"
+            className="h-12 rounded-full border border-foreground/10 px-6 text-base text-foreground/85 transition-colors hover:border-foreground/25 hover:bg-white/40 hover:text-foreground"
           >
             <a href="#demo">
               See it in action
