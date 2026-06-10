@@ -2,8 +2,63 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Apple, ChevronLeft, Video } from "lucide-react";
+import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
+
+// iOS status bar: time on the left of the Dynamic Island, radios on the right.
+function StatusBar() {
+  return (
+    <div className="flex h-[30px] shrink-0 items-center justify-between px-6 pt-1">
+      <span className="text-[11px] font-semibold tracking-tight text-black">
+        2:14
+      </span>
+      <div className="flex items-center gap-1">
+        {/* Cellular bars */}
+        <svg viewBox="0 0 16 11" className="h-[10px] w-auto" aria-hidden>
+          <rect x="0" y="7" width="2.6" height="4" rx="0.8" fill="black" />
+          <rect x="4.4" y="5" width="2.6" height="6" rx="0.8" fill="black" />
+          <rect x="8.8" y="2.5" width="2.6" height="8.5" rx="0.8" fill="black" />
+          <rect x="13.2" y="0" width="2.6" height="11" rx="0.8" fill="black" />
+        </svg>
+        {/* Wi-Fi */}
+        <svg viewBox="0 0 16 11" className="h-[10px] w-auto" aria-hidden>
+          <path
+            d="M8 9.4 L5.6 7a3.4 3.4 0 0 1 4.8 0Z"
+            fill="black"
+          />
+          <path
+            d="M3.7 5.1a6.1 6.1 0 0 1 8.6 0l-1.5 1.5a4 4 0 0 0-5.6 0Z"
+            fill="black"
+          />
+          <path
+            d="M1.3 2.7a9.5 9.5 0 0 1 13.4 0l-1.5 1.5a7.4 7.4 0 0 0-10.4 0Z"
+            fill="black"
+          />
+        </svg>
+        {/* Battery */}
+        <svg viewBox="0 0 25 12" className="h-[11px] w-auto" aria-hidden>
+          <rect
+            x="0.5"
+            y="0.5"
+            width="21"
+            height="11"
+            rx="3.2"
+            stroke="black"
+            strokeOpacity="0.35"
+            fill="none"
+          />
+          <rect x="2" y="2" width="15.5" height="8" rx="1.8" fill="black" />
+          <path
+            d="M23 4 a2.2 2.2 0 0 1 0 4 Z"
+            fill="black"
+            fillOpacity="0.35"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 type Step =
   | { type: "stamp"; text: string; hold: number }
@@ -85,13 +140,13 @@ export function IphoneDemo() {
   return (
     <div ref={frameRef} className="relative mx-auto w-[300px] sm:w-[340px]">
       {/* Device frame */}
-      <div className="rounded-[3.2rem] border border-white/70 bg-white/55 p-2 shadow-[0_24px_80px_-32px_rgba(20,30,40,0.35)] backdrop-blur-xl">
-        <div className="relative flex h-[600px] flex-col overflow-hidden rounded-[2.7rem] border border-black/5 bg-white">
-          {/* Dynamic island */}
-          <div className="absolute left-1/2 top-2.5 z-20 h-7 w-28 -translate-x-1/2 rounded-full bg-black" />
+      <Iphone17Pro className="w-full drop-shadow-[0_28px_55px_rgba(20,30,40,0.35)]">
+        <div className="flex h-full flex-col bg-white">
+          {/* iOS status bar (Dynamic Island renders above this, in the frame) */}
+          <StatusBar />
 
           {/* iMessage header */}
-          <div className="z-10 flex items-end justify-between border-b border-black/5 bg-white/90 px-4 pb-2 pt-12 backdrop-blur-md">
+          <div className="z-10 flex items-end justify-between border-b border-black/5 bg-white/90 px-4 pb-2 pt-1 backdrop-blur-md">
             <ChevronLeft className="size-5 text-[#0a7cff]" aria-hidden />
             <div className="flex flex-col items-center">
               <span className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-spring-leaf to-spring-sky text-sm font-semibold text-white">
@@ -196,7 +251,7 @@ export function IphoneDemo() {
           {/* Home indicator */}
           <div className="absolute bottom-1.5 left-1/2 h-1 w-28 -translate-x-1/2 rounded-full bg-black/80" />
         </div>
-      </div>
+      </Iphone17Pro>
 
       {/* Floating glass annotations (desktop only) */}
       <div className="glass absolute -right-36 top-24 hidden w-44 rounded-2xl p-3 lg:block">
