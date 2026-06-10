@@ -166,9 +166,21 @@ export function IphoneDemo() {
                         <div className="absolute -left-4 top-10 h-2 w-[140%] -rotate-[18deg] bg-white" />
                         <div className="absolute left-1/2 -top-4 h-[150%] w-2 rotate-[24deg] bg-white" />
                         <div className="absolute -left-4 bottom-3 h-1.5 w-[140%] -rotate-[8deg] bg-white/80" />
-                        {/* location pin */}
+                        {/* location pin — tip lands on the road junction */}
                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
-                          <div className="size-4 rounded-full border-2 border-white bg-[#0a7cff] shadow-md" />
+                          <svg
+                            viewBox="0 0 24 32"
+                            className="h-[22px] w-auto drop-shadow-md"
+                            aria-hidden
+                          >
+                            <path
+                              fill="#0a7cff"
+                              stroke="#fff"
+                              strokeWidth="2"
+                              d="M12 1C5.9 1 1 5.9 1 12c0 8.25 11 19 11 19s11-10.75 11-19C23 5.9 18.1 1 12 1Z"
+                            />
+                            <circle cx="12" cy="12" r="4" fill="#fff" />
+                          </svg>
                         </div>
                       </div>
                       {/* footer */}
