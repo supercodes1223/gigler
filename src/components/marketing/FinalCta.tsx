@@ -30,7 +30,7 @@ export function MarketingFooter() {
           95% of the page width; the shortened viewBox crops the bottom of
           the letterforms so the word folds under the page edge. */}
       <div aria-hidden className="pointer-events-none flex select-none justify-center">
-        <svg viewBox="0 0 273 72" className="block w-[95%]">
+        <svg viewBox="0 0 273 58" className="block w-[95%]">
           <text
             x="50%"
             y="78"

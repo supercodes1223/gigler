@@ -96,32 +96,24 @@ export function UseCases() {
             </p>
           </article>
 
-          {/* Tile: email channel */}
+          {/* Tile: connects to your tools */}
           <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
             <div className="rounded-2xl bg-white/55 p-4">
               <div className="flex flex-col gap-1.5">
-                <div className="rounded-2xl border border-black/8 bg-white px-3 py-2 shadow-sm">
-                  <p className="text-[10px] font-medium text-black/40">
-                    Fwd: Your policy renewal, action required
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-black/70">
-                    Dear customer, your coverage will change unless...
-                  </p>
-                </div>
-                <MiniBubble from="user">deal with this</MiniBubble>
+                <MiniBubble from="user">What&apos;s new in Slack?</MiniBubble>
+                <MiniBubble from="gigler">One sec, checking Slack.</MiniBubble>
                 <MiniBubble from="gigler">
-                  Handled. Replied with your details and put the deadline on
-                  your calendar.
+                  Standup moved to 10am, and Sam needs your sign-off on the Q3
+                  deck.
                 </MiniBubble>
               </div>
             </div>
             <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
-              Forward it an email
+              It&apos;s plugged into your tools
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
-              The confusing insurance letter, the endless thread — forward it
-              and say &ldquo;deal with this.&rdquo; Gigler replies, schedules,
-              and follows up.
+              Slack, your calendar, your inbox. Ask in plain English and it
+              checks the right place, then answers. No tabs, no logins.
             </p>
           </article>
         </div>
