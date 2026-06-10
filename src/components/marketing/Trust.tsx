@@ -1,5 +1,5 @@
 import { SectionHeader } from "./SectionHeader";
-import { LockDuotone } from "@/components/ui/sf-icons";
+import { Lock3D } from "./Lock3D";
 import { cn } from "@/lib/utils";
 
 const POINTS = [
@@ -67,15 +67,13 @@ export function Trust() {
               <div className="absolute inset-[4.5rem] rounded-full border border-foreground/[0.1]" />
             </div>
           </div>
-          <div className="glass relative flex size-20 items-center justify-center rounded-[1.45rem] md:size-24 md:rounded-[1.7rem]">
-            {/* Opacity on the element, not the stroke color — alpha strokes
-                double-darken where the shackle overlaps the body */}
-            <LockDuotone className="size-14 text-foreground opacity-75 md:size-16" />
-          </div>
+          {/* Floats free over the glow like a rendered object — no tile, the
+              drop shadow does the grounding */}
+          <Lock3D className="relative size-28 drop-shadow-[0_16px_26px_rgba(47,143,99,0.35)] md:size-32" />
         </div>
 
         <SectionHeader
-          className="mt-12"
+          className="mt-8"
           eyebrow="Trust"
           title="Built to be trusted."
           subtitle="Real-world actions need real trust. Gigler plays by three rules."
