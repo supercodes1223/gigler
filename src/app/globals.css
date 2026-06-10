@@ -103,6 +103,12 @@
   html {
     @apply font-sans;
   }
+  /* shadcn's pointer opt-in (same rule as `shadcn init --pointer`): every
+     enabled button is a pointer, matching links. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* ── Frosted glass surfaces (Luma-style, tuned for a light canvas) ───────── */
