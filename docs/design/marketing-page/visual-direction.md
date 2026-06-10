@@ -90,19 +90,25 @@ Spec (the vibe constraints matter more than the library):
 plus a light pointer-distortion layer; if the cursor feel isn't fluid enough,
 build the hero in Unicorn Studio.
 
-**Outcome (2026-06-09): Paper Shaders, cursor via CSS transforms.** Two notes
-for whoever touches this next:
+**Final outcome (2026-06-09): self-rendered Paper Shaders + cursor flowmap
+(`FlowMesh.tsx`).** The journey, for whoever touches this next:
 
-- Paper Shaders' MeshGradient has **no pointer uniform**, and live changes to
-  its `distortion`/`swirl`/`speed` props make the pattern jump (flicker) — do
-  not modulate its uniforms at runtime. The shipped hero keeps the shader's
-  parameters fixed and drives cursor influence purely with CSS transforms on
-  the canvas (parallax + swell + slight tilt).
-- A custom GLSL shader (`SpringMesh.tsx`) with a true pointer uniform was
-  built and **reverted**: the cursor bend worked, but the field itself read as
-  flat radial color sweeps, not Paper-Shaders-quality waves. If true
-  bend-around-cursor is attempted again, the wave field generation needs to be
-  much better (richer noise/fbm), or use Unicorn Studio.
+1. `<MeshGradient>` component + live prop modulation → **flickers** (the
+   pattern is not continuous under `distortion`/`swirl`/`speed` changes).
+   Never modulate its uniforms at runtime.
+2. CSS-transform cursor influence (parallax/swell/tilt) → smooth but **global**;
+   reads as "waves attracted to cursor," not bending.
+3. Fully custom GLSL (`SpringMesh`) → cursor bend worked but the wave field
+   read flat; reverted.
+4. **Shipped:** Paper Shaders exports its mesh-gradient GLSL source
+   (PolyForm Shield — fine for non-competing use). `FlowMesh.tsx` compiles
+   that exact shader in our own WebGL2 context — identical waves — and
+   injects a 3-line UV warp sampling a 128² ping-pong **flowmap** (OGL-style:
+   dissipation fade + smoothed-velocity stamp). The cursor locally bends the
+   waves along its trail; the field relaxes in ~0.5s. Feel knobs at the top
+   of `FlowMesh.tsx`: `FLOW_STRENGTH`, `FALLOFF`, `DISSIPATION`,
+   `VELOCITY_GAIN`. The package version is pinned exactly (0.0.76) and the
+   shader patch asserts on its injection markers, so an upgrade fails loudly.
 
 ## Layout & structure
 
