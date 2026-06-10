@@ -2,24 +2,24 @@ import {
   MicOff,
   Grid3x3,
   Volume2,
-  Plus,
   Video,
-  User,
-  PhoneOff,
+  Ellipsis,
+  Phone,
 } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
 import { cn } from "@/lib/utils";
 
-// iOS in-call button grid (mute / keypad / audio, then add / FaceTime / contacts).
+// iOS 26 in-call control grid: Speaker / FaceTime / Mute on top,
+// More / End (red, center) / Keypad below.
 const CALL_CONTROLS = [
-  { icon: MicOff, label: "mute" },
-  { icon: Grid3x3, label: "keypad" },
-  { icon: Volume2, label: "audio" },
-  { icon: Plus, label: "add" },
-  { icon: Video, label: "FaceTime" },
-  { icon: User, label: "contacts" },
+  { icon: Volume2, label: "Speaker", end: false },
+  { icon: Video, label: "FaceTime", end: false },
+  { icon: MicOff, label: "Mute", end: false },
+  { icon: Ellipsis, label: "More", end: false },
+  { icon: Phone, label: "End", end: true },
+  { icon: Grid3x3, label: "Keypad", end: false },
 ];
 
 function MiniBubble({
@@ -72,23 +72,24 @@ export function UseCases() {
               <MiniBubble from="user" stamp="12:31 PM" size="md">
                 Find me a flight to NYC under $300 next Friday
               </MiniBubble>
-              <MiniBubble from="gigler" stamp="3:02 PM" size="md">
-                Found you this one. Delta nonstop, $284, lands 9:40 AM.
-                Should I book it for you now?
+              <MiniBubble from="gigler" stamp="12:33 PM" size="md">
+                Found you this one. Delta nonstop, LAX to JFK, $284. Takes off
+                9:30 AM Friday, lands 6:05 PM. Should I book it for you now?
               </MiniBubble>
               <MiniBubble from="user" size="md">
                 Yes!
               </MiniBubble>
               <MiniBubble from="gigler" size="md">
-                Booked. I&apos;ll check you in and send you the boarding pass on
-                Thursday.
+                Booked. I&apos;ll check you in and send your boarding pass on
+                Thursday. Want me to schedule an Uber to LAX for 6:30 AM, three
+                hours before takeoff?
               </MiniBubble>
               <MiniBubble from="user" size="md">
-                Perfect, thank you!
+                Yes, perfect. Thank you!
               </MiniBubble>
               <MiniBubble from="gigler" size="md">
-                Anytime. It&apos;s on your calendar, and I&apos;ll remind you the
-                night before you fly.
+                Done. The flight and your ride are on your calendar, and
+                I&apos;ll remind you the night before you fly.
               </MiniBubble>
             </div>
             <h3 className="mt-6 text-xl font-semibold tracking-tight text-foreground md:text-2xl">
@@ -160,43 +161,56 @@ export function UseCases() {
                     transform: "scale(0.66667)",
                   }}
                 >
-                  <div className="font-ios relative flex h-full flex-col bg-gradient-to-b from-[#2c3833] to-[#0e120f] text-white">
+                  <div className="font-ios relative flex h-full flex-col bg-gradient-to-b from-[#2c3833] via-[#1b231e] to-[#0e120f] text-white">
                     <IosStatusBar className="text-white" />
 
-                    {/* Caller */}
-                    <div className="flex flex-col items-center pt-[88px] text-center">
-                      <span className="flex size-20 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-3xl font-semibold shadow-lg">
+                    {/* Caller — top-left cluster, iOS 26: small avatar beside
+                        timer-over-name */}
+                    <div className="flex items-center gap-3 px-6 pt-[64px]">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-lg font-semibold">
                         G
                       </span>
-                      <span className="mt-4 text-[22px] font-semibold tracking-tight">
-                        Gigler
-                      </span>
-                      <span className="mt-1 text-[13px] text-white/55">
-                        00:42
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-medium text-white/60">
+                          00:42
+                        </span>
+                        <span className="text-[26px] font-bold leading-tight tracking-tight">
+                          Gigler
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Call controls — iOS 26 liquid glass circles */}
-                    <div className="mt-auto px-7 pb-12">
-                      <div className="grid grid-cols-3 gap-x-6 gap-y-5">
+                    {/* Empty wallpaper middle, then the iOS 26 control grid:
+                        two rows of three labeled glass circles, End red in
+                        the bottom-center */}
+                    <div className="mt-auto px-6 pb-12">
+                      <div className="grid grid-cols-3 gap-x-5 gap-y-5">
                         {CALL_CONTROLS.map((c) => (
                           <div
                             key={c.label}
                             className="flex flex-col items-center gap-1.5"
                           >
-                            <span className="flex size-14 items-center justify-center rounded-full border border-white/10 bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md">
-                              <c.icon className="size-6" aria-hidden />
+                            <span
+                              className={cn(
+                                "flex size-[60px] items-center justify-center rounded-full text-white",
+                                c.end
+                                  ? "bg-[#ff3b30] shadow-lg"
+                                  : "border border-white/10 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md"
+                              )}
+                            >
+                              <c.icon
+                                className={cn(
+                                  "size-6",
+                                  c.end && "rotate-[135deg] fill-current"
+                                )}
+                                aria-hidden
+                              />
                             </span>
-                            <span className="text-[11px] text-white/60">
+                            <span className="text-[12px] text-white/80">
                               {c.label}
                             </span>
                           </div>
                         ))}
-                      </div>
-                      <div className="mt-6 flex justify-center">
-                        <span className="flex size-16 items-center justify-center rounded-full bg-[#ff3b30] text-white shadow-lg">
-                          <PhoneOff className="size-7" aria-hidden />
-                        </span>
                       </div>
                     </div>
 
