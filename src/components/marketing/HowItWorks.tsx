@@ -19,15 +19,15 @@ const CHANNELS = [
 const STEPS = [
   {
     title: "Save Gigler as a contact",
-    body: "Gigler is a phone number, not another app. Add it to your contacts once — that's the whole setup.",
+    body: "Gigler is a phone number, not another app. Add it to your contacts once and that's the whole setup.",
   },
   {
     title: "Ask for what you need",
-    body: "Text it, call it, or forward it an email — in plain English, like you'd ask a friend. No commands to learn.",
+    body: "Text it, call it, or forward it an email. Plain English, like you'd ask a friend. No commands to learn.",
   },
   {
     title: "Gigler gets it done",
-    body: "It books the table, sends the email, makes the call — then reports back. Anything big, it asks you first.",
+    body: "It books the table, sends the email, makes the call, then reports back. Anything big, it asks you first.",
   },
 ];
 
