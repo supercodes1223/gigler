@@ -32,9 +32,17 @@ const SCREEN_WINDOW = {
 export interface Iphone17ProProps {
   children: ReactNode;
   className?: string;
+  /** Screen backing color — match it to the screen content's background so
+      no sliver of backing shows at the masked edges (e.g. bg-black for dark
+      screens). Defaults to white. */
+  screenClassName?: string;
 }
 
-export function Iphone17Pro({ children, className }: Iphone17ProProps) {
+export function Iphone17Pro({
+  children,
+  className,
+  screenClassName,
+}: Iphone17ProProps) {
   return (
     <div
       className={cn("relative", className)}
@@ -58,7 +66,10 @@ export function Iphone17Pro({ children, className }: Iphone17ProProps) {
           never paint above the SVG hardware chrome; `transform-gpu` pins the
           screen on its own compositor layer for stable rasterization */}
       <div
-        className="absolute isolate transform-gpu overflow-hidden bg-white"
+        className={cn(
+          "absolute isolate transform-gpu overflow-hidden bg-white",
+          screenClassName
+        )}
         style={SCREEN_WINDOW}
       >
         {children}

@@ -118,8 +118,9 @@
   backdrop-filter: blur(20px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow:
-    0 1px 1px rgba(20, 30, 40, 0.03),
-    0 8px 24px -12px rgba(20, 30, 40, 0.12),
+    0 0 0 1px rgba(20, 30, 40, 0.03),
+    0 1px 1px rgba(20, 30, 40, 0.04),
+    0 8px 24px -12px rgba(20, 30, 40, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -221,10 +222,15 @@ section {
 }
 
 /* Apple system font for content rendered "on the iPhone" — resolves to
-   SF Pro on Apple devices, falls back gracefully elsewhere */
+   SF Pro on Apple devices, falls back gracefully elsewhere. Antialiased
+   smoothing matches iOS rendering; default subpixel smoothing reads bolder
+   than the real thing. */
 .font-ios {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "SF Pro Display", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* iMessage bubble tails (samuelkraft technique): a colored blob behind the

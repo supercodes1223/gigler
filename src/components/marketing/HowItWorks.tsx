@@ -1,20 +1,19 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  MessageSquare,
-  Phone,
-  Mail,
-  Star,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
+import {
+  MessageFill,
+  PhoneFill,
+  EnvelopeFill,
+  StarFill,
+} from "@/components/ui/sf-icons";
 
 // The three ways to reach Gigler — the action row of a saved iOS contact.
 const CHANNELS = [
-  { icon: MessageSquare, label: "text" },
-  { icon: Phone, label: "call" },
-  { icon: Mail, label: "email" },
+  { icon: MessageFill, label: "text" },
+  { icon: PhoneFill, label: "call" },
+  { icon: EnvelopeFill, label: "email" },
 ];
 
 const STEPS = [
@@ -85,7 +84,7 @@ export function HowItWorks() {
                         className="flex size-12 items-center justify-center rounded-full bg-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md"
                         title={c.label}
                       >
-                        <c.icon className="size-5 text-black/70" aria-hidden />
+                        <c.icon className="size-5 text-black/70" />
                       </div>
                     ))}
                   </div>
@@ -110,10 +109,7 @@ export function HowItWorks() {
                           +1 (415) 555-0142
                         </p>
                       </div>
-                      <Star
-                        className="size-3.5 fill-black/25 text-black/25"
-                        aria-hidden
-                      />
+                      <StarFill className="size-3.5 text-black/25" />
                     </div>
                     <div className="ml-4 h-px bg-black/[0.07]" />
                     <div className="px-4 py-2">

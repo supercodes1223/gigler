@@ -1,25 +1,25 @@
-import {
-  MicOff,
-  Grid3x3,
-  Volume2,
-  Video,
-  Ellipsis,
-  Phone,
-} from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
+import {
+  SpeakerWave2Fill,
+  VideoFill,
+  MicSlashFill,
+  EllipsisFill,
+  PhoneDownFill,
+  KeypadDotsFill,
+} from "@/components/ui/sf-icons";
 import { cn } from "@/lib/utils";
 
 // iOS 26 in-call control grid: Speaker / FaceTime / Mute on top,
 // More / End (red, center) / Keypad below.
 const CALL_CONTROLS = [
-  { icon: Volume2, label: "Speaker", end: false },
-  { icon: Video, label: "FaceTime", end: false },
-  { icon: MicOff, label: "Mute", end: false },
-  { icon: Ellipsis, label: "More", end: false },
-  { icon: Phone, label: "End", end: true },
-  { icon: Grid3x3, label: "Keypad", end: false },
+  { icon: SpeakerWave2Fill, label: "Speaker", end: false },
+  { icon: VideoFill, label: "FaceTime", end: false },
+  { icon: MicSlashFill, label: "Mute", end: false },
+  { icon: EllipsisFill, label: "More", end: false },
+  { icon: PhoneDownFill, label: "End", end: true },
+  { icon: KeypadDotsFill, label: "Keypad", end: false },
 ];
 
 function MiniBubble({
@@ -149,7 +149,7 @@ export function UseCases() {
           {/* Tile: call it — iPhone on a live call with Gigler */}
           <article className="glass flex flex-col items-center gap-7 rounded-3xl p-7 md:col-span-3 md:flex-row">
             <div className="shrink-0">
-              <Iphone17Pro className="w-[200px]">
+              <Iphone17Pro className="w-[200px]" screenClassName="bg-[#0e120f]">
                 {/* Screen content authored at the 300px-frame design scale,
                     scaled by 2/3 (200/300) so status bar / island geometry
                     matches the main demo exactly */}
@@ -198,13 +198,7 @@ export function UseCases() {
                                   : "border border-white/10 bg-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-md"
                               )}
                             >
-                              <c.icon
-                                className={cn(
-                                  "size-6",
-                                  c.end && "rotate-[135deg] fill-current"
-                                )}
-                                aria-hidden
-                              />
+                              <c.icon className="size-6" />
                             </span>
                             <span className="text-[12px] text-white/80">
                               {c.label}

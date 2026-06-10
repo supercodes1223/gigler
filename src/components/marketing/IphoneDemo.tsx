@@ -1,16 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Apple,
-  ChevronLeft,
-  ChevronRight,
-  Mic,
-  Plus,
-  Video,
-} from "lucide-react";
+import { Apple, ChevronLeft, ChevronRight, Mic, Plus } from "lucide-react";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
+import { VideoFill } from "@/components/ui/sf-icons";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
@@ -122,7 +116,9 @@ export function IphoneDemo() {
               <ChevronLeft className="size-[18px] -translate-x-px text-[#0a7cff]" />
             </div>
             <div className="flex flex-col items-center">
-              <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-spring-leaf to-spring-sky text-[13px] font-semibold text-white ring-1 ring-black/5">
+              {/* Same saturated avatar green as the call/email tiles — the
+                  spring pastels read as a white wash at this size */}
+              <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-[13px] font-semibold text-white ring-1 ring-black/5">
                 G
               </span>
               <span className="glass-strong mt-[5px] flex items-center rounded-full py-[3px] pl-2.5 pr-1.5 text-[11px] font-semibold text-foreground">
@@ -137,7 +133,7 @@ export function IphoneDemo() {
               aria-hidden
               className="glass mt-0.5 flex size-8 items-center justify-center rounded-full"
             >
-              <Video className="size-4 text-[#0a7cff]" />
+              <VideoFill className="size-4 text-[#0a7cff]" />
             </div>
           </div>
 
@@ -246,15 +242,16 @@ export function IphoneDemo() {
       </Iphone17Pro>
 
       {/* Floating glass annotations (desktop only) */}
-      <div className="absolute -right-36 top-24 hidden w-44 rounded-2xl bg-white/55 p-3 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
+      {/* Padding >= corner radius so text clears the corner curves */}
+      <div className="absolute -right-36 top-24 hidden w-48 rounded-2xl bg-white/55 px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
         <p className="text-xs font-medium text-foreground">Reservation made</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
           Real bookings, real confirmations. Not just advice.
         </p>
       </div>
-      <div className="absolute -left-36 bottom-32 hidden w-44 rounded-2xl bg-white/55 p-3 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
+      <div className="absolute -left-36 bottom-32 hidden w-48 rounded-2xl bg-white/55 px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
         <p className="text-xs font-medium text-foreground">It remembers</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
           &ldquo;You loved Italian last month.&rdquo; No re-explaining.
         </p>
       </div>
