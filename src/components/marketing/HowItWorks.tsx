@@ -20,17 +20,20 @@ const STEPS = [
   {
     title: "Save Gigler as a contact",
     body: "Gigler is a phone number, not another app. Add it to your contacts once and that's the whole setup.",
-    badge: "bg-[#f3f8f5] text-[#4a8367] ring-[#35795a]/10",
+    badge:
+      "text-[#4a8367] ring-[#35795a]/10 [background-image:radial-gradient(circle_at_25%_20%,rgba(74,131,103,0.20),transparent_65%)]",
   },
   {
     title: "Ask for what you need",
     body: "Text it, call it, or forward it an email. Plain English, like you'd ask a friend. No commands to learn.",
-    badge: "bg-[#f2f6fb] text-[#4f74a0] ring-[#3a6b9e]/10",
+    badge:
+      "text-[#4f74a0] ring-[#3a6b9e]/10 [background-image:radial-gradient(circle_at_75%_25%,rgba(79,116,160,0.20),transparent_65%)]",
   },
   {
     title: "Gigler gets it done",
     body: "It books the table, sends the email, makes the call, then reports back. Anything big, it asks you first.",
-    badge: "bg-[#f6f4fb] text-[#7763a6] ring-[#69519e]/10",
+    badge:
+      "text-[#7763a6] ring-[#69519e]/10 [background-image:radial-gradient(circle_at_50%_85%,rgba(119,99,166,0.20),transparent_65%)]",
   },
 ];
 
@@ -146,7 +149,7 @@ export function HowItWorks() {
                 className="glass flex items-center gap-6 rounded-3xl p-6 md:p-7"
               >
                 <span
-                  className={`flex size-14 shrink-0 items-center justify-center rounded-full text-2xl font-semibold ring-1 ring-inset ${step.badge}`}
+                  className={`flex size-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl font-semibold ring-1 ring-inset ${step.badge}`}
                 >
                   {i + 1}
                 </span>
