@@ -27,10 +27,10 @@ export function MarketingFooter() {
     <footer className="hairline relative overflow-hidden border-t pt-12">
       <span className="sr-only">© 2026 Gigler</span>
       {/* Giant wordmark. SVG textLength stretches the word to exactly fill
-          its box, so it always spans 95% of the page width with the whole
-          word (descender included) visible. */}
-      <div aria-hidden className="pointer-events-none flex select-none justify-center pb-2">
-        <svg viewBox="0 0 273 102" className="w-[95%]">
+          95% of the page width; the shortened viewBox crops the bottom of
+          the letterforms so the word folds under the page edge. */}
+      <div aria-hidden className="pointer-events-none flex select-none justify-center">
+        <svg viewBox="0 0 273 72" className="block w-[95%]">
           <text
             x="50%"
             y="78"

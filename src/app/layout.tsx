@@ -84,7 +84,7 @@ function JsonLd() {
       "@type": "Organization",
       name: "Gigler",
       url: siteUrl,
-      logo: `${siteUrl}/icon.png`,
+      logo: `${siteUrl}/apple-icon`,
       description: siteDescription,
       sameAs: [],
     },
