@@ -120,7 +120,7 @@ export function HowItWorks() {
                     <div className="ml-4 h-px bg-black/[0.07]" />
                     <div className="px-4 py-2">
                       <p className="text-[12px] text-black/55">email</p>
-                      <p className="text-[15px] text-black/85">hey@gigler.com</p>
+                      <p className="text-[15px] text-black/85">hey@gigler.ai</p>
                     </div>
                   </div>
 

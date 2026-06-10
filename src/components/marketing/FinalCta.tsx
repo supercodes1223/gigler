@@ -28,7 +28,7 @@ const footerLinks = [
   { label: "Use cases", href: "/#use-cases" },
   { label: "How it works", href: "/#how" },
   { label: "Trust", href: "/#trust" },
-  { label: "Contact", href: "mailto:hey@gigler.com" },
+  { label: "Contact", href: "mailto:hey@gigler.ai" },
 ];
 
 export function MarketingFooter() {
