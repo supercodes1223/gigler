@@ -227,7 +227,8 @@ section {
    than the real thing. */
 .font-ios {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+    "SF Pro Text", var(--font-inter), "Helvetica Neue", "Segoe UI", Arial,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,11 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// SF-adjacent fallback for the iPhone mockup screens (.font-ios): Apple
+// devices resolve -apple-system to the real SF Pro; everyone else gets
+// Inter instead of Segoe/Arial.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://gigler.ai";
 
@@ -111,7 +116,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("antialiased font-sans", geist.variable, geistMono.variable)}
+      className={cn(
+        "antialiased font-sans",
+        geist.variable,
+        geistMono.variable,
+        inter.variable
+      )}
     >
       <head>
         <JsonLd />
