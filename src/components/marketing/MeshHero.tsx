@@ -5,12 +5,21 @@ import { Button } from "@/components/ui/button";
 import { FlowMesh } from "./FlowMesh";
 import { WaitlistButton } from "./WaitlistButton";
 
+// 10 spots (the shader's max) instead of 5: wave edges appear where spots
+// crowd each other, so more spots = edges roll through far more often —
+// without changing the animation speed at all. Same palette, plus slightly
+// deeper variants of each pastel for depth.
 const MESH_COLORS = [
   "#fdfdfb", // airy white keeps the canvas light
   "#c9ecd9", // spring mint
   "#cfe5f7", // spring sky
   "#e2dcf5", // spring lilac
   "#f7efd8", // spring butter
+  "#b3e3cb", // deeper mint
+  "#fbfcf9", // second white — keeps the canvas from getting too saturated
+  "#badbf4", // deeper sky
+  "#d4cbf0", // deeper lilac
+  "#f2e7c4", // deeper butter
 ];
 
 export function MeshHero() {

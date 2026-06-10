@@ -52,7 +52,8 @@ uniform float u_flowStrength;`
       UV_MARKER,
       `${UV_MARKER}
   vec2 flow = texture(u_flowmap, gl_FragCoord.xy / u_res).rg - 0.5;
-  uv += flow * u_flowStrength;`
+  // Subtract: the field drags WITH the cursor's motion (paint-smear feel).
+  uv -= flow * u_flowStrength;`
     );
 }
 
@@ -94,10 +95,10 @@ void main() {
 // ── Feel knobs ──────────────────────────────────────────────────────────────
 
 const FLOWMAP_SIZE = 128;
-const FALLOFF = 0.25; // stamp radius, uv units
-const DISSIPATION = 0.97; // per-frame trail fade (~0.5s relax at 60fps)
-const FLOW_STRENGTH = 0.12; // max uv displacement of the waves
-const VELOCITY_GAIN = 9; // pointer delta (uv/frame) -> stamp intensity
+const FALLOFF = 0.35; // stamp radius, uv units
+const DISSIPATION = 0.985; // per-frame trail fade (~1.5s relax at 60fps)
+const FLOW_STRENGTH = 0.18; // max uv displacement of the waves
+const VELOCITY_GAIN = 8; // pointer delta (uv/frame) -> stamp intensity
 const SPEED = 0.4; // mesh animation speed, matches previous hero
 
 const MESH_PARAMS = {
