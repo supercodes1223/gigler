@@ -18,7 +18,7 @@ export default function Home() {
           <SectionHeader
             eyebrow="See it work"
             title="Like texting a very capable friend."
-            subtitle="Watch Gigler take Friday dinner from “can you?” to confirmed — start to finish."
+            subtitle="Watch Gigler take Friday dinner from “can you?” to confirmed, start to finish."
           />
           <div className="mt-14">
             <IphoneDemo />

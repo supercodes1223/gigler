@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -49,26 +50,38 @@ export function WaitlistButton({
           {label}
         </Button>
       </DialogTrigger>
-      <DialogContent className="gap-5 rounded-3xl border-white/70 bg-white/85 p-6 shadow-2xl backdrop-blur-2xl sm:max-w-sm">
+      <DialogContent
+        showCloseButton={false}
+        className="gap-6 rounded-[1.75rem] border-white/70 bg-white/85 p-7 shadow-2xl backdrop-blur-2xl sm:max-w-sm"
+      >
+        <DialogClose asChild>
+          <button
+            type="button"
+            className="absolute top-5 right-5 flex size-8 items-center justify-center rounded-full bg-foreground/[0.05] text-foreground/55 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          >
+            <X className="size-4" aria-hidden />
+            <span className="sr-only">Close</span>
+          </button>
+        </DialogClose>
         {submitted ? (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-spring-mint">
               <CheckCheck className="size-6 text-foreground" aria-hidden />
             </span>
             <DialogTitle className="text-xl font-semibold tracking-tight">
               You&apos;re on the list.
             </DialogTitle>
-            <DialogDescription className="max-w-xs text-balance">
+            <DialogDescription className="max-w-xs text-balance leading-relaxed">
               We&apos;ll email you the moment your assistant is ready to meet you.
             </DialogDescription>
           </div>
         ) : (
           <>
-            <DialogHeader className="gap-1.5 pr-8">
-              <DialogTitle className="text-xl font-semibold tracking-tight">
+            <DialogHeader className="gap-2 pr-10">
+              <DialogTitle className="text-[22px] font-semibold tracking-tight">
                 Join the waitlist
               </DialogTitle>
-              <DialogDescription className="truncate">
+              <DialogDescription className="leading-relaxed">
                 One email when it&apos;s your turn. No spam.
               </DialogDescription>
             </DialogHeader>
@@ -82,10 +95,10 @@ export function WaitlistButton({
                 required
                 autoFocus
                 placeholder="you@example.com"
-                className="h-11 rounded-xl bg-white/70"
+                className="h-12 rounded-full border-foreground/10 bg-white px-5 placeholder:text-foreground/35 focus-visible:border-ring/60 focus-visible:ring-ring/15"
               />
-              <Button type="submit" size="lg" className="rounded-xl">
-                Join the waitlist
+              <Button type="submit" className="h-12 rounded-full text-base">
+                Save my spot
               </Button>
             </form>
           </>

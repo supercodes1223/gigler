@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { WaitlistButton } from "./WaitlistButton";
 
 export function FinalCta() {
@@ -22,10 +23,31 @@ export function FinalCta() {
   );
 }
 
+const footerLinks = [
+  { label: "Demo", href: "/#demo" },
+  { label: "Use cases", href: "/#use-cases" },
+  { label: "How it works", href: "/#how" },
+  { label: "Trust", href: "/#trust" },
+  { label: "Contact", href: "mailto:hey@gigler.com" },
+];
+
 export function MarketingFooter() {
   return (
     <footer className="hairline relative overflow-hidden border-t pt-12">
-      <span className="sr-only">© 2026 Gigler</span>
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4 px-6 pb-14 md:flex-row md:justify-between">
+        <p className="text-sm text-foreground/45">© 2026 Gigler</p>
+        <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-7 gap-y-2">
+          {footerLinks.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              className="text-sm text-foreground/55 transition-colors hover:text-foreground"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </div>
       {/* Giant wordmark. SVG textLength stretches the word to exactly fill
           95% of the page width; the shortened viewBox crops the bottom of
           the letterforms so the word folds under the page edge. */}

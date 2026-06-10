@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { SectionHeader } from "./SectionHeader";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
@@ -20,6 +21,15 @@ const CALL_CONTROLS = [
   { icon: EllipsisFill, label: "More", end: false },
   { icon: PhoneDownFill, label: "End", end: true },
   { icon: KeypadDotsFill, label: "Keypad", end: false },
+];
+
+// Overlapping logo cluster for the "plugged into your tools" tile.
+// Order matters: later entries stack on top, so Slack sits last.
+const TOOLS = [
+  { src: "/logos/gmail.svg", alt: "Gmail" },
+  { src: "/logos/google-calendar.svg", alt: "Google Calendar" },
+  { src: "/logos/notion.svg", alt: "Notion" },
+  { src: "/logos/slack.svg", alt: "Slack" },
 ];
 
 function MiniBubble({
@@ -61,39 +71,45 @@ export function UseCases() {
         <SectionHeader
           eyebrow="What it does"
           title="Things a chatbot can't do."
-          subtitle="It doesn't just suggest. It asks once, then books, sends, and follows through."
+          subtitle="Gigler doesn't just suggest. One okay from you, and it books, sends, and follows through."
         />
 
         {/* Bento grid: one large action-arc tile + two stacked tiles */}
         <div className="mt-14 grid gap-5 md:grid-cols-6 md:grid-rows-2">
           {/* Large tile: found it → asks → books it */}
           <article className="glass flex flex-col rounded-[2rem] p-7 md:col-span-4 md:row-span-2 md:p-9">
-            <div className="flex flex-1 flex-col justify-center gap-1.5 rounded-3xl bg-white/55 p-5 md:p-7">
+            <div className="flex flex-1 flex-col justify-center gap-2 rounded-3xl bg-white/55 p-5 md:p-7">
               <MiniBubble from="user" stamp="12:31 PM" size="md">
                 Find me a flight to NYC under $300 next Friday
               </MiniBubble>
               <MiniBubble from="gigler" stamp="12:33 PM" size="md">
-                Found you this one. Delta nonstop, LAX to JFK, $284. Takes off
-                9:30 AM Friday, lands 6:05 PM. Should I book it for you now?
+                Delta nonstop, LAX to JFK, $284. Leaves 9:30 AM, lands 6:05 PM.
+                Book it?
               </MiniBubble>
               <MiniBubble from="user" size="md">
-                Yes!
+                Yes! And a hotel near SoHo for Friday and Saturday
               </MiniBubble>
               <MiniBubble from="gigler" size="md">
-                Booked. I&apos;ll check you in and send your boarding pass on
-                Thursday. Want me to schedule an Uber to LAX for 6:30 AM, three
-                hours before takeoff?
+                Flight&apos;s booked. The Dominick in SoHo is $219 a night,
+                rated 4.7 stars. Grab both nights?
               </MiniBubble>
               <MiniBubble from="user" size="md">
-                Yes, perfect. Thank you!
+                Perfect, book it
               </MiniBubble>
               <MiniBubble from="gigler" size="md">
-                Done. The flight and your ride are on your calendar, and
-                I&apos;ll remind you the night before you fly.
+                Done. I&apos;ll send your boarding pass Thursday and call the
+                hotel to confirm a week out. Uber to LAX at 6:30 AM Friday?
+              </MiniBubble>
+              <MiniBubble from="user" size="md">
+                Yes, and let Maya know when I land
+              </MiniBubble>
+              <MiniBubble from="gigler" size="md">
+                Done. Uber&apos;s set, Maya gets your landing time, and the
+                whole trip is on your calendar. Have a great trip.
               </MiniBubble>
             </div>
             <h3 className="mt-6 text-xl font-semibold tracking-tight text-foreground md:text-2xl">
-              It doesn&apos;t just find it. It books it.
+              Doesn&apos;t just find it. Books it.
             </h3>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-foreground/65 md:text-base">
               A chatbot hands you links and wishes you luck. Gigler asks once,
@@ -117,16 +133,16 @@ export function UseCases() {
               </div>
             </div>
             <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
-              It thinks ahead
+              Gigler thinks ahead
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
-              It knows the dates that matter and shows up with the plan already
+              Gigler knows the dates that matter and shows up with the plan already
               made, approved with one text.
             </p>
           </article>
 
           {/* Tile: connects to your tools */}
-          <article className="glass flex flex-col rounded-3xl p-6 md:col-span-2">
+          <article className="glass @container flex flex-col rounded-3xl p-6 md:col-span-2">
             <div className="flex flex-1 flex-col justify-center rounded-2xl bg-white/55 p-4">
               <div className="flex flex-col gap-1.5">
                 <MiniBubble from="user">What&apos;s new in Slack?</MiniBubble>
@@ -137,9 +153,30 @@ export function UseCases() {
                 </MiniBubble>
               </div>
             </div>
-            <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
-              It&apos;s plugged into your tools
-            </h3>
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <h3 className="whitespace-nowrap text-lg font-semibold tracking-tight text-foreground">
+                Plugged into your tools
+              </h3>
+              {/* Hidden when the tile is too narrow to fit them beside the
+                  heading on one line; the heading never wraps */}
+              <div className="hidden shrink-0 -space-x-2 @[21rem]:flex">
+                {TOOLS.map((tool) => (
+                  <span
+                    key={tool.alt}
+                    className="flex size-8 items-center justify-center rounded-[10px] bg-white ring-1 ring-black/[0.06] shadow-sm"
+                    title={tool.alt}
+                  >
+                    <Image
+                      src={tool.src}
+                      alt={tool.alt}
+                      width={18}
+                      height={18}
+                      className="size-[18px]"
+                    />
+                  </span>
+                ))}
+              </div>
+            </div>
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
               Slack, your calendar, your inbox. Ask in plain English and it
               checks the right place, then answers. No tabs, no logins.
@@ -265,7 +302,7 @@ export function UseCases() {
               </div>
             </div>
             <h3 className="mt-5 text-lg font-semibold tracking-tight text-foreground">
-              It sends the emails too
+              Gigler sends emails too
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-foreground/65">
               Ask in a text and it writes the email, sends it, and follows up

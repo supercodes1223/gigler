@@ -19,13 +19,13 @@ export function SpeakerWave2Fill({ className }: IconProps) {
       />
       <path
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="2.2"
         strokeLinecap="round"
         d="M15.4 9.1a4.3 4.3 0 0 1 0 5.8"
       />
       <path
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="2.2"
         strokeLinecap="round"
         d="M18.3 6.5a8.3 8.3 0 0 1 0 11"
       />
@@ -56,21 +56,21 @@ export function MicSlashFill({ className }: IconProps) {
         <path
           d="M3.8 3.8 20.2 20.2"
           stroke="#000"
-          strokeWidth="4"
+          strokeWidth="4.4"
           strokeLinecap="round"
         />
       </mask>
       <g mask="url(#sf-mic-slash-cut)">
-        <rect x="9.2" y="2.2" width="5.6" height="11.6" rx="2.8" fill="currentColor" />
+        <rect x="9" y="2.2" width="6" height="11.8" rx="3" fill="currentColor" />
         <path
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2.1"
           strokeLinecap="round"
           d="M6 11.4a6 6 0 0 0 12 0"
         />
         <path
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2.1"
           strokeLinecap="round"
           d="M12 17.4v3.4"
         />
@@ -78,7 +78,7 @@ export function MicSlashFill({ className }: IconProps) {
       <path
         d="M4.5 4.5 19.5 19.5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2.1"
         strokeLinecap="round"
       />
     </svg>
@@ -88,9 +88,9 @@ export function MicSlashFill({ className }: IconProps) {
 export function EllipsisFill({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none">
-      <circle cx="5.6" cy="12" r="1.9" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.9" fill="currentColor" />
-      <circle cx="18.4" cy="12" r="1.9" fill="currentColor" />
+      <circle cx="5.5" cy="12" r="2.1" fill="currentColor" />
+      <circle cx="12" cy="12" r="2.1" fill="currentColor" />
+      <circle cx="18.5" cy="12" r="2.1" fill="currentColor" />
     </svg>
   );
 }
@@ -113,7 +113,7 @@ export function KeypadDotsFill({ className }: IconProps) {
     <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none">
       {rows.map((y) =>
         cols.map((x) => (
-          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.55" fill="currentColor" />
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.7" fill="currentColor" />
         ))
       )}
     </svg>
@@ -134,8 +134,11 @@ export function MessageFill({ className }: IconProps) {
 export function PhoneFill({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none">
+      {/* The handset glyph's bounding box is offset up-right in its 24×24
+          viewBox; translate recenters it on (12, 12) */}
       <path
         fill="currentColor"
+        transform="translate(-1 1.2)"
         d="M7.05 3.3c.74-.74 1.96-.65 2.6.18l1.66 2.16c.52.68.5 1.63-.05 2.28l-1.03 1.23c-.25.3-.3.73-.1 1.07a12.3 12.3 0 0 0 3.65 3.65c.34.2.77.15 1.07-.1l1.23-1.03c.65-.55 1.6-.57 2.28-.05l2.16 1.66c.83.64.92 1.86.18 2.6l-1 1c-.83.83-2.04 1.2-3.18.9C10.9 17.4 6.6 13.1 5.15 7.48c-.3-1.14.07-2.35.9-3.18l1-1Z"
       />
     </svg>

@@ -90,8 +90,9 @@ export function Iphone17Pro({
         xmlns="http://www.w3.org/2000/svg"
       >
         {/* Body, with the screen window masked out. The mask cutout is inset
-            0.5 units so the bezel overlaps the DOM screen edge by a hair and
-            no subpixel seam shows through. */}
+            1.5 units so the bezel overlaps the DOM screen edge — 0.5 wasn't
+            enough once compositor pixel-snapping shifted the screen layer,
+            letting the page background bleed through the seam. */}
         <g mask="url(#iphone17-screen-window)">
           <path
             fill="url(#iphone17-frame-metal)"
@@ -144,12 +145,12 @@ export function Iphone17Pro({
           >
             <rect width="200" height="400" fill="#ffffff" />
             <rect
-              x="14.58"
-              y="13.31"
-              width="170.98"
-              height="373.37"
-              rx="24.12"
-              ry="24.12"
+              x="15.58"
+              y="14.31"
+              width="168.98"
+              height="371.37"
+              rx="23.12"
+              ry="23.12"
               fill="#000000"
             />
           </mask>

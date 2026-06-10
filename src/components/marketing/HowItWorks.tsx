@@ -18,15 +18,15 @@ const CHANNELS = [
 
 const STEPS = [
   {
-    title: "Save the contact",
+    title: "Save Gigler",
     body: "Gigler is just a phone number. Save it like you'd save a friend.",
   },
   {
-    title: "Reach it any way you like",
+    title: "Reach Gigler any way you like",
     body: "Text it, call it, or forward it an email. Plain English, no commands, nothing to learn.",
   },
   {
-    title: "It gets it done",
+    title: "Gigler gets it done",
     body: "Real work, real results, and it checks with you before anything big.",
   },
 ];
@@ -90,7 +90,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Contact Photo & Poster row */}
-                  <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-white/50 py-2.5 pl-3 pr-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
+                  <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-white/50 py-2.5 pl-3 pr-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-[10px] font-semibold text-white">
                       G
                     </span>
@@ -101,7 +101,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Info rows — translucent grouped cells */}
-                  <div className="mt-4 overflow-hidden rounded-2xl bg-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
+                  <div className="mt-4 overflow-hidden rounded-xl bg-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
                     <div className="flex items-center justify-between px-4 py-2">
                       <div>
                         <p className="text-[12px] text-black/55">mobile</p>
@@ -119,7 +119,7 @@ export function HowItWorks() {
                   </div>
 
                   {/* Notes */}
-                  <div className="mt-4 rounded-2xl bg-white/50 px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
+                  <div className="mt-4 rounded-xl bg-white/50 px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.08)] backdrop-blur-md">
                     <p className="text-[12px] text-black/55">notes</p>
                     <p className="mt-0.5 text-[14px] leading-snug text-black/80">
                       Just text it like a person. No app, no commands, nothing to
@@ -140,9 +140,9 @@ export function HowItWorks() {
             {STEPS.map((step, i) => (
               <li
                 key={step.title}
-                className="glass flex items-start gap-5 rounded-3xl p-6 md:p-7"
+                className="glass flex items-center gap-6 rounded-3xl p-6 md:p-7"
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-lg font-semibold text-white shadow-[0_8px_20px_-8px_rgba(47,143,99,0.6)]">
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-foreground/[0.07] text-2xl font-semibold text-foreground/70 ring-1 ring-inset ring-foreground/[0.06] backdrop-blur-md">
                   {i + 1}
                 </span>
                 <div>

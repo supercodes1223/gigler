@@ -40,23 +40,20 @@ export function MeshHero() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />
 
       <div className="relative z-10 flex max-w-3xl flex-col items-center text-center">
-        <p className="rise-in mb-6 text-xs font-medium uppercase tracking-[0.28em] text-foreground/55">
-          Gigler — your personal assistant
-        </p>
         <h1
           className="rise-in text-balance text-5xl font-semibold leading-[1.04] tracking-tight text-foreground sm:text-6xl md:text-7xl"
           style={{ animationDelay: "90ms" }}
         >
-          Text it. Call it.
+          Ask Anything.
           <br />
-          Email it. Done.
+          Consider it done.
         </h1>
         <p
           className="rise-in mt-6 max-w-xl text-balance text-lg leading-relaxed text-foreground/70 md:text-xl"
           style={{ animationDelay: "180ms" }}
         >
-          Gigler texts, calls, and emails like a real person — it remembers
-          your life and actually gets things done. No app to download.
+          Gigler texts, calls, and emails like a real person. It remembers
+          your life and actually gets things done for you.
         </p>
         <div
           className="rise-in mt-9 flex flex-col items-center gap-3 sm:flex-row"
@@ -67,7 +64,7 @@ export function MeshHero() {
             asChild
             variant="ghost"
             size="lg"
-            className="h-12 rounded-full border border-transparent px-6 text-base text-foreground/85 transition-colors hover:border-foreground/12 hover:bg-white/40 hover:text-foreground"
+            className="h-12 rounded-full border border-transparent px-6 text-base text-foreground/85 transition-colors hover:border-foreground/6 hover:bg-white/40 hover:text-foreground"
           >
             <a href="#demo">
               See it in action

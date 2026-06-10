@@ -9,14 +9,15 @@ import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 type Step =
-  | { type: "stamp"; text: string; hold: number }
   | { type: "user" | "gigler"; text: string; hold: number }
   | { type: "typing"; hold: number }
   | { type: "map"; place: string; city: string; hold: number };
 
+// Rendered with the first message — iMessage never shows a timestamp alone.
+const TIMESTAMP = "Tuesday 2:14 PM";
+
 // One complete task arc: ask → Gigler works → done, with proof.
 const SCRIPT: Step[] = [
-  { type: "stamp", text: "Tuesday 2:14 PM", hold: 700 },
   {
     type: "user",
     text: "Can you get us a table for 4 somewhere good Friday at 7?",
@@ -108,7 +109,7 @@ export function IphoneDemo() {
           {/* Floating nav — iOS 26 liquid glass capsules over the content.
               Percentage top so it tracks the island (bottom at 5.62% of
               screen height) at every frame width, unlike a px offset. */}
-          <div className="absolute inset-x-0 top-[6.3%] z-20 flex items-start justify-between px-2.5">
+          <div className="absolute inset-x-0 top-[6.8%] z-20 flex items-start justify-between px-2.5">
             <div
               aria-hidden
               className="glass mt-0.5 flex size-8 items-center justify-center rounded-full"
@@ -140,16 +141,6 @@ export function IphoneDemo() {
           {/* Conversation — runs edge to edge, under the floating chrome */}
           <div className="absolute inset-0 flex flex-col justify-end gap-1.5 overflow-hidden px-3 pb-[58px] pt-[106px]">
             {visible.map((step, i) => {
-              if (step.type === "stamp") {
-                return (
-                  <p
-                    key={i}
-                    className="bubble-in py-1 text-center text-[10px] font-medium text-black/35"
-                  >
-                    {step.text}
-                  </p>
-                );
-              }
               if (step.type === "typing") {
                 return (
                   <div
@@ -201,6 +192,11 @@ export function IphoneDemo() {
               const hasTail = !next || next.type !== step.type;
               return (
                 <div key={i} className={cn("bubble-in flex flex-col", isUser && "items-end")}>
+                  {i === 0 && (
+                    <p className="self-center py-1 text-center text-[10px] font-medium text-black/35">
+                      {TIMESTAMP}
+                    </p>
+                  )}
                   <p
                     className={cn(
                       "w-fit max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
