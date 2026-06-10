@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Video } from "lucide-react";
+import { Apple, ChevronLeft, Video } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
 type Step =
   | { type: "stamp"; text: string; hold: number }
   | { type: "user" | "gigler"; text: string; hold: number }
-  | { type: "typing"; hold: number };
+  | { type: "typing"; hold: number }
+  | { type: "map"; place: string; city: string; hold: number };
 
 // One complete task arc: ask → Gigler works → done, with proof.
 const SCRIPT: Step[] = [
@@ -34,9 +35,10 @@ const SCRIPT: Step[] = [
   { type: "typing", hold: 1500 },
   {
     type: "gigler",
-    text: "Done ✓ Friday at 7:15 PM, party of 4. Confirmation's in your email — I'll remind you that afternoon.",
-    hold: 5200,
+    text: "Done — table for 4, Friday 7:15 PM. Confirmation's in your email, and here's the spot:",
+    hold: 1400,
   },
+  { type: "map", place: "Via Carota", city: "New York, NY", hold: 5200 },
 ];
 
 export function IphoneDemo() {
@@ -119,11 +121,44 @@ export function IphoneDemo() {
                 return (
                   <div
                     key={i}
-                    className="bubble-in flex w-fit items-center gap-1 rounded-3xl rounded-bl-md bg-[#e9e9eb] px-3.5 py-2.5"
+                    className="bubble-in flex w-fit items-center gap-1 rounded-[18px] rounded-bl-[5px] bg-[#e9e9eb] px-3.5 py-2.5"
                   >
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
+                  </div>
+                );
+              }
+              if (step.type === "map") {
+                return (
+                  <div key={i} className="bubble-in flex flex-col items-start">
+                    <div className="w-[210px] overflow-hidden rounded-[18px] rounded-bl-[5px] bg-[#e9e9eb]">
+                      {/* Faux Apple Maps tile */}
+                      <div className="relative h-28 overflow-hidden bg-[#eaf3ea]">
+                        {/* parkland */}
+                        <div className="absolute -left-2 top-3 h-16 w-24 rotate-[12deg] rounded-lg bg-[#cfe7cf]" />
+                        <div className="absolute bottom-2 right-1 h-12 w-16 -rotate-6 rounded-lg bg-[#cfe7cf]" />
+                        {/* roads */}
+                        <div className="absolute -left-4 top-10 h-2 w-[140%] -rotate-[18deg] bg-white" />
+                        <div className="absolute left-1/2 -top-4 h-[150%] w-2 rotate-[24deg] bg-white" />
+                        <div className="absolute -left-4 bottom-3 h-1.5 w-[140%] -rotate-[8deg] bg-white/80" />
+                        {/* location pin */}
+                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
+                          <div className="size-4 rounded-full border-2 border-white bg-[#ff3b30] shadow-md" />
+                        </div>
+                      </div>
+                      {/* footer */}
+                      <div className="bg-white px-3 py-2">
+                        <p className="text-[13px] font-semibold leading-tight text-black">
+                          {step.place}
+                        </p>
+                        <p className="text-[11px] text-black/45">{step.city}</p>
+                        <div className="mt-1 flex items-center gap-1 text-[11px] text-black/45">
+                          <Apple className="size-3 fill-current" aria-hidden />
+                          <span>Maps</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               }
@@ -132,10 +167,10 @@ export function IphoneDemo() {
                 <div key={i} className={cn("bubble-in flex flex-col", isUser && "items-end")}>
                   <p
                     className={cn(
-                      "max-w-[78%] rounded-3xl px-3.5 py-2 text-[13px] leading-snug",
+                      "max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
                       isUser
-                        ? "rounded-br-md bg-[#0a7cff] text-white"
-                        : "rounded-bl-md bg-[#e9e9eb] text-black"
+                        ? "rounded-br-[5px] bg-[#0a7cff] text-white"
+                        : "rounded-bl-[5px] bg-[#e9e9eb] text-black"
                     )}
                   >
                     {step.text}

@@ -49,7 +49,7 @@ export function WaitlistButton({
           {label}
         </Button>
       </DialogTrigger>
-      <DialogContent className="rounded-3xl border-white/70 bg-white/85 p-8 shadow-2xl backdrop-blur-2xl sm:max-w-md">
+      <DialogContent className="gap-5 rounded-3xl border-white/70 bg-white/85 p-6 shadow-2xl backdrop-blur-2xl sm:max-w-sm">
         {submitted ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-spring-mint">
@@ -64,7 +64,7 @@ export function WaitlistButton({
           </div>
         ) : (
           <>
-            <DialogHeader>
+            <DialogHeader className="gap-1.5 pr-8">
               <DialogTitle className="text-xl font-semibold tracking-tight">
                 Join the waitlist
               </DialogTitle>
@@ -72,7 +72,7 @@ export function WaitlistButton({
                 One email when it&apos;s your turn. No spam.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-3">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <Label htmlFor="waitlist-email" className="sr-only">
                 Email address
               </Label>
