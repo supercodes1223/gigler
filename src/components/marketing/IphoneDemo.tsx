@@ -13,16 +13,21 @@ import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
-// iOS status bar: time on the left of the Dynamic Island, radios on the
-// right. Icon sizes track real iOS proportions at this screen scale
-// (~0.66x of a 393pt device), vertically centered on the island.
+// iOS status bar. Real iOS centers the time in the left "ear" (screen edge
+// to island, 0-34.1% of screen width) and the radios in the right ear
+// (66-100%), with the row vertically centered on the Dynamic Island
+// (center ~3.5% of screen height -> 39px row). Absolutely positioned so it
+// can never participate in layout shifts. Icon sizes track real iOS
+// proportions at this screen scale (~0.66x of a 393pt device).
 function StatusBar() {
   return (
-    <div className="relative z-20 flex h-[38px] items-center justify-between px-6">
-      <span className="text-[12.5px] font-semibold tracking-[-0.01em] text-black">
-        2:14
-      </span>
-      <div className="flex items-center gap-[5px]">
+    <div className="absolute inset-x-0 top-0 z-20 flex h-[39px] items-center justify-between">
+      <div className="flex w-[34%] justify-center">
+        <span className="text-[12.5px] font-semibold tracking-[-0.01em] text-black">
+          2:14
+        </span>
+      </div>
+      <div className="flex w-[34%] items-center justify-center gap-[5px]">
         {/* Cellular bars */}
         <svg viewBox="0 0 17 11" className="h-[7.5px] w-auto" aria-hidden>
           <rect x="0" y="6.6" width="3.2" height="4.4" rx="1" fill="black" />
@@ -152,7 +157,7 @@ export function IphoneDemo() {
   return (
     <div ref={frameRef} className="relative mx-auto w-[300px] sm:w-[340px]">
       {/* Device frame */}
-      <Iphone17Pro className="w-full drop-shadow-[0_28px_55px_rgba(20,30,40,0.35)]">
+      <Iphone17Pro className="w-full">
         <div className="font-ios relative h-full bg-white">
           {/* iOS status bar (Dynamic Island renders above this, in the frame) */}
           <StatusBar />

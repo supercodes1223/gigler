@@ -41,10 +41,24 @@ export function Iphone17Pro({ children, className }: Iphone17ProProps) {
       style={{ aspectRatio: "200 / 400" }}
     >
       {/* Live screen content, masked to the screen window */}
-      {/* `isolate` contains the children's z-indexes so screen content can
-          never paint above the SVG hardware chrome */}
+      {/* Soft shadow underlay approximating the body silhouette. Kept as a
+          separate element (not a drop-shadow filter on the wrapper) so the
+          live screen content is never inside a filtered layer — filters force
+          subtree re-rasterization on every animation frame, which makes
+          fractionally-positioned content like the status bar jitter. */}
       <div
-        className="absolute isolate overflow-hidden bg-white"
+        aria-hidden
+        className="absolute shadow-[0_28px_55px_rgba(20,30,40,0.35)]"
+        style={{
+          inset: "1.8% 4.5%",
+          borderRadius: "16% / 7.7%",
+        }}
+      />
+      {/* `isolate` contains the children's z-indexes so screen content can
+          never paint above the SVG hardware chrome; `transform-gpu` pins the
+          screen on its own compositor layer for stable rasterization */}
+      <div
+        className="absolute isolate transform-gpu overflow-hidden bg-white"
         style={SCREEN_WINDOW}
       >
         {children}
