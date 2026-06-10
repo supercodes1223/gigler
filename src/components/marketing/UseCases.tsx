@@ -20,11 +20,11 @@ function MiniBubble({
       )}
       <p
         className={cn(
-          "w-fit max-w-[92%] leading-snug",
-          size === "sm" ? "rounded-2xl px-3 py-2 text-xs" : "rounded-3xl px-4 py-2.5 text-sm",
+          "w-fit max-w-[78%] leading-snug",
+          size === "sm" ? "rounded-[18px] px-3 py-2 text-xs" : "rounded-[20px] px-4 py-2.5 text-sm",
           isUser
-            ? "rounded-br-md bg-[#0a7cff] text-white"
-            : "rounded-bl-md bg-[#e9e9eb] text-black"
+            ? "bg-[#0a7cff] text-white"
+            : "bg-[#e9e9eb] text-black"
         )}
       >
         {children}
@@ -52,15 +52,15 @@ export function UseCases() {
                 Find me a flight to NYC under $300 next Friday
               </MiniBubble>
               <MiniBubble from="gigler" stamp="3:02 PM" size="md">
-                Found you this one — Delta nonstop, $284, lands 9:40 AM.
+                Found you this one. Delta nonstop, $284, lands 9:40 AM.
                 Should I book it for you now?
               </MiniBubble>
               <MiniBubble from="user" size="md">
                 Yes!
               </MiniBubble>
               <MiniBubble from="gigler" size="md">
-                Booked ✓ Confirmation and boarding pass are in your email.
-                I&apos;ll check you in Thursday.
+                Booked. I&apos;ll check you in and send you the boarding pass on
+                Thursday.
               </MiniBubble>
             </div>
             <h3 className="mt-6 text-xl font-semibold tracking-tight text-foreground md:text-2xl">
@@ -81,9 +81,9 @@ export function UseCases() {
                   Mom&apos;s birthday is Thursday. Want me to send the peonies
                   she liked? $45, arrives Wednesday.
                 </MiniBubble>
-                <MiniBubble from="user">yes 🙏</MiniBubble>
+                <MiniBubble from="user">yes please</MiniBubble>
                 <MiniBubble from="gigler">
-                  Ordered ✓ I&apos;ll text you when they&apos;re delivered.
+                  Ordered. I&apos;ll text you when they&apos;re delivered.
                 </MiniBubble>
               </div>
             </div>
@@ -102,15 +102,15 @@ export function UseCases() {
               <div className="flex flex-col gap-2">
                 <div className="rounded-2xl border border-black/8 bg-white px-3 py-2 shadow-sm">
                   <p className="text-[10px] font-medium text-black/40">
-                    Fwd: Your policy renewal — action required
+                    Fwd: Your policy renewal, action required
                   </p>
                   <p className="mt-0.5 truncate text-xs text-black/70">
-                    Dear customer, your coverage will change unless…
+                    Dear customer, your coverage will change unless...
                   </p>
                 </div>
                 <MiniBubble from="user">deal with this</MiniBubble>
                 <MiniBubble from="gigler">
-                  Handled — replied with your details and put the deadline on
+                  Handled. Replied with your details and put the deadline on
                   your calendar.
                 </MiniBubble>
               </div>

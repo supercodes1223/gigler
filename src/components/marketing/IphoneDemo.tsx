@@ -22,7 +22,7 @@ const SCRIPT: Step[] = [
   { type: "typing", hold: 1500 },
   {
     type: "gigler",
-    text: "On it. You loved Italian last month — checking a couple of spots near you.",
+    text: "On it. You loved Italian last month, checking a couple of spots near you.",
     hold: 1700,
   },
   { type: "typing", hold: 1500 },
@@ -31,11 +31,11 @@ const SCRIPT: Step[] = [
     text: "Via Carota has Friday, 7:15 for 4. Want it?",
     hold: 1400,
   },
-  { type: "user", text: "Yes — book it", hold: 1200 },
+  { type: "user", text: "Yes, book it", hold: 1200 },
   { type: "typing", hold: 1500 },
   {
     type: "gigler",
-    text: "Done — table for 4, Friday 7:15 PM. Confirmation's in your email, and here's the spot:",
+    text: "Done. Table for 4, Friday 7:15 PM. Confirmation's in your email, and here's the spot:",
     hold: 1400,
   },
   { type: "map", place: "Via Carota", city: "New York, NY", hold: 5200 },
@@ -121,7 +121,7 @@ export function IphoneDemo() {
                 return (
                   <div
                     key={i}
-                    className="bubble-in flex w-fit items-center gap-1 rounded-[18px] rounded-bl-[5px] bg-[#e9e9eb] px-3.5 py-2.5"
+                    className="bubble-in flex w-fit items-center gap-1 rounded-[18px] bg-[#e9e9eb] px-3.5 py-2.5"
                   >
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
@@ -132,7 +132,7 @@ export function IphoneDemo() {
               if (step.type === "map") {
                 return (
                   <div key={i} className="bubble-in flex flex-col items-start">
-                    <div className="w-[210px] overflow-hidden rounded-[18px] rounded-bl-[5px] bg-[#e9e9eb]">
+                    <div className="w-[210px] overflow-hidden rounded-[18px] bg-[#e9e9eb]">
                       {/* Faux Apple Maps tile */}
                       <div className="relative h-28 overflow-hidden bg-[#eaf3ea]">
                         {/* parkland */}
@@ -169,8 +169,8 @@ export function IphoneDemo() {
                     className={cn(
                       "max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
                       isUser
-                        ? "rounded-br-[5px] bg-[#0a7cff] text-white"
-                        : "rounded-bl-[5px] bg-[#e9e9eb] text-black"
+                        ? "bg-[#0a7cff] text-white"
+                        : "bg-[#e9e9eb] text-black"
                     )}
                   >
                     {step.text}
@@ -200,15 +200,15 @@ export function IphoneDemo() {
 
       {/* Floating glass annotations (desktop only) */}
       <div className="glass absolute -right-36 top-24 hidden w-44 rounded-2xl p-3 lg:block">
-        <p className="text-xs font-medium text-foreground">Reservation made ✓</p>
+        <p className="text-xs font-medium text-foreground">Reservation made</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          Real bookings, real confirmations — not just advice.
+          Real bookings, real confirmations. Not just advice.
         </p>
       </div>
       <div className="glass absolute -left-36 bottom-32 hidden w-44 rounded-2xl p-3 lg:block">
         <p className="text-xs font-medium text-foreground">It remembers</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          &ldquo;You loved Italian last month&rdquo; — no re-explaining.
+          &ldquo;You loved Italian last month.&rdquo; No re-explaining.
         </p>
       </div>
     </div>
