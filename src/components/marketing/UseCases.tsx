@@ -159,7 +159,7 @@ export function UseCases() {
               </h3>
               {/* Hidden when the tile is too narrow to fit them beside the
                   heading on one line; the heading never wraps */}
-              <div className="hidden shrink-0 -space-x-2 @[21rem]:flex">
+              <div className="hidden shrink-0 -space-x-2 @min-[19rem]:flex">
                 {TOOLS.map((tool) => (
                   <span
                     key={tool.alt}
