@@ -165,11 +165,13 @@ export function IphoneDemo() {
           {/* Top scrim: content fades out beneath the status/nav area */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[104px] bg-[linear-gradient(to_bottom,#fff_0px,#fff_40px,rgba(255,255,255,0.9)_68px,transparent_104px)]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[112px] bg-[linear-gradient(to_bottom,#fff_0px,#fff_40px,rgba(255,255,255,0.9)_72px,transparent_112px)]"
           />
 
-          {/* Floating nav — iOS 26 liquid glass capsules over the content */}
-          <div className="absolute inset-x-0 top-[34px] z-20 flex items-start justify-between px-2.5">
+          {/* Floating nav — iOS 26 liquid glass capsules over the content.
+              Percentage top so it tracks the island (bottom at 5.62% of
+              screen height) at every frame width, unlike a px offset. */}
+          <div className="absolute inset-x-0 top-[6.3%] z-20 flex items-start justify-between px-2.5">
             <div
               aria-hidden
               className="glass mt-0.5 flex size-8 items-center justify-center rounded-full"
@@ -197,7 +199,7 @@ export function IphoneDemo() {
           </div>
 
           {/* Conversation — runs edge to edge, under the floating chrome */}
-          <div className="absolute inset-0 flex flex-col justify-end gap-1.5 overflow-hidden px-3 pb-[58px] pt-[98px]">
+          <div className="absolute inset-0 flex flex-col justify-end gap-1.5 overflow-hidden px-3 pb-[58px] pt-[106px]">
             {visible.map((step, i) => {
               if (step.type === "stamp") {
                 return (
