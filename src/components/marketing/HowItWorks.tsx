@@ -20,14 +20,20 @@ const STEPS = [
   {
     title: "Save Gigler as a contact",
     body: "Gigler is a phone number, not another app. Add it to your contacts once and that's the whole setup.",
+    badge:
+      "bg-gradient-to-b from-[#e9f6ee] to-[#cfe9da] text-[#35795a] ring-[#35795a]/15",
   },
   {
     title: "Ask for what you need",
     body: "Text it, call it, or forward it an email. Plain English, like you'd ask a friend. No commands to learn.",
+    badge:
+      "bg-gradient-to-b from-[#e9f1fa] to-[#cfe1f3] text-[#3a6b9e] ring-[#3a6b9e]/15",
   },
   {
     title: "Gigler gets it done",
     body: "It books the table, sends the email, makes the call, then reports back. Anything big, it asks you first.",
+    badge:
+      "bg-gradient-to-b from-[#f1ecfa] to-[#ded2f1] text-[#69519e] ring-[#69519e]/15",
   },
 ];
 
@@ -142,7 +148,9 @@ export function HowItWorks() {
                 key={step.title}
                 className="glass flex items-center gap-6 rounded-3xl p-6 md:p-7"
               >
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-foreground/[0.07] text-2xl font-semibold text-foreground/70 ring-1 ring-inset ring-foreground/[0.06] backdrop-blur-md">
+                <span
+                  className={`flex size-14 shrink-0 items-center justify-center rounded-full text-2xl font-semibold ring-1 ring-inset ${step.badge}`}
+                >
                   {i + 1}
                 </span>
                 <div>
