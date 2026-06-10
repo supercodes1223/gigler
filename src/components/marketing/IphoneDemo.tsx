@@ -1,58 +1,64 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Apple, ChevronLeft, Video } from "lucide-react";
+import {
+  Apple,
+  ChevronLeft,
+  ChevronRight,
+  Mic,
+  Plus,
+  Video,
+} from "lucide-react";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
 
-// iOS status bar: time on the left of the Dynamic Island, radios on the right.
+// iOS status bar: time on the left of the Dynamic Island, radios on the
+// right. Icon sizes track real iOS proportions at this screen scale
+// (~0.66x of a 393pt device), vertically centered on the island.
 function StatusBar() {
   return (
-    <div className="flex h-[30px] shrink-0 items-center justify-between px-6 pt-1">
-      <span className="text-[11px] font-semibold tracking-tight text-black">
+    <div className="relative z-20 flex h-[38px] items-center justify-between px-6">
+      <span className="text-[12.5px] font-semibold tracking-[-0.01em] text-black">
         2:14
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-[5px]">
         {/* Cellular bars */}
-        <svg viewBox="0 0 16 11" className="h-[10px] w-auto" aria-hidden>
-          <rect x="0" y="7" width="2.6" height="4" rx="0.8" fill="black" />
-          <rect x="4.4" y="5" width="2.6" height="6" rx="0.8" fill="black" />
-          <rect x="8.8" y="2.5" width="2.6" height="8.5" rx="0.8" fill="black" />
-          <rect x="13.2" y="0" width="2.6" height="11" rx="0.8" fill="black" />
+        <svg viewBox="0 0 17 11" className="h-[7.5px] w-auto" aria-hidden>
+          <rect x="0" y="6.6" width="3.2" height="4.4" rx="1" fill="black" />
+          <rect x="4.6" y="4.4" width="3.2" height="6.6" rx="1" fill="black" />
+          <rect x="9.2" y="2.2" width="3.2" height="8.8" rx="1" fill="black" />
+          <rect x="13.8" y="0" width="3.2" height="11" rx="1" fill="black" />
         </svg>
         {/* Wi-Fi */}
-        <svg viewBox="0 0 16 11" className="h-[10px] w-auto" aria-hidden>
+        <svg viewBox="0 0 15 11" className="h-[7.5px] w-auto" aria-hidden>
           <path
-            d="M8 9.4 L5.6 7a3.4 3.4 0 0 1 4.8 0Z"
+            d="M1.2 4.1a8.9 8.9 0 0 1 12.6 0L12.1 5.8a6.5 6.5 0 0 0-9.2 0Z"
             fill="black"
           />
           <path
-            d="M3.7 5.1a6.1 6.1 0 0 1 8.6 0l-1.5 1.5a4 4 0 0 0-5.6 0Z"
+            d="M3.6 6.5a5.5 5.5 0 0 1 7.8 0L9.7 8.2a3.1 3.1 0 0 0-4.4 0Z"
             fill="black"
           />
-          <path
-            d="M1.3 2.7a9.5 9.5 0 0 1 13.4 0l-1.5 1.5a7.4 7.4 0 0 0-10.4 0Z"
-            fill="black"
-          />
+          <path d="M7.5 10.9 5.9 9.3a2.3 2.3 0 0 1 3.2 0Z" fill="black" />
         </svg>
         {/* Battery */}
-        <svg viewBox="0 0 25 12" className="h-[11px] w-auto" aria-hidden>
+        <svg viewBox="0 0 25 12" className="h-[8px] w-auto" aria-hidden>
           <rect
             x="0.5"
             y="0.5"
             width="21"
             height="11"
-            rx="3.2"
+            rx="3.5"
             stroke="black"
-            strokeOpacity="0.35"
+            strokeOpacity="0.4"
             fill="none"
           />
-          <rect x="2" y="2" width="15.5" height="8" rx="1.8" fill="black" />
+          <rect x="2" y="2" width="18" height="8" rx="2" fill="black" />
           <path
-            d="M23 4 a2.2 2.2 0 0 1 0 4 Z"
+            d="M22.8 3.9v4.2a2.1 2.1 0 0 0 0-4.2Z"
             fill="black"
-            fillOpacity="0.35"
+            fillOpacity="0.4"
           />
         </svg>
       </div>
@@ -141,26 +147,46 @@ export function IphoneDemo() {
     <div ref={frameRef} className="relative mx-auto w-[300px] sm:w-[340px]">
       {/* Device frame */}
       <Iphone17Pro className="w-full drop-shadow-[0_28px_55px_rgba(20,30,40,0.35)]">
-        <div className="flex h-full flex-col bg-white">
+        <div className="font-ios relative h-full bg-white">
           {/* iOS status bar (Dynamic Island renders above this, in the frame) */}
           <StatusBar />
 
-          {/* iMessage header */}
-          <div className="z-10 flex items-end justify-between border-b border-black/5 bg-white/90 px-4 pb-2 pt-1 backdrop-blur-md">
-            <ChevronLeft className="size-5 text-[#0a7cff]" aria-hidden />
+          {/* Top scrim: content fades out beneath the status/nav area */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[104px] bg-[linear-gradient(to_bottom,#fff_0px,#fff_40px,rgba(255,255,255,0.9)_68px,transparent_104px)]"
+          />
+
+          {/* Floating nav — iOS 26 liquid glass capsules over the content */}
+          <div className="absolute inset-x-0 top-[34px] z-20 flex items-start justify-between px-2.5">
+            <div
+              aria-hidden
+              className="glass mt-0.5 flex size-8 items-center justify-center rounded-full"
+            >
+              <ChevronLeft className="size-[18px] -translate-x-px text-[#0a7cff]" />
+            </div>
             <div className="flex flex-col items-center">
-              <span className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-spring-leaf to-spring-sky text-sm font-semibold text-white">
+              <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-spring-leaf to-spring-sky text-[13px] font-semibold text-white ring-1 ring-black/5">
                 G
               </span>
-              <span className="mt-0.5 text-[11px] font-medium text-foreground">
+              <span className="glass-strong mt-[5px] flex items-center rounded-full py-[3px] pl-2.5 pr-1.5 text-[11px] font-semibold text-foreground">
                 Gigler
+                <ChevronRight
+                  className="size-2.5 text-black/35"
+                  aria-hidden
+                />
               </span>
             </div>
-            <Video className="size-5 text-[#0a7cff]" aria-hidden />
+            <div
+              aria-hidden
+              className="glass mt-0.5 flex size-8 items-center justify-center rounded-full"
+            >
+              <Video className="size-4 text-[#0a7cff]" />
+            </div>
           </div>
 
-          {/* Conversation */}
-          <div className="flex flex-1 flex-col justify-end gap-1.5 overflow-hidden px-3 pb-3">
+          {/* Conversation — runs edge to edge, under the floating chrome */}
+          <div className="absolute inset-0 flex flex-col justify-end gap-1.5 overflow-hidden px-3 pb-[58px] pt-[98px]">
             {visible.map((step, i) => {
               if (step.type === "stamp") {
                 return (
@@ -176,7 +202,7 @@ export function IphoneDemo() {
                 return (
                   <div
                     key={i}
-                    className="bubble-in flex w-fit items-center gap-1 rounded-[18px] bg-[#e9e9eb] px-3.5 py-2.5"
+                    className="bubble-in bubble-tail-gigler flex w-fit items-center gap-1 rounded-[18px] bg-[#e9e9eb] px-3.5 py-2.5"
                   >
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
                     <span className="typing-dot size-1.5 rounded-full bg-black/40" />
@@ -218,6 +244,9 @@ export function IphoneDemo() {
                 );
               }
               const isUser = step.type === "user";
+              // iOS tails only the last bubble of a same-sender run
+              const next = visible[i + 1];
+              const hasTail = !next || next.type !== step.type;
               return (
                 <div key={i} className={cn("bubble-in flex flex-col", isUser && "items-end")}>
                   <p
@@ -225,7 +254,8 @@ export function IphoneDemo() {
                       "w-fit max-w-[78%] rounded-[18px] px-3.5 py-2 text-[13px] leading-snug",
                       isUser
                         ? "bg-[#0a7cff] text-white"
-                        : "bg-[#e9e9eb] text-black"
+                        : "bg-[#e9e9eb] text-black",
+                      hasTail && (isUser ? "bubble-tail-user" : "bubble-tail-gigler")
                     )}
                   >
                     {step.text}
@@ -240,16 +270,22 @@ export function IphoneDemo() {
             })}
           </div>
 
-          {/* Input bar */}
-          <div className="flex items-center gap-2 border-t border-black/5 bg-white px-3 pb-5 pt-2">
-            <div className="flex h-8 flex-1 items-center rounded-full border border-black/10 px-3 text-[12px] text-black/30">
-              iMessage
+          {/* Floating compose bar — liquid glass */}
+          <div className="absolute inset-x-0 bottom-[14px] z-20 flex items-center gap-1.5 px-2.5">
+            <div
+              aria-hidden
+              className="glass flex size-9 shrink-0 items-center justify-center rounded-full"
+            >
+              <Plus className="size-[18px] text-black/55" />
             </div>
-            <div className="h-1 w-0" />
+            <div className="glass flex h-9 flex-1 items-center justify-between rounded-full pl-4 pr-2.5">
+              <span className="text-[12px] text-black/35">iMessage</span>
+              <Mic className="size-4 text-black/35" aria-hidden />
+            </div>
           </div>
 
           {/* Home indicator */}
-          <div className="absolute bottom-1.5 left-1/2 h-1 w-28 -translate-x-1/2 rounded-full bg-black/80" />
+          <div className="absolute bottom-1.5 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-black/80" />
         </div>
       </Iphone17Pro>
 

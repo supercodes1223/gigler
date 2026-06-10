@@ -41,7 +41,12 @@ export function Iphone17Pro({ children, className }: Iphone17ProProps) {
       style={{ aspectRatio: "200 / 400" }}
     >
       {/* Live screen content, masked to the screen window */}
-      <div className="absolute overflow-hidden bg-white" style={SCREEN_WINDOW}>
+      {/* `isolate` contains the children's z-indexes so screen content can
+          never paint above the SVG hardware chrome */}
+      <div
+        className="absolute isolate overflow-hidden bg-white"
+        style={SCREEN_WINDOW}
+      >
         {children}
         {/* Seats the panel into the bezel */}
         <div

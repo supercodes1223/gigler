@@ -220,6 +220,60 @@ section {
   scroll-margin-top: 5rem;
 }
 
+/* Apple system font for content rendered "on the iPhone" — resolves to
+   SF Pro on Apple devices, falls back gracefully elsewhere */
+.font-ios {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+}
+
+/* iMessage bubble tails (samuelkraft technique): a colored blob behind the
+   bubble corner plus a background-colored cutout that carves the curve */
+.bubble-tail-user,
+.bubble-tail-gigler {
+  position: relative;
+}
+.bubble-tail-user::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -7px;
+  width: 14px;
+  height: 14px;
+  background: #0a7cff;
+  border-bottom-left-radius: 12px;
+}
+.bubble-tail-user::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -7px;
+  width: 7px;
+  height: 14px;
+  background: #fff;
+  border-bottom-left-radius: 8px;
+}
+.bubble-tail-gigler::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  background: #e9e9eb;
+  border-bottom-right-radius: 12px;
+}
+.bubble-tail-gigler::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -7px;
+  width: 7px;
+  height: 14px;
+  background: #fff;
+  border-bottom-right-radius: 8px;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
