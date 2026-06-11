@@ -1,24 +1,6 @@
 import { SectionHeader } from "./SectionHeader";
 import { Lock3D } from "./Lock3D";
-import { cn } from "@/lib/utils";
-
-const POINTS = [
-  {
-    title: "Gigler remembers you",
-    body: "Your preferences, your people, your plans. You never re-explain yourself.",
-    example: "“Corner table at Osteria, 7:30, your usual. Booked.”",
-  },
-  {
-    title: "Gigler asks first",
-    body: "Anything big, expensive, or irreversible gets your okay before it happens.",
-    example: "“Heads up, rebooking is $120. Want me to go ahead?”",
-  },
-  {
-    title: "Your data is yours",
-    body: "See everything it knows. Edit it. Or just say “forget that,” and it does.",
-    example: "“Done. I’ve forgotten your old address.”",
-  },
-];
+import { TrustThread } from "./TrustThread";
 
 export function Trust() {
   return (
@@ -81,36 +63,9 @@ export function Trust() {
           subtitle="Real-world actions need real trust. Gigler plays by three rules."
         />
 
-        {/* One unified glass bar, hairline-divided — quieter than a card grid
-            so the lock stays the focal point */}
-        <div className="glass mt-14 grid rounded-[2rem] md:grid-cols-3">
-          {POINTS.map((point, i) => (
-            <article
-              key={point.title}
-              className={cn(
-                "flex flex-col p-7",
-                i > 0 && "border-t border-foreground/[0.08] md:border-l md:border-t-0"
-              )}
-            >
-              <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                {point.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/65">
-                {point.body}
-              </p>
-              <div className="mt-auto pt-5">
-                <div className="flex items-start gap-2.5 rounded-2xl bg-white/55 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(20,30,40,0.06)]">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-[10px] font-semibold text-white">
-                    G
-                  </span>
-                  <p className="text-sm leading-snug text-foreground/70">
-                    {point.example}
-                  </p>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        {/* The three rules played out as one conversation — each rule chip
+            annotates the exchange that proves it (see TrustThread) */}
+        <TrustThread className="mt-14" />
       </div>
     </section>
   );
