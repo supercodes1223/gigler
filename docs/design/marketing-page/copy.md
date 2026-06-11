@@ -7,11 +7,14 @@
 
 ### H1 — DECIDED
 
-**"Text it. Call it. Email it. Done."**
+**"An assistant of your own."**
 
-(Chosen by Charles 2026-06-09. The channel trifecta with Apple cadence; the
-subhead carries the literal explanation. Voice channel is represented here and
-in the subhead — the use-case cards don't include a call scenario.)
+(Chosen by Charles 2026-06-10, replacing "Text it. Call it. Email it. Done."
+The ownership/relationship idea — warm, human, premium; implies the memory and
+loyalty of a real assistant rather than a shared tool. Charles rejected the
+staccato-tagline cadence as too sloganey, generic, and small. The subhead now
+carries all the action and channel work, including voice — the use-case cards
+don't include a call scenario.)
 
 ### Subheadline — DECIDED
 
