@@ -1,0 +1,17 @@
+{
+  "name": "gigler-judge-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orca Quality Loop judge as a standalone HTTP service for Google Cloud Run",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
