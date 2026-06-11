@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const MESSAGES = [
   { from: "gigler" as const, text: "Heads up, rebooking the flight is $120. Want me to go ahead?" },
   { from: "user" as const, text: "Go for it 👍" },
-  { from: "gigler" as const, text: "Done. New confirmation’s in your email." },
+  { from: "gigler" as const, text: "Done. Confirmation code: HJK4PQ." },
 ];
 
 const STAGGER_MS = 160;
