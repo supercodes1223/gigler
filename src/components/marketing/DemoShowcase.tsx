@@ -78,8 +78,12 @@ export function DemoShowcase() {
           </span>
         </h2>
 
-        {/* iOS page-indicator dots: lowkey, active one elongated */}
-        <div className="mt-8 flex items-center gap-2">
+        {/* iOS page-indicator dots: lowkey, active one elongated. Each
+            button is a padded hit area and the visible dot an inner span,
+            so the buttons tile edge-to-edge — sweeping across the row never
+            crosses a dead zone, which is what made the cursor flicker.
+            Negative margins keep the row's layout box at dot height. */}
+        <div className="-mx-1 mt-8 flex items-center">
           {SCENARIOS.map((s, i) => (
             <button
               key={s.id}
@@ -87,13 +91,17 @@ export function DemoShowcase() {
               aria-label={`Show the ${s.label} demo`}
               aria-current={i === active}
               onClick={() => setActive(i)}
-              className={cn(
-                "h-[7px] rounded-full transition-all duration-300 motion-reduce:transition-none",
-                i === active
-                  ? "w-5 bg-foreground/70"
-                  : "w-[7px] bg-foreground/20 hover:bg-foreground/40"
-              )}
-            />
+              className="group -my-2 px-1 py-2"
+            >
+              <span
+                className={cn(
+                  "block h-[7px] rounded-full transition-all duration-300 motion-reduce:transition-none",
+                  i === active
+                    ? "w-5 bg-foreground/70"
+                    : "w-[7px] bg-foreground/20 group-hover:bg-foreground/40"
+                )}
+              />
+            </button>
           ))}
         </div>
       </div>

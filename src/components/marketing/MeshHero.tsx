@@ -64,9 +64,22 @@ export function MeshHero() {
             asChild
             variant="ghost"
             size="lg"
-            className="h-12 rounded-full border border-transparent px-6 text-base text-foreground/85 transition-colors hover:border-foreground/6 hover:bg-white/40 hover:text-foreground"
+            className="group relative h-12 overflow-hidden rounded-full border border-transparent px-6 text-base text-foreground/85 transition-all duration-300 hover:border-foreground/6 hover:bg-white/35 hover:text-foreground hover:backdrop-blur-md"
           >
             <a href="#demo">
+              {/* Diffused spring-palette glow, frosted by the backdrop blur.
+                  pointer-events-none: it overhangs the button by 12px and an
+                  invisible hit target there flickers the cursor. Inline
+                  gradient: Tailwind v4 arbitrary gradient classes don't
+                  compile here (see memory). */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -inset-3 -z-10 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-70"
+                style={{
+                  background:
+                    "linear-gradient(110deg, #c9ecd9, #cfe5f7 35%, #e2dcf5 65%, #f7efd8)",
+                }}
+              />
               See it in action
               <ArrowDown className="size-4" aria-hidden />
             </a>

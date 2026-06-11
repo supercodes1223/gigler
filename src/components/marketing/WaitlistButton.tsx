@@ -57,7 +57,26 @@ export function WaitlistButton({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size={size} variant={variant} className={cn("rounded-full", className)}>
+        {/* hover:bg-primary overrides the variant's bg-primary/80 — the fill
+            stays solid; the hover signal is the sheen sweep instead. */}
+        <Button
+          size={size}
+          variant={variant}
+          className={cn("relative overflow-hidden rounded-full hover:bg-primary", className)}
+        >
+          {/* Sheen: a soft butter light band glides across once per hover.
+              The transition only exists while hovered, so on mouse-out the
+              band resets instantly instead of sweeping back through.
+              Inline gradient: Tailwind v4 arbitrary gradient classes don't
+              compile here (see memory). */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -translate-x-full duration-500 ease-out group-hover/button:translate-x-full group-hover/button:transition-transform"
+            style={{
+              background:
+                "linear-gradient(105deg, transparent 30%, rgba(247,239,216,0.28) 50%, transparent 70%)",
+            }}
+          />
           {label}
         </Button>
       </DialogTrigger>
