@@ -48,7 +48,12 @@ export interface QualityLogEntry {
   revised: boolean;
   vetoedActions: number;
   model: string;
+  /** Judge issues, persisted only when verdict is "revise" (max 3, 120 chars each). */
+  issues?: string[];
 }
+
+const PERSISTED_ISSUES_MAX = 3;
+const PERSISTED_ISSUE_MAX_CHARS = 120;
 
 export interface QualityLoopResult {
   finalText: string;
@@ -275,6 +280,13 @@ export async function runQualityLoop(
         revised,
         vetoedActions: review.vetoedActionIndexes.length,
         model: deps.judgeModel,
+        ...(review.verdict === "revise" && review.issues.length > 0
+          ? {
+              issues: review.issues
+                .slice(0, PERSISTED_ISSUES_MAX)
+                .map((i) => i.substring(0, PERSISTED_ISSUE_MAX_CHARS)),
+            }
+          : {}),
       },
     };
   } catch (err) {
@@ -294,4 +306,51 @@ export function appendQualityLog(existing: unknown, entry: QualityLogEntry): Qua
   const log = Array.isArray(existing) ? existing.slice() : [];
   log.push(entry);
   return log.slice(-QUALITY_LOG_MAX_ENTRIES) as QualityLogEntry[];
+}
+
+const MEMORY_ISSUES_MAX = 5;
+
+/**
+ * Learning-store injection (phase 2 "Inject" of docs/gigler-self-improvement.md):
+ * turns the qualityLog captured on past replies into a compact system-prompt
+ * fragment so the next gig message starts with the judge's accumulated feedback.
+ * Returns null when there is no usable (scored) history. Malformed entries are
+ * tolerated and skipped.
+ */
+export function buildQualityMemory(metadata: Record<string, unknown>): string | null {
+  const log = metadata?.qualityLog;
+  if (!Array.isArray(log)) return null;
+
+  const scored = log.filter((e): e is QualityLogEntry =>
+    !!e && typeof e === "object"
+    && typeof (e as QualityLogEntry).judgeScore === "number"
+    && Number.isFinite((e as QualityLogEntry).judgeScore)
+  );
+  if (scored.length === 0) return null;
+
+  const avg = scored.reduce((sum, e) => sum + (e.judgeScore as number), 0) / scored.length;
+  const revisedEntries = scored.filter((e) => e.revised === true);
+
+  // Most recent revision issues first, deduped, capped for prompt compactness.
+  const issues: string[] = [];
+  for (const entry of [...scored].reverse()) {
+    if (entry.verdict !== "revise" || !Array.isArray(entry.issues)) continue;
+    for (const issue of entry.issues) {
+      if (typeof issue !== "string" || !issue.trim()) continue;
+      const trimmed = issue.trim().substring(0, PERSISTED_ISSUE_MAX_CHARS);
+      if (!issues.includes(trimmed)) issues.push(trimmed);
+      if (issues.length >= MEMORY_ISSUES_MAX) break;
+    }
+    if (issues.length >= MEMORY_ISSUES_MAX) break;
+  }
+
+  const replyWord = scored.length === 1 ? "reply" : "replies";
+  let fragment = `Recent quality signals for this gig: avg judge score ${avg.toFixed(1)}/10 over last ${scored.length} ${replyWord}.`;
+  if (revisedEntries.length > 0) {
+    fragment += ` ${revisedEntries.length} of ${scored.length} ${replyWord} needed revision before sending.`;
+  }
+  if (issues.length > 0) {
+    fragment += ` Past replies were revised for: ${issues.join("; ")}. Avoid repeating these issues.`;
+  }
+  return fragment;
 }
