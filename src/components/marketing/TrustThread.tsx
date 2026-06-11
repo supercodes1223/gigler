@@ -55,8 +55,8 @@ export function TrustThread({ className }: TrustThreadProps) {
           className={cn(
             "w-fit max-w-[85%] rounded-[20px] px-5 py-3 text-base leading-snug",
             m.from === "user"
-              ? "bubble-tail-user self-end bg-[#0a7cff] text-white"
-              : "bubble-tail-gigler self-start bg-[#e9e9eb] text-black",
+              ? "bubble-tail-user bubble-tail-lg self-end bg-[#0a7cff] text-white"
+              : "bubble-tail-gigler bubble-tail-lg self-start bg-[#e9e9eb] text-black",
             !reducedMotion &&
               cn(
                 "transition-all duration-500 ease-out",
