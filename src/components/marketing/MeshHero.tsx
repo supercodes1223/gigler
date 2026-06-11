@@ -2,39 +2,28 @@
 
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FlowMesh } from "./FlowMesh";
+import { PlexusMesh } from "./PlexusMesh";
 import { WaitlistButton } from "./WaitlistButton";
-
-// 10 spots (the shader's max) instead of 5: wave edges appear where spots
-// crowd each other, so more spots = edges roll through far more often —
-// without changing the animation speed at all. Same palette, plus slightly
-// deeper variants of each pastel for depth.
-const MESH_COLORS = [
-  "#fdfdfb", // airy white keeps the canvas light
-  "#c9ecd9", // spring mint
-  "#cfe5f7", // spring sky
-  "#e2dcf5", // spring lilac
-  "#f7efd8", // spring butter
-  "#b3e3cb", // deeper mint
-  "#fbfcf9", // second white — keeps the canvas from getting too saturated
-  "#badbf4", // deeper sky
-  "#d4cbf0", // deeper lilac
-  "#f2e7c4", // deeper butter
-];
 
 export function MeshHero() {
   return (
-    <section className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
-      {/* Paper Shaders mesh, self-rendered with a cursor flowmap warp: the
-          waves bend locally where the cursor moves, then relax. All pointer
-          handling lives inside FlowMesh. Slight contrast/saturation lift
-          keeps the wave edges legible. */}
-      <div
-        className="absolute inset-0"
-        style={{ filter: "saturate(1.12) contrast(1.07)" }}
-      >
-        <FlowMesh colors={MESH_COLORS} className="block h-full w-full" />
+    <section className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-[#fdfdfb] px-6">
+      {/* Constellation mesh: drifting points + faint links that gather around
+          the cursor. All pointer handling lives inside PlexusMesh. */}
+      <div className="absolute inset-0">
+        <PlexusMesh className="block h-full w-full" />
       </div>
+
+      {/* Soft radial fade behind the headline keeps the text legible over the
+          mesh lines. Inline style: Tailwind v4 arbitrary radial-gradient
+          classes don't compile here (see memory). */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 55% 45% at 50% 48%, rgba(253,253,251,0.9) 0%, rgba(253,253,251,0.55) 55%, rgba(253,253,251,0) 100%)",
+        }}
+      />
 
       {/* Veil into the white page below */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />
