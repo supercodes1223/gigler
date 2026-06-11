@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gigler · Orca Orchestration with Production Quality Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #0b0d12; }
+  body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+  .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+
+  .stage {
+    position: relative; width: 1920px; height: 1080px;
+    background-color: #0b0d12;
+    background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: #e5e7eb; overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 34px 56px 26px;
+  }
+
+  /* ---------- header ---------- */
+  .head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .head .title { font-size: 31px; font-weight: 900; letter-spacing: -0.5px; color: #f3f4f6; }
+  .head .title .accent { color: #60a5fa; }
+  .head .title .qaccent { color: #c4b5fd; }
+  .head .sub { font-size: 13px; color: #8b97ab; margin-top: 5px; font-weight: 500; }
+  .head .right { text-align: right; }
+  .head .badge {
+    display: inline-block; border: 1.4px solid #2563eb; color: #9ec2ff; border-radius: 999px;
+    padding: 6px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.4px;
+    background: rgba(37,99,235,0.10);
+  }
+  .head .brand { font-size: 15px; font-weight: 900; letter-spacing: 2.5px; color: #2563eb; margin-top: 8px; }
+
+  /* ---------- bands ---------- */
+  .band { display: flex; flex-direction: column; }
+  .band-label { font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: #60a5fa; margin-bottom: 6px; }
+  .band-label .dim { color: #5b6779; font-weight: 600; letter-spacing: 0.4px; text-transform: none; }
+  .row { display: flex; gap: 12px; align-items: stretch; }
+
+  .node {
+    flex: 1; border-radius: 11px; background: #141925; border: 1.5px solid #232c3d;
+    padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; min-height: 72px;
+  }
+  .node .t1 { font-size: 13.5px; font-weight: 700; color: #f3f4f6; line-height: 1.2; }
+  .node .t2 { font-size: 10.5px; color: #8b97ab; line-height: 1.32; margin-top: 3px; }
+  .node .fn { font-size: 10px; color: #7fb0ff; margin-top: 3px; }
+  .node.blue { background: #101b30; border-color: #2563eb; }
+  .node.blue .t1 { color: #fff; }
+  .node.blue .t2 { color: #9ab4e0; }
+  .node.muted { background: rgba(20,25,37,0.45); border: 1.4px dashed #2c3548; }
+  .node.muted .t1 { color: #7e8aa0; }
+  .node.muted .t2 { color: #5b6779; }
+  .roadtag {
+    display: inline-block; font-size: 8.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    color: #8b97ab; border: 1px solid #39424f; border-radius: 5px; padding: 1px 6px; margin-bottom: 4px; align-self: flex-start;
+  }
+
+  .flow { text-align: center; color: #5b6b85; font-size: 15px; line-height: 1; margin: 9px 0; letter-spacing: 220px; padding-left: 220px; }
+  .flow.tight { letter-spacing: 0; padding-left: 0; }
+
+  /* ---------- orca container ---------- */
+  .orca-wrap {
+    border: 1.7px solid #2563eb; border-radius: 14px; background: #0e1525;
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+    padding: 10px 14px 12px; position: relative;
+  }
+  .orca-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .orca-head .name { font-size: 16px; font-weight: 900; letter-spacing: 1.2px; color: #fff; }
+  .orca-head .lam { font-size: 11px; color: #7fb0ff; }
+  .orca-head .model { margin-left: auto; font-size: 10.5px; font-weight: 700; color: #9ec2ff; background: rgba(37,99,235,0.16); border: 1px solid #2b3a55; border-radius: 6px; padding: 2.5px 10px; }
+  .orca-cells { display: flex; gap: 10px; }
+  .cell { flex: 1; border-radius: 9px; background: #141d31; border: 1px solid #243353; padding: 11px 12px; }
+  .cell .t1 { font-size: 12.5px; font-weight: 700; color: #e8edf6; line-height: 1.2; }
+  .cell .t2 { font-size: 10px; color: #8b9cc0; line-height: 1.3; margin-top: 2.5px; }
+
+  /* ---------- quality loop (hero) ---------- */
+  .ql-wrap {
+    border: 1.8px solid #7c5cff; border-radius: 14px;
+    background: linear-gradient(180deg, rgba(124,92,255,0.10), rgba(124,92,255,0.04));
+    box-shadow: 0 0 26px rgba(124,92,255,0.28), 0 0 0 4px rgba(124,92,255,0.10);
+    padding: 10px 14px 12px; position: relative;
+  }
+  .ql-head { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; }
+  .ql-head .newtag {
+    font-size: 10px; font-weight: 900; letter-spacing: 1.4px; text-transform: uppercase;
+    color: #0b0d12; background: #c4b5fd; border-radius: 6px; padding: 3px 10px;
+  }
+  .ql-head .name { font-size: 15px; font-weight: 900; letter-spacing: 0.8px; color: #e9e3ff; }
+  .ql-head .model { margin-left: auto; font-size: 10.5px; font-weight: 700; color: #cfc3ff; background: rgba(124,92,255,0.18); border: 1px solid #4c3d8f; border-radius: 6px; padding: 2.5px 10px; }
+  .ql-flow { display: flex; gap: 0; align-items: stretch; }
+  .qnode {
+    flex: 1; border-radius: 10px; background: #161329; border: 1.4px solid #3b3168;
+    padding: 9px 13px; display: flex; flex-direction: column; justify-content: center; min-height: 70px;
+  }
+  .qnode .t1 { font-size: 13px; font-weight: 800; color: #efeaff; line-height: 1.2; }
+  .qnode .t2 { font-size: 10px; color: #9b8fc4; line-height: 1.3; margin-top: 3px; }
+  .qnode.judge { background: #1d1640; border-color: #7c5cff; box-shadow: 0 0 14px rgba(124,92,255,0.35); flex: 1.25; }
+  .qnode.exec { background: #112418; border-color: #2f7d4f; }
+  .qnode.exec .t1 { color: #d9f5e3; }
+  .qnode.exec .t2 { color: #7fae90; }
+  .qarrow { display: flex; align-items: center; justify-content: center; width: 30px; color: #a78bfa; font-size: 16px; flex-shrink: 0; }
+  .verdicts { flex: 1.1; display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+  .verdict { display: flex; align-items: center; gap: 8px; border-radius: 7px; padding: 3.5px 10px; font-size: 10.5px; font-weight: 700; border: 1px solid; }
+  .verdict .vt { font-weight: 500; opacity: 0.85; }
+  .verdict.ok { color: #86efac; border-color: #1f4d31; background: rgba(34,94,55,0.18); }
+  .verdict.rev { color: #fcd34d; border-color: #5c4a1c; background: rgba(120,93,27,0.16); }
+  .verdict.veto { color: #fca5a5; border-color: #5c2424; background: rgba(127,42,42,0.16); }
+  .ql-learn { display: flex; align-items: center; gap: 10px; margin-top: 9px; font-size: 11px; color: #b3a6e3; }
+  .ql-learn .lt { font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; font-size: 9.5px; color: #8f7fd0; flex-shrink: 0; }
+  .lchip { border: 1px solid #4c3d8f; background: rgba(124,92,255,0.10); border-radius: 999px; padding: 3px 12px; font-weight: 600; color: #cfc3ff; font-size: 10.5px; white-space: nowrap; }
+  .larr { color: #8f7fd0; font-size: 13px; }
+
+  /* ---------- tools strip ---------- */
+  .tools { display: flex; gap: 9px; align-items: center; }
+  .tools .tl { font-size: 10.5px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #60a5fa; flex-shrink: 0; margin-right: 4px; }
+  .tool { flex: 1; text-align: center; border: 1px solid #2b3a55; background: #10203a; border-radius: 8px; padding: 9px 4px; font-size: 11px; font-weight: 600; color: #9ec2ff; }
+  .tool .ts { display: block; font-size: 8.5px; color: #5f7fc0; font-weight: 500; margin-top: 1.5px; }
+
+  /* ---------- bottom strips ---------- */
+  .bottom { display: flex; gap: 14px; margin-top: 16px; }
+  .strip { border-radius: 11px; border: 1.4px solid #232c3d; background: rgba(20,25,37,0.6); padding: 10px 14px 11px; }
+  .strip .sl { font-size: 9.5px; font-weight: 800; letter-spacing: 1.3px; text-transform: uppercase; margin-bottom: 6px; }
+  .strip.models { flex: 1.15; }
+  .strip.models .sl { color: #60a5fa; }
+  .strip.road { flex: 1; border-style: dashed; border-color: #2c3548; background: rgba(20,25,37,0.3); }
+  .strip.road .sl { color: #6b7787; }
+  .chips { display: flex; gap: 8px; }
+  .chip { flex: 1; border-radius: 7px; padding: 7px 8px; font-size: 10.5px; font-weight: 700; text-align: center; border: 1px solid #2b3a55; background: #121c2e; color: #cfe2ff; }
+  .chip .cs { display: block; font-size: 8.5px; font-weight: 500; color: #7e93b3; margin-top: 1px; }
+  .chip.dim { border-style: dashed; border-color: #2c3548; background: transparent; color: #7e8aa0; }
+  .chip.dim .cs { color: #525d6e; }
+
+  /* ---------- state chips ---------- */
+  .state-row { display: flex; gap: 10px; align-items: stretch; }
+  .state-main { flex: 1.35; }
+  .schips { display: flex; gap: 7px; flex: 4; }
+  .schip { flex: 1; border-radius: 9px; border: 1px solid #232c3d; background: #11161f; padding: 9px 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .schip .n { font-size: 11.5px; font-weight: 700; color: #dbe3ee; }
+  .schip .d { font-size: 8.5px; color: #6b7787; margin-top: 2px; line-height: 1.25; }
+  .schip.hl { border-color: #4c3d8f; background: #151229; }
+  .schip.hl .n { color: #cfc3ff; }
+  .schip.hl .d { color: #8f7fd0; }
+
+  .foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 8px; }
+  .foot .l { font-size: 11.5px; font-weight: 800; letter-spacing: 2px; color: #cdd5e1; }
+  .foot .l span { color: #60a5fa; }
+  .foot .r { font-size: 10px; color: #6b7787; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- HEADER -->
+  <div class="head">
+    <div>
+      <div class="title">Gigler · <span class="accent">Orca Orchestration</span> with <span class="qaccent">Production Quality Loop</span></div>
+      <div class="sub">Text or email a gig → Gemini-powered agents complete it → results delivered at gigler.ai short links</div>
+    </div>
+    <div class="right">
+      <div class="badge">Google for Startups AI Agents Challenge · Track 2: Optimize</div>
+      <div class="brand">GIGLER</div>
+    </div>
+  </div>
+
+  <!-- 1 · CHANNELS -->
+  <div class="band">
+    <div class="band-label">1 · Channels <span class="dim">— identity is the sender</span></div>
+    <div class="row">
+      <div class="node"><div class="t1">📱 SMS / MMS</div><div class="t2">Twilio webhook</div><div class="fn mono">gigler-inbound-sms</div></div>
+      <div class="node"><div class="t1">📧 Email</div><div class="t2">SES inbound</div><div class="fn mono">gigler-email-handler</div></div>
+      <div class="node"><div class="t1">🌐 Web — gigler.ai</div><div class="t2">Next.js on Amplify Hosting</div><div class="fn">dashboard · deliverable viewer</div></div>
+      <div class="node muted"><span class="roadtag">Roadmap</span><div class="t1">📞 Voice</div><div class="t2">Gemini Live · realtime speech</div></div>
+    </div>
+  </div>
+
+  <div class="flow">▼</div>
+
+  <!-- 2 · ORCA -->
+  <div class="band">
+    <div class="band-label">2 · Orca orchestration <span class="dim">— one reasoning core per gig</span></div>
+    <div class="orca-wrap">
+      <div class="orca-head">
+        <span class="name">ORCA</span>
+        <span class="lam mono">gigler-gig-processor (Lambda)</span>
+        <span class="model">Gemini 3.1 Pro</span>
+      </div>
+      <div class="orca-cells">
+        <div class="cell"><div class="t1">Intent &amp; gig routing</div><div class="t2">classifies every inbound message → gig type &amp; next action</div></div>
+        <div class="cell"><div class="t1">System prompt assembly</div><div class="t2">per gig type · gig state + learning log injected in-context</div></div>
+        <div class="cell"><div class="t1">Native function calling</div><div class="t2">Gemini tool use + Google Search grounding for live facts</div></div>
+        <div class="cell"><div class="t1">Gemini Vision</div><div class="t2">inbound images → structured data (e.g. bill extraction)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow tight" style="color:#8f7fd0;">▼ &nbsp;draft reply + proposed actions&nbsp; ▼</div>
+
+  <!-- 3 · QUALITY LOOP -->
+  <div class="band">
+    <div class="ql-wrap">
+      <div class="ql-head">
+        <span class="newtag">New · Track 2 Optimize</span>
+        <span class="name">Quality Loop — every draft is judged before it ships</span>
+        <span class="model">Judge · Gemini 2.5 Flash</span>
+      </div>
+      <div class="ql-flow">
+        <div class="qnode"><div class="t1">Draft</div><div class="t2">Orca's reply + proposed tool actions</div></div>
+        <div class="qarrow">→</div>
+        <div class="qnode judge"><div class="t1">⚖️ Judge agent</div><div class="t2">scores 0–10 · revises weak replies · vetoes unsafe actions before execution</div></div>
+        <div class="qarrow">→</div>
+        <div class="verdicts">
+          <div class="verdict ok">✓ Approve <span class="vt">— ship as-is</span></div>
+          <div class="verdict rev">✎ Revise <span class="vt">— judge rewrites the reply</span></div>
+          <div class="verdict veto">✕ Veto <span class="vt">— unsafe action blocked</span></div>
+        </div>
+        <div class="qarrow">→</div>
+        <div class="qnode exec"><div class="t1">Execute &amp; send</div><div class="t2">approved actions run · reply delivered to user</div></div>
+      </div>
+      <div class="ql-learn">
+        <span class="lt">In-context learning · no retraining</span>
+        <span class="lchip">signals: score · verdict · revision</span>
+        <span class="larr">→</span>
+        <span class="lchip">learning log on Gig record (DynamoDB)</span>
+        <span class="larr">→</span>
+        <span class="lchip">injected into the next gig's system prompt</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow tight" style="color:#4a566b;">▼ &nbsp;approved actions dispatch to tools&nbsp; ▼</div>
+
+  <!-- 4 · TOOLS -->
+  <div class="band">
+    <div class="tools">
+      <span class="tl">3 · Tools (8)</span>
+      <div class="tool">add_participant<span class="ts">group gigs</span></div>
+      <div class="tool">set_reminder<span class="ts">smart nudges</span></div>
+      <div class="tool">generate_image<span class="ts">Imagen 3</span></div>
+      <div class="tool">create_deliverable<span class="ts">PDF · site · gallery</span></div>
+      <div class="tool">book_reservation<span class="ts">dining flow</span></div>
+      <div class="tool">create_github_repo<span class="ts">code gigs</span></div>
+      <div class="tool">create_collage<span class="ts">multi-image</span></div>
+      <div class="tool">update_bill_status<span class="ts">bills dashboard</span></div>
+    </div>
+  </div>
+
+  <div class="flow">▼</div>
+
+  <!-- 5 · EXECUTION & DELIVERY -->
+  <div class="band">
+    <div class="band-label">4 · Execution &amp; delivery</div>
+    <div class="row">
+      <div class="node blue" style="flex:1.25;"><div class="t1">📦 Deliverable generator</div><div class="t2">PDFs · bills dashboards · galleries · sites → S3 → <span class="mono" style="color:#9ec2ff;">gigler.ai/{shortCode}</span> OTP-gated viewer</div><div class="fn mono">gigler-deliverable-generator</div></div>
+      <div class="node"><div class="t1">🖼️ Media processor</div><div class="t2">MMS → S3 · Imagen 3 generation · Vision extraction</div><div class="fn mono">gigler-media-processor</div></div>
+      <div class="node"><div class="t1">⏰ Reminder scheduler</div><div class="t2">EventBridge 5-min cron · Gemini-written smart nudges</div><div class="fn mono">gigler-reminder-scheduler</div></div>
+      <div class="node"><div class="t1">👥 Group threads</div><div class="t2">Twilio Conversations · multi-participant gigs</div></div>
+      <div class="node"><div class="t1">🐙 GitHub</div><div class="t2">repo creation for code deliverables</div></div>
+    </div>
+  </div>
+
+  <div class="flow">▼</div>
+
+  <!-- 6 · STATE -->
+  <div class="band">
+    <div class="band-label">5 · State <span class="dim">— DynamoDB via Amplify Data</span></div>
+    <div class="state-row">
+      <div class="node state-main"><div class="t1">🗄️ DynamoDB</div><div class="t2">Amplify Gen 2 Data · single source of truth for every gig</div></div>
+      <div class="schips">
+        <div class="schip"><span class="n">User</span><span class="d">identity · phone · email</span></div>
+        <div class="schip hl"><span class="n">Gig</span><span class="d">+ metadata learning log</span></div>
+        <div class="schip"><span class="n">GigParticipant</span><span class="d">group members</span></div>
+        <div class="schip"><span class="n">Message</span><span class="d">full conversation</span></div>
+        <div class="schip"><span class="n">Media</span><span class="d">S3 pointers</span></div>
+        <div class="schip"><span class="n">Deliverable</span><span class="d">shortCode → S3</span></div>
+        <div class="schip"><span class="n">Reminder</span><span class="d">scheduled nudges</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODELS + ROADMAP -->
+  <div class="bottom">
+    <div class="strip models">
+      <div class="sl">Google AI models</div>
+      <div class="chips">
+        <div class="chip">Gemini 3.1 Pro<span class="cs">orchestrator · reasoning</span></div>
+        <div class="chip">Gemini 2.5 Flash<span class="cs">judge · nudges · classification</span></div>
+        <div class="chip">Imagen 3<span class="cs">image generation</span></div>
+        <div class="chip">Google Search grounding<span class="cs">live facts in tool calls</span></div>
+      </div>
+    </div>
+    <div class="strip road">
+      <div class="sl">Roadmap — not yet shipped</div>
+      <div class="chips">
+        <div class="chip dim">Voice via Gemini Live<span class="cs">speech-to-speech gigs</span></div>
+        <div class="chip dim">Email-native agent identities<span class="cs">per-gig addresses · Agents SDK</span></div>
+        <div class="chip dim">Real third-party bookings<span class="cs">OpenTable · Resy</span></div>
+        <div class="chip dim">Restaurant marketing edge nodes<span class="cs">local agent presence</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="l">GIGLER <span>ORCA</span> · PRODUCTION ARCHITECTURE</div>
+    <div class="r">gigler.ai · Google for Startups AI Agents Challenge · Track 2: Optimize Existing Agents · June 2026</div>
+  </div>
+
+</div>
+</body>
+</html>

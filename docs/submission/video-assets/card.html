@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Gigler card</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 800px at 30% 20%, #16331f 0%, #0a1410 45%, #060a08 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card { text-align: center; max-width: 1300px; padding: 0 60px; }
+  .logo {
+    width: 96px; height: 96px; border-radius: 26px; margin: 0 auto 44px;
+    background: linear-gradient(135deg, #34d27b, #1f9d57);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 52px; color: #04130a;
+    box-shadow: 0 30px 80px rgba(52,210,123,0.25);
+  }
+  .kicker {
+    font-size: 22px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: #5ee49a; margin-bottom: 28px; font-weight: 600;
+  }
+  h1 { font-size: 92px; line-height: 1.05; font-weight: 750; letter-spacing: -0.025em; color: #fff; }
+  .sub { margin-top: 34px; font-size: 34px; line-height: 1.4; color: rgba(255,255,255,0.7); }
+  .footer { margin-top: 70px; font-size: 24px; color: rgba(255,255,255,0.45); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">G</div>
+    <div class="kicker" id="kicker"></div>
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+    <div class="footer" id="footer"></div>
+  </div>
+<script>
+  const p = new URLSearchParams(location.search);
+  const cards = {
+    title: {
+      kicker: "Google for Startups AI Agents Challenge · Track 2: Optimize",
+      title: "Gigler Orca",
+      sub: "AI gig orchestration for completed work — over the channels people already use.",
+      footer: "gigler.ai",
+    },
+    problem: {
+      kicker: "The problem",
+      title: "People don't want to operate AI tools.",
+      sub: "They want outcomes. Pick a model, craft a prompt, manage the thread, export the result — that's a job. Most people just want the work done.",
+      footer: "",
+    },
+    quality: {
+      kicker: "Track 2 · Optimize",
+      title: "A quality loop in front of every action.",
+      sub: "Every draft reply and proposed action passes a Gemini judge: score it, revise it, or veto it — before anything executes. Outcomes feed a learning store injected into the next gig.",
+      footer: "",
+    },
+    close: {
+      kicker: "Gigler · built on Gemini",
+      title: "Text it. It gets done.",
+      sub: "Gemini 3.1 Pro orchestration · Gemini 2.5 Flash judge · Imagen 3 · Vision · Search grounding — live at gigler.ai",
+      footer: "Google for Startups AI Agents Challenge 2026",
+    },
+  };
+  const c = cards[p.get("card") || "title"];
+  document.getElementById("kicker").textContent = c.kicker;
+  document.getElementById("title").textContent = c.title;
+  document.getElementById("sub").textContent = c.sub;
+  document.getElementById("footer").textContent = c.footer;
+</script>
+</body>
+</html>
