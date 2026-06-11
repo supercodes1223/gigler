@@ -53,10 +53,10 @@ export function TrustThread({ className }: TrustThreadProps) {
         <p
           key={i}
           className={cn(
-            "w-fit max-w-[85%] rounded-[22px] px-5 py-3 text-base leading-snug",
+            "w-fit max-w-[85%] rounded-[20px] px-5 py-3 text-base leading-snug",
             m.from === "user"
-              ? "self-end rounded-br-[6px] bg-[#0a7cff] text-white"
-              : "self-start rounded-bl-[6px] bg-[#e9e9eb] text-black",
+              ? "bubble-tail-user self-end bg-[#0a7cff] text-white"
+              : "bubble-tail-gigler self-start bg-[#e9e9eb] text-black",
             !reducedMotion &&
               cn(
                 "transition-all duration-500 ease-out",
