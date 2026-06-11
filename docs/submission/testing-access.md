@@ -12,10 +12,11 @@
 
 Every gig produces real, hosted artifacts at short links of the form `gigler.ai/{shortCode}`.
 
-Sample deliverable for judges: **https://gigler.ai/{{SAMPLE_SHORTCODE}}**
+Sample deliverable for judges: **https://gigler.ai/n4trpk**
 
-- Deliverable links are **OTP-gated** (a one-time code is texted to gig participants) to protect user data.
-- For judging we have prepared an open sample: `{{SAMPLE_SHORTCODE}}` is an event invite site generated end-to-end by the agent from a single SMS request (the same gig shown in the demo video). Access note: `{{SAMPLE_OTP_OR_NOTE_IF_UNGATED}}`.
+- This is the event invite site generated end-to-end by the agent from a single SMS request — the exact gig shown in the demo video.
+- Deliverable links are **OTP-gated by design**: deliverables are private to gig participants, so the page asks for the phone number used with Gigler and texts a one-time code. That gate is itself part of the product (and every OTP reply passes the same Quality Loop).
+- To experience a deliverable end-to-end, run the 3-minute SMS flow below — Gigler will text you your **own** link and the OTP gate will verify your number. The full contents of the sample site are also shown in the demo video.
 
 ## 3. Try the agent over SMS
 
@@ -67,6 +68,6 @@ If you'd like a provisioned test account (pre-created gig with sample data, dash
 | Placeholder | What it is | Owner |
 |---|---|---|
 | `{{GIGLER_PHONE_NUMBER}}` | Public Twilio number for the agent | USER |
-| `{{SAMPLE_SHORTCODE}}` | Short code of the judge-facing sample deliverable (create a fresh bills-split gig for this) | USER + AGENT |
-| `{{SAMPLE_OTP_OR_NOTE_IF_UNGATED}}` | OTP for the sample, or note that the sample is ungated for judging | USER |
 | `{{CONTACT_EMAIL}}` | Email judges can use to request access | USER |
+
+(Sample deliverable + access note: filled — `n4trpk`, OTP-by-design explanation above.)

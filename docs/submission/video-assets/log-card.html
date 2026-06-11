@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Judge verdict log</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 800px at 30% 20%, #16331f 0%, #0a1410 45%, #060a08 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 56px;
+  }
+  .caption { text-align: center; color: #fff; max-width: 1200px; }
+  .caption .kicker {
+    font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #5ee49a; margin-bottom: 18px; font-weight: 600;
+  }
+  .caption h1 { font-size: 56px; font-weight: 700; letter-spacing: -0.02em; }
+  .caption p { margin-top: 18px; font-size: 26px; color: rgba(255,255,255,0.68); }
+  .terminal {
+    width: 1480px; border-radius: 18px; overflow: hidden;
+    background: #0d1117; border: 1px solid #2a3038;
+    box-shadow: 0 50px 110px rgba(0,0,0,0.65), 0 0 80px rgba(94,228,154,0.08);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .term-bar {
+    height: 46px; background: #161b22; display: flex; align-items: center;
+    padding: 0 20px; gap: 8px; border-bottom: 1px solid #21262d;
+  }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .term-bar .title { margin-left: 14px; color: #8b949e; font-size: 15px; }
+  .term-body { padding: 30px 34px; font-size: 19.5px; line-height: 1.75; }
+  .ln { display: block; white-space: pre-wrap; word-break: break-all; color: #c9d1d9; }
+  .dim { color: #8b949e; }
+  .green { color: #5ee49a; font-weight: 600; }
+  .blue { color: #79c0ff; }
+  .hl {
+    background: rgba(94,228,154,0.12); border: 1px solid rgba(94,228,154,0.4);
+    border-radius: 8px; padding: 6px 10px; margin: 8px -10px; display: block;
+  }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="kicker">Production · CloudWatch · gigler-gig-processor</div>
+    <h1>The judge runs on every message. In production.</h1>
+    <p>Verbatim log from the live demo gig — June 10, 2026</p>
+  </div>
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="dot" style="background:#ff5f57"></div>
+      <div class="dot" style="background:#febc2e"></div>
+      <div class="dot" style="background:#28c840"></div>
+      <div class="title">aws logs filter-log-events — /aws/lambda/gigler-gig-processor</div>
+    </div>
+    <div class="term-body">
+      <span class="ln dim">$ aws logs filter-log-events --filter-pattern "QualityLoop" \</span>
+      <span class="ln dim">    --log-group-name /aws/lambda/gigler-gig-processor</span>
+      <span class="ln">&nbsp;</span>
+      <span class="ln"><span class="dim">2026-06-11T04:25:07.318Z  7b7b4f5f-8416-4e2d-8ddc-e6eb3083550b  INFO</span></span>
+      <span class="ln hl"><span class="blue">[QualityLoop]</span> Judge <span class="green">verdict=approve score=9</span> revised=false vetoed=0 model=gemini-2.5-flash</span>
+      <span class="ln">&nbsp;</span>
+      <span class="ln dim"># Every draft reply + proposed action is judged BEFORE execution.</span>
+      <span class="ln dim"># Weak replies get rewritten. Unsafe actions get vetoed. Outcomes feed the learning store.</span>
+    </div>
+  </div>
+</body>
+</html>

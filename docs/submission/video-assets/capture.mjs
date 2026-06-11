@@ -63,6 +63,17 @@ if (task === "stage") {
     }
     console.log("recorded scroll of", a);
   }, b);
+} else if (task === "mobile") {
+  // Full-page mobile screenshot (430px wide) for tall pan shots
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 930 }, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto(toUrl(a), { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: b, fullPage: true });
+  console.log("wrote", b);
+  await ctx.close();
+  await browser.close();
 } else if (task === "page") {
   await withPage(async (page) => {
     await page.goto(toUrl(a), { waitUntil: "networkidle" });
