@@ -284,7 +284,7 @@ export const GIGLER_FUNCTION_DECLARATIONS = [
   },
   {
     name: "create_deliverable",
-    description: "Create a deliverable file (PDF document, website, menu, or code project). For websites, content should be complete HTML/CSS/JS. For PDFs, content is the document body text.",
+    description: "Create a deliverable file (PDF document, website, menu, or code project). For websites, content should be a complete, self-contained HTML document (inline CSS/JS, mobile-responsive, no fixed pixel widths on layout containers). Every button or call-to-action MUST work: for RSVP/contact buttons use an sms: link with the literal placeholder {{OWNER_PHONE}} (e.g. <a href=\"sms:{{OWNER_PHONE}}?&body=RSVP%20yes!\">RSVP</a>) — it is replaced with the host's real number automatically. Never render a button with no action. For PDFs, content is the document body text.",
     parameters: {
       type: "OBJECT",
       properties: {

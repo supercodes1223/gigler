@@ -194,6 +194,17 @@ async function generatePdfContent(title: string, content: string): Promise<Buffe
 }
 
 function generateHtmlPage(title: string, content: string): string {
+  // The agent often produces a complete HTML document (sites, menus).
+  // Serve those as-is — wrapping a full document inside another page
+  // breaks layout (nested <html>, pre-line whitespace gaps).
+  if (/<!DOCTYPE|<html[\s>]/i.test(content)) {
+    return content;
+  }
+
+  // Content with markup gets embedded without pre-line (which would turn
+  // newlines between tags into phantom vertical gaps). Plain text keeps it.
+  const hasMarkup = /<[a-z][\s\S]*>/i.test(content);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -206,7 +217,7 @@ function generateHtmlPage(title: string, content: string): string {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #0f172a; max-width: 800px; margin: 0 auto; padding: 2rem; }
     h1 { font-size: 2rem; margin-bottom: 1rem; }
-    .content { margin-top: 1.5rem; white-space: pre-line; }
+    .content { margin-top: 1.5rem;${hasMarkup ? "" : " white-space: pre-line;"} }
     .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 0.875rem; }
     .footer a { color: #4f46e5; text-decoration: none; }
   </style>

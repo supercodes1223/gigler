@@ -130,11 +130,14 @@ export async function executeActions(
           result.deliverableLinkSent = true;
           break;
         }
+        // Substitute the owner-phone placeholder so RSVP/contact buttons
+        // in generated sites become working sms: links (see tool guidance).
+        const delContent = (action.content || "").replaceAll("{{OWNER_PHONE}}", ctx.phone || "");
         const delResult = await deps.invokeLambdaSync(deps.deliverableGeneratorFunctionName, {
           gigId: ctx.gigId, userId: ctx.userId,
           type: delType,
           title: action.title || "Untitled",
-          content: action.content || "", phone: ctx.phone,
+          content: delContent, phone: ctx.phone,
           _trace: trace,
         });
         if (delResult?.url) {
