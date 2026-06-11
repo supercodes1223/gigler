@@ -1,90 +1,37 @@
-# Demo Video Script — 2:30, Google for Startups AI Agents Challenge
+# Demo Video — captions-only edit plan (2:20 target, 3:00 hard cap)
 
-> Target runtime: **2:30** (hard cap 3:00). One complete gig, request → deliverable, with the Quality Loop as the Track-2 proof point. Founder voiceover: conversational, confident, no hype.
->
-> Demo gig: **bills split for a ski trip**, started by SMS, with a receipt photo, ending on the live bills dashboard.
+> Decision (locked): **no voiceover** — fully captioned, assembled by the agent with
+> the HTML stage pipeline in `video-assets/` + ffmpeg. Demo gig: **invite site**,
+> driven live against production (real backend, real deliverable, real judge logs).
+> All caption copy lives in the stage/card HTML; this file is the edit sequence.
 
----
+## Sequence
 
-## Timed beats
+| # | Time | Clip | Source | Caption (on-frame) |
+|---|------|------|--------|--------------------|
+| 1 | 0:00–0:08 | Title card | `card.html?card=title` | Gigler Orca — AI gig orchestration for completed work |
+| 2 | 0:08–0:18 | Problem card | `card.html?card=problem` | People don't want to operate AI tools. They want outcomes. |
+| 3 | 0:18–0:34 | Landing scroll | live capture of gigler.ai (webm) | Live at gigler.ai — text it like a friend |
+| 4 | 0:34–1:10 | SMS exchange, stepped | `demo-stage.html?step=1..N` (real replies from the live run) | One SMS in → a Gemini agent classifies, plans, executes |
+| 5 | 1:10–1:28 | Quality Loop card | `card.html?card=quality` | NEW — Track 2: a judge in front of every action |
+| 6 | 1:28–1:40 | CloudWatch judge verdict | screenshot, zoom/crop, PII redacted | Runs on every message, in production |
+| 7 | 1:40–2:00 | The deliverable | live capture of the generated `gigler.ai/{shortCode}` invite site | Seconds later: a hosted, shareable deliverable |
+| 8 | 2:00–2:12 | Architecture diagram | `architecture/gigler-challenge-architecture.png`, slow zoom on the Quality Loop band | Gemini 3.1 Pro worker · Gemini 2.5 Flash judge · learning loop |
+| 9 | 2:12–2:24 | Close card | `card.html?card=close` | Text it. It gets done. — gigler.ai |
 
-### Beat 1 — The problem (0:00–0:15)
+## Production checklist
 
-**VOICEOVER:**
-> "Everyone has access to AI now. Almost nobody wants to operate it. Picking models, writing prompts, managing the work — that's a job. People don't want a job. They want the thing done."
+- [x] Stage pipeline proven (`capture.mjs`: stage / steps / scroll / page)
+- [x] Landing scroll captured (`video-assets/out/*.webm`)
+- [ ] Live demo run against prod **after the quality-loop deploy** (so beat 6 shows real judge verdicts)
+- [ ] Replace `messages.js` placeholders with the real exchange from the run
+- [ ] Capture the generated invite-site deliverable (page + short scroll)
+- [ ] CloudWatch judge-verdict screenshot — redact phone numbers / IDs
+- [ ] Assemble with ffmpeg (1080p MP4, crossfades, no audio or low neutral bed)
+- [ ] Watch once end-to-end; confirm < 3:00; upload YouTube unlisted
 
-**ON SCREEN:**
-- Quick montage: a crowded grid of AI tool logos / tabs → hard cut to a plain iPhone Messages thread.
-- Text overlay: *"People don't want AI tools. They want outcomes."*
+## Notes
 
-### Beat 2 — Introduce Gigler (0:15–0:40)
-
-**VOICEOVER:**
-> "This is Gigler. It's live at gigler.ai. You text it — or email it — a request, like you'd text a capable friend. Gigler turns that into a gig: a Gemini-powered agent classifies it, picks the right playbook and tools, does the work, and sends back a finished deliverable. Not a chat transcript. The actual work."
-
-**ON SCREEN:**
-- gigler.ai landing page, slow scroll (hero → how it works).
-- Cut to the Messages app: contact "Gigler" at the top.
-- Text overlay: *"SMS in. Completed work out."*
-
-### Beat 3 — The gig, live (0:40–1:40)
-
-**VOICEOVER (paced over the screen recording):**
-> "Here's a real one. I text: 'track the bills for our ski trip.' Gigler spins up a gig, adds the group, and asks for the receipts."
->
-> "I text it a photo of a receipt. Gemini Vision reads it — line items, amounts, who paid — no forms, no app."
->
-> "And here's the part this challenge is about. Before any reply or action reaches me, it passes a Judge — a second Gemini agent that scores the draft, rewrites weak replies, and vetoes unsafe actions before they execute. We stress-tested our single-pass agent, found the edge cases, and engineered the reliability in."
->
-> "Seconds later: a link. That's a live bills dashboard, hosted at a gigler.ai short link, gated with a one-time code, updating as the group texts in more receipts."
-
-**ON SCREEN (in order):**
-1. (0:40) Real SMS thread: user sends *"track the bills for our ski trip"* → Gigler's reply creating the gig.
-2. (0:55) User texts a **photo of a real receipt** → Gigler replies with the extracted items and amounts.
-3. (1:10) **Architecture diagram with the Quality Loop highlighted** (draft → Judge → revise/veto → deliver; outcomes → learning store → next gig's context). Hold 8–10 seconds.
-4. (1:20) **CloudWatch log line of a judge verdict** — the production-reliability proof shot. Zoom into the JSON: score, verdict, revision note. Overlay: *"Runs on every message, in production."*
-5. (1:30) Tap the link in the SMS thread → the live **gigler.ai bills dashboard** renders: itemized bills, totals, who-owes-who.
-
-### Beat 4 — Deliverable + business case (1:40–2:15)
-
-**VOICEOVER:**
-> "Everyone in that group thread just used an AI agent without installing anything or learning anything. That's the business: Gigler meets people in the channels they already use, and charges for completed work, not seats in a chat app."
->
-> "And every finished gig writes memory — judge scores, what users accepted, what they came back for — that gets injected into the next gig's context. No fine-tuning. The product literally gets better every time someone uses it."
-
-**ON SCREEN:**
-- Dashboard again, then a quick flash of other real deliverables: photo gallery link, generated invite site, a GitHub repo created by the agent.
-- Simple loop graphic: *gig completed → signals logged → memory injected → next gig better.*
-
-### Beat 5 — Close (2:15–2:30)
-
-**VOICEOVER:**
-> "Gigler. Text a request. Get completed work back. Live today at gigler.ai."
-
-**ON SCREEN:**
-- Landing page hero, URL on screen: **gigler.ai**.
-- End card: project title + "Built on Gemini" + theme: Optimize (Existing Agents).
-
----
-
-## Shot-list checklist (record these before editing)
-
-- [ ] Screen recording: gigler.ai landing page scroll (desktop, clean browser profile, no bookmarks bar)
-- [ ] Phone screen recording: full SMS thread — gig creation message + Gigler reply (use a **fresh test number** so onboarding doesn't appear, or trim it)
-- [ ] Phone screen recording: sending the receipt photo + Gigler's extraction reply
-- [ ] Have a real paper receipt ready (legible, 4–6 line items) and good lighting for the photo
-- [ ] Phone screen recording: tapping the short link → OTP screen → bills dashboard
-- [ ] Desktop capture: the bills dashboard at `gigler.ai/{shortCode}` (wide shot for Beat 4)
-- [ ] Architecture diagram export with the Quality Loop visually highlighted (from `architecture/gigler-orca-tech-diagram.html` or the mermaid in `docs/gigler-self-improvement.md`) — PNG, 1920px+
-- [ ] CloudWatch screenshot: one judge-verdict log line, zoomed/cropped so the JSON is readable — **redact phone numbers, user IDs, and any PII**
-- [ ] Quick captures of secondary deliverables: a photo gallery link, an invite site, an agent-created GitHub repo
-- [ ] Voiceover recorded in a quiet room (script above is ~310 words ≈ 2:05 at conversational pace — leaves room for breathing)
-- [ ] Background music: low, neutral, ducked under VO (optional — silence is fine)
-- [ ] Export: 1080p minimum, MP4, under 3:00
-- [ ] Watch it once on a phone speaker before uploading
-
-## Recording notes
-
-- Do a **dry run of the full gig first** so the demo take is smooth and Gigler's replies are warm-cache fast.
-- Don't show the real Gigler number on screen if we don't want it public — blur or crop the contact header.
-- The Judge/CloudWatch shot is the single most important Track-2 frame. If short on time, cut B-roll, never this.
+- Beat 6 is the single most important Track-2 frame. Cut B-roll before cutting this.
+- Don't show the real Gigler number — the demo stage uses a generic "Gigler" contact header by design.
+- Captions are styled inside the HTML stages (no ffmpeg drawtext needed except the two screenshot beats, which get a caption bar added at assembly).

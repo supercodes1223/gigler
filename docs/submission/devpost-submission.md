@@ -29,7 +29,7 @@ Gigler has been live at [gigler.ai](https://gigler.ai) for months. This challeng
 
 Text Gigler's number or email gig@gigler.ai with a request — "track the bills for our ski trip," "make an invite site for Friday," "set up a repo for X." Gigler:
 
-1. **Classifies and routes** the request to one of nine gig types (planning, coding, creative, scheduling, reservations, and more), each with its own system prompt and toolset.
+1. **Classifies and routes** the request to one of eleven gig types (planning, coding, creative, scheduling, reservations, and more), each with its own system prompt and toolset.
 2. **Executes with real tools** via Gemini native function calling: adding participants, setting reminders, generating images with Imagen 3, creating hosted deliverables, creating GitHub repos, extracting bills from receipt photos with Gemini Vision, and more.
 3. **Delivers actual artifacts**: hosted bills dashboards, photo galleries, PDFs, and sites at OTP-gated `gigler.ai/{shortCode}` links; GitHub repos; smart contextual reminders.
 4. **Coordinates groups**: Gigler joins group MMS threads via Twilio Conversations and knows when to speak and when to stay quiet.
@@ -39,7 +39,7 @@ The point is not the conversation. The point is the completed gig.
 
 ### How we built it
 
-**Stack**: Next.js 16 frontend on AWS Amplify Hosting (us-east-2), Amplify Gen 2 backend — Lambda, DynamoDB (10 tables, zero table scans, GSI-only access patterns), S3 + CloudFront for deliverables, EventBridge for scheduling, Twilio for SMS/MMS/group threads, SES for email, all in TypeScript.
+**Stack**: Next.js 16 frontend on AWS Amplify Hosting (us-east-2), Amplify Gen 2 backend — Lambda, DynamoDB (10 tables, GSI-backed access patterns), S3 + CloudFront for deliverables, EventBridge for scheduling, Twilio for SMS/MMS/group threads, SES for email, all in TypeScript.
 
 **The agent core** is `gigler-gig-processor`, a Lambda orchestrator built on Gemini:
 
@@ -84,7 +84,7 @@ Reliability is a feature you build, not a property you hope for. The single bigg
 
 ### Why this is a business
 
-People don't want to operate AI tools — they want outcomes. The market is moving from chat interfaces to agentic execution, and the winning interface for everyday users isn't a new app: it's the thread they already have open. Gigler meets users in SMS and email, charges for completed work (free / pro / team tiers, Stripe billing live), and has a structural compounding edge: **every completed gig writes memory that makes the next one better**. Group gigs are also our distribution — every participant in a bills split or event thread meets Gigler inside a gig that's already useful, and guest participants convert to users in place.
+People don't want to operate AI tools — they want outcomes. The market is moving from chat interfaces to agentic execution, and the winning interface for everyday users isn't a new app: it's the thread they already have open. Gigler meets users in SMS and email, charges for completed work (free and pro tiers), and has a structural compounding edge: **every completed gig writes memory that makes the next one better**. Group gigs are also our distribution — every participant in a bills split or event thread meets Gigler inside a gig that's already useful, and guest participants convert to users in place.
 
 ---
 
@@ -104,7 +104,6 @@ eventbridge
 amazon-ses
 aws-amplify
 twilio
-stripe
 vitest
 tailwindcss
 github-api
