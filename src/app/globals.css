@@ -289,6 +289,36 @@ section {
   border-bottom-right-radius: 8px;
 }
 
+/* Scaled-up tails for full-size bubbles (rounded-[20px], text-base) — the
+   14px phone-demo tails read as a lumpy step at this size. Mask uses the
+   page background since these sit on the canvas, not inside a white phone. */
+.bubble-tail-lg.bubble-tail-user::before {
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-bottom-left-radius: 15px;
+}
+.bubble-tail-lg.bubble-tail-user::after {
+  right: -10px;
+  width: 10px;
+  height: 20px;
+  border-bottom-left-radius: 10px;
+  background: var(--background);
+}
+.bubble-tail-lg.bubble-tail-gigler::before {
+  left: -8px;
+  width: 20px;
+  height: 20px;
+  border-bottom-right-radius: 15px;
+}
+.bubble-tail-lg.bubble-tail-gigler::after {
+  left: -10px;
+  width: 10px;
+  height: 20px;
+  border-bottom-right-radius: 10px;
+  background: var(--background);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
