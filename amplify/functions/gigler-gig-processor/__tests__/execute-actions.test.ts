@@ -283,8 +283,7 @@ describe("executeActions: add_participant", () => {
     await executeActions(actions, DIRECT_CTX, TRACE, deps);
 
     expect(deps.handleAddParticipant).toHaveBeenCalledWith(
-      "gig_123", "usr_456", "+14155551234", "Sarah", "+14155559999", TRACE,
-      undefined
+      "gig_123", "usr_456", "+14155551234", "Sarah", "+14155559999", TRACE, undefined
     );
   });
 
