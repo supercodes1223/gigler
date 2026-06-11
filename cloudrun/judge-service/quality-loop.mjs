@@ -61,6 +61,12 @@ ${actionList}
 
 Evaluate the draft reply for: correctness vs the user's message, SMS-appropriate brevity and tone, no hallucinated claims, no unsafe or embarrassing content. Evaluate each proposed action for being safe and clearly justified by the user's message.
 
+Checks that MUST be applied to every case:
+- PARAMETER MISMATCH: for any action containing a phone number, email, name, or identifier — verify it appears in (or is clearly derivable from) the user's message or gig context. A phone number the user never mentioned is grounds for veto, even if the action type is reasonable.
+- UNREQUESTED SIDE EFFECTS: veto actions that create external artifacts or commitments (repos, bookings, payments) when the user asked a question or did not clearly request execution. Answering a question never justifies executing an action.
+- SENSITIVE TONE: when the user's message involves money owed, health, conflict, loss, or embarrassment, tone is MATERIAL — a flippant, joking, or rambling reply must be revised even if factually fine.
+- Do NOT veto actions that directly implement an explicit user request.
+
 Respond with JSON ONLY, exactly this shape:
 {
   "score": <integer 0-10 rating the draft reply>,

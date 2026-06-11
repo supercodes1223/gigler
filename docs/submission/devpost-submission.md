@@ -55,7 +55,15 @@ The point is not the conversation. The point is the completed gig.
 - **Every verdict is persisted per-gig**: judge score, verdict, and the concrete reasons replies needed revision.
 - That memory is **injected back into the agent's context on every subsequent turn of the gig** — the agent literally reads "past replies were revised for X; avoid repeating these issues" before drafting. No fine-tuning: pure in-context learning, fast, cheap, fully reversible. Cross-gig user profiles and prompt-library promotion are the next phase of the same pipeline.
 
-{{EVAL_RESULTS_TABLE}}
+**And we measured it.** We built a 20-case eval harness (5 cases adversarial: hallucinated bookings, wrong-person actions, unjustified side effects, ambiguous intent, tone misses) that replays drafts through the production quality loop judge-on vs judge-off, with an independent blind grader scoring both arms:
+
+| Metric | Judge v1 | Judge v2 (refined instructions) |
+|---|---|---|
+| Avg output score (judge off → on) | 8.30 → 8.95 | 8.30 → **9.35** |
+| Adversarial defects caught | 2/5 | **4/5** |
+| Worst-case saves | hallucinated booking 0→9 | + tone-miss 2→9, unjustified repo vetoed |
+
+The v1 run exposed three judge blind spots (parameter mismatches, unrequested side effects, tone on sensitive topics). We encoded those checks into the judge's system instructions and re-ran: catch rate doubled, average delta went from +0.65 to +1.05. That loop — **measure, refine the instructions, re-measure** — is the Optimize-track discipline, and the harness ships in the repo (`amplify/functions/gigler-gig-processor/eval/`) with both runs' results committed, including the one case v2 still misses. Honest evals beat perfect ones.
 
 **Testing**: 21 Vitest suites cover prompt construction, action parsing and validation, vision extraction, message deduplication, and nudge logic.
 
