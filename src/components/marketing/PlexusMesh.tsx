@@ -22,9 +22,20 @@ const ATTRACT_PULL = 40; // max px a point leans toward the cursor
 const ATTRACT_EASE = 0.07; // per-frame easing toward/away from the cursor
 const LINE_ALPHA = 0.32; // line opacity at zero distance
 const DOT_ALPHA = 0.7;
-const ACCENT_EVERY = 7; // every Nth point is a spring-leaf accent
-const INK = "52, 70, 65"; // muted slate-green, rgb
-const ACCENT = "78, 148, 110"; // deeper spring-leaf, rgb
+const COLOR_RADIUS = 260; // px around cursor where points bloom into color
+const COLOR_PUNCH = 1.5; // how fast the bloom saturates inside that radius
+const INK: Rgb = [52, 70, 65]; // muted slate-green at rest
+
+// Deepened versions of the spring palette used further down the page
+// (mint/leaf, sky, lilac, butter) — saturated enough to read on white.
+const PALETTE: Rgb[] = [
+  [70, 152, 108], // leaf green
+  [84, 134, 199], // sky blue
+  [138, 113, 199], // lilac purple
+  [202, 152, 51], // butter gold
+];
+
+type Rgb = [number, number, number];
 
 type Point = {
   x: number; // position, px
@@ -33,11 +44,21 @@ type Point = {
   vy: number;
   ox: number; // cursor-attraction offset, px (eased)
   oy: number;
+  c: Rgb; // palette color, revealed near the cursor
+  near: number; // 0..1 cursor proximity, updated each frame
 };
+
+// Ink -> color blend, as a CSS rgba() string.
+function blend(from: Rgb, to: Rgb, t: number, alpha: number): string {
+  const r = Math.round(from[0] + (to[0] - from[0]) * t);
+  const g = Math.round(from[1] + (to[1] - from[1]) * t);
+  const b = Math.round(from[2] + (to[2] - from[2]) * t);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function makePoints(w: number, h: number): Point[] {
   const count = Math.min(MAX_POINTS, Math.max(MIN_POINTS, Math.round((w * h) / POINT_AREA)));
-  return Array.from({ length: count }, () => {
+  return Array.from({ length: count }, (_, i) => {
     const angle = Math.random() * Math.PI * 2;
     const speed = DRIFT_SPEED * (0.5 + Math.random());
     return {
@@ -47,6 +68,8 @@ function makePoints(w: number, h: number): Point[] {
       vy: Math.sin(angle) * speed,
       ox: 0,
       oy: 0,
+      c: PALETTE[i % PALETTE.length],
+      near: 0,
     };
   });
 }
@@ -123,6 +146,7 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
         const ty = d > 1 ? (dy / d) * pull : 0;
         p.ox += (tx - p.ox) * ATTRACT_EASE;
         p.oy += (ty - p.oy) * ATTRACT_EASE;
+        p.near = Math.min(1, Math.max(0, 1 - d / COLOR_RADIUS) * COLOR_PUNCH);
       }
 
       for (let i = 0; i < points.length; i++) {
@@ -135,7 +159,11 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
           const by = b.y + b.oy;
           const d = Math.hypot(ax - bx, ay - by);
           if (d >= maxDist) continue;
-          ctx.strokeStyle = `rgba(${INK}, ${LINE_ALPHA * (1 - d / maxDist)})`;
+          // Lines tint toward the stronger endpoint's palette color.
+          const t = Math.max(a.near, b.near);
+          const tint = a.near >= b.near ? a.c : b.c;
+          const alpha = (LINE_ALPHA + 0.25 * t) * (1 - d / maxDist);
+          ctx.strokeStyle = blend(INK, tint, t, alpha);
           ctx.beginPath();
           ctx.moveTo(ax, ay);
           ctx.lineTo(bx, by);
@@ -143,14 +171,10 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
         }
       }
 
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        const accent = i % ACCENT_EVERY === 0;
-        ctx.fillStyle = accent
-          ? `rgba(${ACCENT}, ${DOT_ALPHA + 0.25})`
-          : `rgba(${INK}, ${DOT_ALPHA})`;
+      for (const p of points) {
+        ctx.fillStyle = blend(INK, p.c, p.near, DOT_ALPHA + 0.3 * p.near);
         ctx.beginPath();
-        ctx.arc(p.x + p.ox, p.y + p.oy, accent ? 2.2 : 1.7, 0, Math.PI * 2);
+        ctx.arc(p.x + p.ox, p.y + p.oy, 1.7 + 1.5 * p.near, 0, Math.PI * 2);
         ctx.fill();
       }
     };
