@@ -44,8 +44,8 @@
 <body>
   <div class="caption">
     <div class="kicker">Production · CloudWatch · gigler-gig-processor</div>
-    <h1>The judge runs on every message. In production.</h1>
-    <p>Verbatim log from the live demo gig — June 10, 2026</p>
+    <h1>The judge gates every gig-thread reply. In production.</h1>
+    <p>Real log event from the live demo gig (values verbatim from CloudWatch, rendered for legibility)</p>
   </div>
   <div class="terminal">
     <div class="term-bar">
@@ -61,8 +61,8 @@
       <span class="ln"><span class="dim">2026-06-11T04:25:07.318Z  7b7b4f5f-8416-4e2d-8ddc-e6eb3083550b  INFO</span></span>
       <span class="ln hl"><span class="blue">[QualityLoop]</span> Judge <span class="green">verdict=approve score=9</span> revised=false vetoed=0 model=gemini-2.5-flash</span>
       <span class="ln">&nbsp;</span>
-      <span class="ln dim"># Every draft reply + proposed action is judged BEFORE execution.</span>
-      <span class="ln dim"># Weak replies get rewritten. Unsafe actions get vetoed. Outcomes feed the learning store.</span>
+      <span class="ln dim"># Every gig-thread reply + proposed action is judged BEFORE execution.</span>
+      <span class="ln dim"># Weak replies get rewritten. Unsafe actions get vetoed. Verdicts feed the gig's memory.</span>
     </div>
   </div>
 </body>

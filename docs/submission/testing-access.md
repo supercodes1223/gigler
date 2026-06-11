@@ -15,7 +15,7 @@ Every gig produces real, hosted artifacts at short links of the form `gigler.ai/
 Sample deliverable for judges: **https://gigler.ai/n4trpk**
 
 - This is the event invite site generated end-to-end by the agent from a single SMS request — the exact gig shown in the demo video.
-- Deliverable links are **OTP-gated by design**: deliverables are private to gig participants, so the page asks for the phone number used with Gigler and texts a one-time code. That gate is itself part of the product (and every OTP reply passes the same Quality Loop).
+- Deliverable links are **OTP-gated by design**: deliverables are private to gig participants, so the page asks for the phone number used with Gigler and texts a one-time code. That gate is itself part of the product.
 - To experience a deliverable end-to-end, run the 3-minute SMS flow below — Gigler will text you your **own** link and the OTP gate will verify your number. The full contents of the sample site are also shown in the demo video.
 
 ## 3. Try the agent over SMS
@@ -37,7 +37,8 @@ Notes:
 
 - First-time numbers go through a short onboarding (Gigler asks your name).
 - US/Canada numbers only (Twilio long code).
-- Every reply you receive has already passed our Judge agent (the Quality Loop described in the submission) — this runs in production on every message.
+- Once you're inside a gig thread, every agent reply you receive has already passed our Judge agent (the Quality Loop described in the submission) before it was sent.
+- Restaurant/table **reservations are in simulation mode** (roadmap) — for real end-to-end output, try bills tracking, invite sites, GitHub repos, image generation, or reminders.
 
 ## 4. Try the agent over email
 
