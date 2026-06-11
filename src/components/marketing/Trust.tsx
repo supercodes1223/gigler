@@ -60,7 +60,7 @@ export function Trust() {
           className="mt-8"
           eyebrow="Trust"
           title="Built to be trusted."
-          subtitle="Real-world actions need real trust. Gigler plays by three rules."
+          subtitle="Real-world actions need real trust. Nothing big, expensive, or irreversible happens without your okay."
         />
 
         {/* The three rules played out as one conversation — each rule chip
