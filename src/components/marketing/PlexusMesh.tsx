@@ -10,9 +10,9 @@ import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 // ── Feel knobs ──────────────────────────────────────────────────────────────
 
-const POINT_AREA = 14000; // px² of canvas per point (density)
-const MIN_POINTS = 60;
-const MAX_POINTS = 160;
+const POINT_AREA = 7000; // px² of canvas per point (density)
+const MIN_POINTS = 110;
+const MAX_POINTS = 320;
 const DRIFT_SPEED = 14; // px/s ambient drift
 const LINK_DIST_FRAC = 14; // link distance = diagonal / this, clamped below
 const LINK_DIST_MIN = 80;
@@ -20,11 +20,11 @@ const LINK_DIST_MAX = 150;
 const ATTRACT_RADIUS = 200; // px around cursor that responds
 const ATTRACT_PULL = 40; // max px a point leans toward the cursor
 const ATTRACT_EASE = 0.07; // per-frame easing toward/away from the cursor
-const LINE_ALPHA = 0.2; // line opacity at zero distance
-const DOT_ALPHA = 0.5;
+const LINE_ALPHA = 0.32; // line opacity at zero distance
+const DOT_ALPHA = 0.7;
 const ACCENT_EVERY = 7; // every Nth point is a spring-leaf accent
-const INK = "70, 90, 85"; // muted slate-green, rgb
-const ACCENT = "108, 178, 140"; // deeper spring-leaf, rgb
+const INK = "52, 70, 65"; // muted slate-green, rgb
+const ACCENT = "78, 148, 110"; // deeper spring-leaf, rgb
 
 type Point = {
   x: number; // position, px
