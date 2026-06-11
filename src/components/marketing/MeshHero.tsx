@@ -44,9 +44,9 @@ export function MeshHero() {
           className="rise-in text-balance text-5xl font-semibold leading-[1.04] tracking-tight text-foreground sm:text-6xl md:text-7xl"
           style={{ animationDelay: "90ms" }}
         >
-          Ask Anything.
+          An assistant
           <br />
-          Consider it done.
+          of your own.
         </h1>
         <p
           className="rise-in mt-6 max-w-xl text-balance text-lg leading-relaxed text-foreground/70 md:text-xl"
