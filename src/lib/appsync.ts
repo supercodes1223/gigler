@@ -10,9 +10,7 @@ const APPSYNC_URL =
   process.env.APPSYNC_URL ||
   "https://eulil66r6rg6fny2nsfr4hfhsm.appsync-api.us-east-2.amazonaws.com/graphql";
 
-const APPSYNC_API_KEY =
-  process.env.APPSYNC_API_KEY ||
-  "da2-33paxt2suzcmdnx25bk455zr24";
+const APPSYNC_API_KEY = process.env.APPSYNC_API_KEY || "";
 
 interface GraphQLResponse<T = Record<string, unknown>> {
   data?: T;
