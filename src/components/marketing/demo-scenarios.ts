@@ -85,14 +85,14 @@ export const SCENARIOS: Scenario[] = [
     script: [
       {
         type: "user",
-        text: "Can you find me a flight to NYC next Friday? Under $300",
+        text: "Can you find me a flight to NYC for my brother's birthday? Under $300",
         hold: 1300,
       },
       { type: "typing", hold: 1500 },
       {
         type: "gigler",
-        text: "Delta nonstop, LAX to JFK, $284. Leaves 9:30 AM, lands 6:05 PM. Book it?",
-        hold: 1700,
+        text: "On it — his birthday's Friday the 26th. Delta nonstop, LAX to JFK, $284. Leaves 9:30 AM, lands 6:05 PM. Book it?",
+        hold: 1900,
       },
       { type: "user", text: "Yes, and a hotel near SoHo", hold: 1200 },
       { type: "typing", hold: 1500 },

@@ -9,8 +9,10 @@ export function MeshHero() {
   return (
     <section className="grain relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-[#fdfdfb] px-6">
       {/* Constellation mesh: drifting points + faint links that gather around
-          the cursor. All pointer handling lives inside PlexusMesh. */}
-      <div className="absolute inset-0">
+          the cursor. PlexusMesh tracks the pointer via window listeners, so
+          the canvas takes no hits — keeping this 60fps-repainting layer out
+          of hit-testing stops the cursor flickering over the CTAs above it. */}
+      <div className="pointer-events-none absolute inset-0">
         <PlexusMesh className="block h-full w-full" />
       </div>
 
@@ -53,15 +55,17 @@ export function MeshHero() {
             asChild
             variant="ghost"
             size="lg"
-            className="group relative h-12 overflow-hidden rounded-full border border-transparent px-6 text-base text-foreground/85 backdrop-blur-0 transition-all duration-300 hover:border-foreground/6 hover:bg-white/35 hover:text-foreground hover:backdrop-blur-md"
+            className="group relative h-12 overflow-hidden rounded-full border border-transparent px-6 text-base text-foreground/85 transition-all duration-300 hover:border-foreground/6 hover:bg-white/35 hover:text-foreground hover:backdrop-blur-md"
           >
             <a href="#demo">
               {/* Diffused spring-palette glow, frosted by the backdrop blur.
-                  Inline gradient: Tailwind v4 arbitrary gradient classes
-                  don't compile here (see memory). */}
+                  pointer-events-none: it overhangs the button by 12px and an
+                  invisible hit target there flickers the cursor. Inline
+                  gradient: Tailwind v4 arbitrary gradient classes don't
+                  compile here (see memory). */}
               <span
                 aria-hidden
-                className="absolute -inset-3 -z-10 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-70"
+                className="pointer-events-none absolute -inset-3 -z-10 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-70"
                 style={{
                   background:
                     "linear-gradient(110deg, #c9ecd9, #cfe5f7 35%, #e2dcf5 65%, #f7efd8)",

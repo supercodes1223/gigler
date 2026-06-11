@@ -9,6 +9,11 @@
  *
  * One icon per demo scenario: Phone3D (calls), Envelope3D (email),
  * Dinner3D (dinner), Plane3D (trip).
+ *
+ * Each viewBox is a square tight-cropped to that icon's measured artwork
+ * (getBBox center, max dimension + 8), so all four render at the same
+ * optical size and sit dead-center when inlined next to text. If you move
+ * geometry, re-measure and recrop.
  */
 
 /** Shared soft-render plumbing, namespaced per icon so the four can mount
@@ -45,7 +50,7 @@ function SoftDefs({ p }: { p: string }) {
  *  continuously across the form instead of restarting per part. */
 export function Phone3D({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 96 96" className={className} aria-hidden fill="none">
+    <svg viewBox="7.5 5.5 81 81" className={className} aria-hidden fill="none">
       <defs>
         <SoftDefs p="phone3d" />
         {/* One light field across the whole handset */}
@@ -171,7 +176,9 @@ export function Phone3D({ className }: { className?: string }) {
  *  and faint side-fold creases rising from the bottom corners. */
 export function Envelope3D({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 96 96" className={className} aria-hidden fill="none">
+    // Slightly looser crop than the others: a single solid mass reads
+    // bigger than the airy multi-part icons at equal coverage
+    <svg viewBox="9 9.5 78 78" className={className} aria-hidden fill="none">
       <defs>
         <SoftDefs p="env3d" />
         {/* Body: the lock's slab lighting */}
@@ -279,7 +286,7 @@ export function Envelope3D({ className }: { className?: string }) {
  *  space so each piece shades as one solid object. */
 export function Dinner3D({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 96 96" className={className} aria-hidden fill="none">
+    <svg viewBox="2 1 92.5 92.5" className={className} aria-hidden fill="none">
       <defs>
         <SoftDefs p="plate3d" />
         {/* Plate top: soft radial light landing upper-left of center */}
@@ -420,7 +427,7 @@ export function Dinner3D({ className }: { className?: string }) {
  *  the light secondary material. */
 export function Plane3D({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 96 96" className={className} aria-hidden fill="none">
+    <svg viewBox="5 -1 90 90" className={className} aria-hidden fill="none">
       <defs>
         <SoftDefs p="plane3d" />
         {/* Fuselage: lit along its upper-left run */}

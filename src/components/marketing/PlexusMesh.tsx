@@ -29,8 +29,8 @@ const INK = "52, 70, 65"; // muted slate-green, rgb
 // Light pulses: a glint spawns every few seconds, picks a path of linked
 // points, races along it with a fading trail, and dies at the last node.
 // Stare for ~3s and you should catch one, maybe two — never a light show.
-const PULSE_EVERY_MIN = 1.4; // s between spawn attempts
-const PULSE_EVERY_MAX = 2.8;
+const PULSE_EVERY_MIN = 1.1; // s between spawn attempts
+const PULSE_EVERY_MAX = 2.2;
 const PULSE_SPEED = 620; // px/s along the path
 const PULSE_TRAIL = 90; // px of fading trail behind the head
 const PULSE_HOPS_MIN = 3; // path length in links
@@ -209,16 +209,16 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
           const [x1, y1] = at(s1);
           // Dark underlay is what makes the white core read on the
           // near-white canvas — it has to stay wide and firm.
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = `rgba(${INK}, ${0.55 * a})`;
+          ctx.lineWidth = 3.4;
+          ctx.strokeStyle = `rgba(${INK}, ${0.62 * a})`;
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x1, y1);
           ctx.stroke();
           // Bright white core with a soft glow.
           ctx.shadowColor = "rgba(255, 255, 255, 1)";
-          ctx.shadowBlur = 6;
-          ctx.lineWidth = 1.4;
+          ctx.shadowBlur = 7;
+          ctx.lineWidth = 1.6;
           ctx.strokeStyle = `rgba(255, 255, 255, ${a})`;
           ctx.beginPath();
           ctx.moveTo(x0, y0);
@@ -228,15 +228,15 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
         }
 
         const [hx, hy] = at(head);
-        ctx.fillStyle = `rgba(${INK}, 0.5)`;
+        ctx.fillStyle = `rgba(${INK}, 0.58)`;
         ctx.beginPath();
-        ctx.arc(hx, hy, 3.2, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 3.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowColor = "rgba(255, 255, 255, 1)";
-        ctx.shadowBlur = 9;
+        ctx.shadowBlur = 10;
         ctx.fillStyle = "rgba(255, 255, 255, 1)";
         ctx.beginPath();
-        ctx.arc(hx, hy, 1.8, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -255,12 +255,18 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
         if (p.y < 0) (p.y = 0), (p.vy = Math.abs(p.vy));
         if (p.y > h) (p.y = h), (p.vy = -Math.abs(p.vy));
 
-        const dx = mouse.x - (p.x + p.ox);
-        const dy = mouse.y - (p.y + p.oy);
+        // Attraction is measured from the point's HOME position, never its
+        // displaced one — feeding the displaced position back in gives a
+        // point under a static cursor no reachable equilibrium (pull in,
+        // snap home, pull in again), which read as violent jitter. Reach is
+        // capped at the cursor so points lean toward it, not past it.
+        const dx = mouse.x - p.x;
+        const dy = mouse.y - p.y;
         const d = Math.hypot(dx, dy);
         const pull = Math.max(0, 1 - d / ATTRACT_RADIUS) * ATTRACT_PULL;
-        const tx = d > 1 ? (dx / d) * pull : 0;
-        const ty = d > 1 ? (dy / d) * pull : 0;
+        const reach = Math.min(pull, d);
+        const tx = d > 1e-3 ? (dx / d) * reach : 0;
+        const ty = d > 1e-3 ? (dy / d) * reach : 0;
         p.ox += (tx - p.ox) * ATTRACT_EASE;
         p.oy += (ty - p.oy) * ATTRACT_EASE;
         p.near = Math.min(1, Math.max(0, 1 - d / EMPHASIS_RADIUS) * EMPHASIS_PUNCH);
