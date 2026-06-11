@@ -24,6 +24,13 @@ import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { createHash } from "crypto";
 import { isValidE164, validateActions } from "./action-validator";
 import { executeActions as executeActionsImpl, type ActionDeps } from "./execute-actions";
+import {
+  runQualityLoop,
+  appendQualityLog,
+  isQualityLoopEnabled,
+  type QualityLoopDeps,
+  type QualityLoopResult,
+} from "./quality-loop";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
@@ -36,6 +43,8 @@ const DELIVERABLE_TABLE_NAME = process.env.DELIVERABLE_TABLE_NAME || "";
 const REMINDER_TABLE_NAME = process.env.REMINDER_TABLE_NAME || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
+const GEMINI_JUDGE_MODEL = process.env.GEMINI_JUDGE_MODEL || "gemini-2.5-flash";
+const QUALITY_LOOP_ENABLED = isQualityLoopEnabled(process.env.QUALITY_LOOP_ENABLED);
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
@@ -633,6 +642,17 @@ async function executeActions(
   trace: TraceContext
 ): Promise<void> {
   await executeActionsImpl(actions, ctx, trace, buildActionDeps());
+}
+
+// ── Orca Quality Loop (judge pass) ───────────────────────────────────────────
+
+function qualityLoopDeps(): QualityLoopDeps {
+  return {
+    fetch: globalThis.fetch.bind(globalThis),
+    geminiApiKey: GEMINI_API_KEY,
+    judgeModel: GEMINI_JUDGE_MODEL,
+    enabled: QUALITY_LOOP_ENABLED,
+  };
 }
 
 // ── Add Participant ──────────────────────────────────────────────────────────
@@ -2200,7 +2220,8 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
   const geminiInput = `[${senderName}]: ${userMessage}`;
   const geminiResponse = await callGemini(systemPrompt, geminiInput, history);
-  const { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse, userMessage);
+  // eslint-disable-next-line prefer-const -- actions is reassigned by the quality loop below
+  let { userText: rawText, actions } = extractFromGeminiResponse(geminiResponse, userMessage);
 
   if (visionAnalysis) {
     const visionActions = actionsFromVisionResult(visionAnalysis, gig.type, actions);
@@ -2217,6 +2238,19 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     shouldRespond = actions.length > 0;
     userText = rawText;
     console.warn("[GigProcessor] RESPOND: prefix missing in group AI response — defaulting to silent unless actions present", { hasActions: actions.length > 0 });
+  }
+
+  // Orca quality loop: single judge pass BEFORE actions execute / reply is sent
+  let groupQuality: QualityLoopResult | null = null;
+  if ((shouldRespond && userText) || actions.length > 0) {
+    groupQuality = await runQualityLoop({
+      draftText: userText,
+      proposedActions: actions,
+      gigContext: { type: gig.type, title: gig.title, description: gig.description },
+      userMessage,
+    }, qualityLoopDeps());
+    userText = groupQuality.finalText;
+    actions = groupQuality.finalActions;
   }
 
   if (actions.length > 0) {
@@ -2250,6 +2284,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     await updateGigMetadata(gigId, {
       ...freshMeta,
       ...dedupFields,
+      ...(groupQuality?.logEntry ? { qualityLog: appendQualityLog(freshMeta.qualityLog, groupQuality.logEntry) } : {}),
       lastInteraction: now,
       messageCount: ((freshMeta.messageCount as number) || 0) + 1,
       awaitingReply: false,
@@ -2265,6 +2300,7 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
   await updateGigMetadata(gigId, {
     ...freshMeta,
     ...dedupFields,
+    ...(groupQuality?.logEntry ? { qualityLog: appendQualityLog(freshMeta.qualityLog, groupQuality.logEntry) } : {}),
     lastInteraction: now,
     messageCount: ((freshMeta.messageCount as number) || 0) + 1,
     awaitingReply: true,
@@ -2390,12 +2426,22 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
   }
 
   const geminiResponse = await callGemini(systemPrompt, enrichedMessage, history);
-  const { userText, actions } = extractFromGeminiResponse(geminiResponse, enrichedMessage);
+  let { userText, actions } = extractFromGeminiResponse(geminiResponse, enrichedMessage);
 
   if (directVisionResult) {
     const visionActions = actionsFromVisionResult(directVisionResult, gig.type, actions);
     if (visionActions.length > 0) actions.push(...visionActions);
   }
+
+  // Orca quality loop: single judge pass BEFORE actions execute / reply is sent
+  const directQuality = await runQualityLoop({
+    draftText: userText,
+    proposedActions: actions,
+    gigContext: { type: gig.type, title: gig.title, description: gig.description },
+    userMessage: enrichedMessage,
+  }, qualityLoopDeps());
+  userText = directQuality.finalText;
+  actions = directQuality.finalActions;
 
   if (actions.length > 0) {
     log.info("Executing actions BEFORE reply", { actionCount: actions.length, actionTypes: actions.map(a => a.type) });
@@ -2414,6 +2460,7 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   await updateGigMetadata(gigId, {
     ...freshDirectMeta,
+    ...(directQuality.logEntry ? { qualityLog: appendQualityLog(freshDirectMeta.qualityLog, directQuality.logEntry) } : {}),
     lastProcessedHash: directHash,
     lastProcessedAt: directNow,
     lastInteraction: directNow,
