@@ -1,6 +1,6 @@
 import { GlassNav } from "@/components/marketing/GlassNav";
 import { MeshHero } from "@/components/marketing/MeshHero";
-import { IphoneDemo } from "@/components/marketing/IphoneDemo";
+import { DemoShowcase } from "@/components/marketing/DemoShowcase";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
 import { UseCases } from "@/components/marketing/UseCases";
 import { HowItWorks } from "@/components/marketing/HowItWorks";
@@ -18,10 +18,10 @@ export default function Home() {
           <SectionHeader
             eyebrow="See it work"
             title="Like texting a very capable friend."
-            subtitle="Watch Gigler take Friday dinner from “can you?” to confirmed, start to finish."
+            subtitle="Watch Gigler take a request from “can you?” to confirmed, start to finish."
           />
           <div className="mt-14">
-            <IphoneDemo />
+            <DemoShowcase />
           </div>
         </div>
       </section>

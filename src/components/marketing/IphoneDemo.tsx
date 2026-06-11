@@ -5,59 +5,27 @@ import { Apple, ChevronLeft, ChevronRight, Mic, Plus } from "lucide-react";
 import { Iphone17Pro } from "@/components/ui/iphone-17-pro";
 import { IosStatusBar } from "@/components/ui/ios-status-bar";
 import { VideoFill } from "@/components/ui/sf-icons";
+import type { Scenario } from "@/components/marketing/demo-scenarios";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import { cn } from "@/lib/utils";
-
-type Step =
-  | { type: "user" | "gigler"; text: string; hold: number }
-  | { type: "typing"; hold: number }
-  | { type: "map"; place: string; city: string; hold: number };
 
 // Rendered with the first message — iMessage never shows a timestamp alone.
 const TIMESTAMP = "Tuesday 2:14 PM";
 
-// One complete task arc: ask → Gigler works → done, with proof.
-const SCRIPT: Step[] = [
-  {
-    type: "user",
-    text: "Can you get us a table for 4 somewhere good Friday at 7?",
-    hold: 1300,
-  },
-  { type: "typing", hold: 1500 },
-  {
-    type: "gigler",
-    text: "On it. You loved Italian last month, checking a couple of spots near you.",
-    hold: 1700,
-  },
-  { type: "typing", hold: 1500 },
-  {
-    type: "gigler",
-    text: "Give me one sec to call them and see what tables they have.",
-    hold: 1700,
-  },
-  { type: "typing", hold: 1500 },
-  {
-    type: "gigler",
-    text: "Via Carota has Friday, 7:15 for 4. Want it?",
-    hold: 1400,
-  },
-  { type: "user", text: "Yes, book it", hold: 1200 },
-  { type: "typing", hold: 1500 },
-  {
-    type: "gigler",
-    text: "Done. Table for 4, Friday 7:15 PM. Confirmation's in your email, and here's the spot:",
-    hold: 1400,
-  },
-  { type: "map", place: "Via Carota", city: "New York, NY", hold: 5200 },
-];
-
-export function IphoneDemo() {
+export function IphoneDemo({
+  scenario,
+  onComplete,
+}: {
+  scenario: Scenario;
+  onComplete: () => void;
+}) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [cursor, setCursor] = useState(0);
   const [playing, setPlaying] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const script = scenario.script;
 
-  // Play while in view; pause (and later restart the loop) when scrolled away.
+  // Play while in view; pause (and later resume) when scrolled away.
   useEffect(() => {
     const el = frameRef.current;
     if (!el || reducedMotion) return;
@@ -71,16 +39,22 @@ export function IphoneDemo() {
 
   useEffect(() => {
     if (!playing || reducedMotion) return;
-    const step = SCRIPT[cursor];
+    const step = script[cursor];
     const timer = setTimeout(() => {
-      setCursor((c) => (c + 1 < SCRIPT.length ? c + 1 : 0));
+      if (cursor + 1 < script.length) {
+        setCursor(cursor + 1);
+      } else {
+        // Script finished its settle hold — hand control back to the
+        // showcase, which advances to the next scenario and re-keys us.
+        onComplete();
+      }
     }, step.hold);
     return () => clearTimeout(timer);
-  }, [playing, cursor, reducedMotion]);
+  }, [playing, cursor, reducedMotion, script, onComplete]);
 
   const visible = reducedMotion
-    ? SCRIPT.filter((s) => s.type !== "typing")
-    : SCRIPT.slice(0, cursor + 1).filter(
+    ? script.filter((s) => s.type !== "typing")
+    : script.slice(0, cursor + 1).filter(
         (s, i) => s.type !== "typing" || i === cursor
       );
 
@@ -198,6 +172,35 @@ export function IphoneDemo() {
                   </div>
                 );
               }
+              if (step.type === "email") {
+                return (
+                  <div key={i} className="bubble-in flex flex-col items-start">
+                    {/* Compact sent-email card — same visual family as the
+                        UseCases email tile, sized like the map card */}
+                    <div className="w-[230px] rounded-[18px] border border-black/[0.06] bg-white p-3 shadow-sm">
+                      <p className="text-[13px] font-semibold leading-tight text-black">
+                        {step.subject}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#6cc197] to-[#2f8f63] text-[10px] font-semibold text-white">
+                          G
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium text-black">
+                            Gigler
+                          </p>
+                          <p className="truncate text-[10px] text-black/45">
+                            to {step.to}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-spring-mint/70 px-2 py-0.5 text-[9px] font-medium text-[#2f8f63]">
+                          Sent
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               const isUser = step.type === "user";
               // iOS tails only the last bubble of a same-sender run
               const next = visible[i + 1];
@@ -249,20 +252,28 @@ export function IphoneDemo() {
         </div>
       </Iphone17Pro>
 
-      {/* Floating glass annotations (desktop only) */}
-      {/* Padding >= corner radius so text clears the corner curves */}
-      <div className="absolute -right-36 top-24 hidden w-48 rounded-2xl bg-white/55 px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
-        <p className="text-xs font-medium text-foreground">Reservation made</p>
-        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-          Real bookings, real confirmations. Not just advice.
-        </p>
-      </div>
-      <div className="absolute -left-36 bottom-32 hidden w-48 rounded-2xl bg-white/55 px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block">
-        <p className="text-xs font-medium text-foreground">It remembers</p>
-        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-          &ldquo;You loved Italian last month.&rdquo; No re-explaining.
-        </p>
-      </div>
+      {/* Floating glass annotations (desktop only) — each appears the moment
+          its anchor step lands in the conversation. Two fixed slots: right →
+          upper right, left → lower left. Padding >= corner radius so text
+          clears the corner curves. */}
+      {scenario.annotations.map((a) => {
+        const shown = reducedMotion || cursor >= a.afterStep;
+        if (!shown) return null;
+        return (
+          <div
+            key={a.title}
+            className={cn(
+              "bubble-in absolute hidden w-48 rounded-2xl bg-white/55 px-4 py-3.5 shadow-[0_8px_24px_-12px_rgba(20,30,40,0.15)] backdrop-blur-xl lg:block",
+              a.side === "right" ? "-right-36 top-24" : "-left-36 bottom-32"
+            )}
+          >
+            <p className="text-xs font-medium text-foreground">{a.title}</p>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              {a.body}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
