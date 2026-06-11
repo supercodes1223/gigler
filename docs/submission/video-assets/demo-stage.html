@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Gigler demo stage</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 800px at 30% 20%, #16331f 0%, #0a1410 45%, #060a08 100%);
+    display: flex; align-items: center; justify-content: center; gap: 110px;
+  }
+  /* ---------- caption panel ---------- */
+  .caption { width: 600px; color: #fff; }
+  .caption .kicker {
+    font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #5ee49a; margin-bottom: 22px; font-weight: 600;
+  }
+  .caption h1 { font-size: 64px; line-height: 1.08; font-weight: 700; letter-spacing: -0.02em; }
+  .caption p { margin-top: 26px; font-size: 28px; line-height: 1.45; color: rgba(255,255,255,0.72); }
+  /* ---------- phone ---------- */
+  .phone {
+    width: 430px; height: 880px; border-radius: 64px; position: relative;
+    background: #000; padding: 18px;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.6), 0 0 0 2px #2a2a2c, 0 0 90px rgba(94,228,154,0.12);
+    flex-shrink: 0;
+  }
+  .screen {
+    width: 100%; height: 100%; border-radius: 48px; background: #000;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .notch {
+    position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 34px; border-radius: 20px; background: #000; z-index: 5;
+  }
+  .thread-header {
+    padding: 52px 16px 12px; text-align: center; background: rgba(22,22,24,0.96);
+    border-bottom: 0.5px solid #2c2c2e;
+  }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 6px;
+    background: linear-gradient(135deg, #34d27b, #1f9d57);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 22px; color: #04130a;
+  }
+  .thread-header .name { color: #fff; font-size: 13px; }
+  .msgs { flex: 1; padding: 16px 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; justify-content: flex-end; }
+  .bubble {
+    max-width: 78%; padding: 10px 14px; border-radius: 20px;
+    font-size: 16.5px; line-height: 1.32; word-wrap: break-word;
+  }
+  .user { align-self: flex-end; background: #0a84ff; color: #fff; border-bottom-right-radius: 6px; }
+  .agent { align-self: flex-start; background: #26262a; color: #f2f2f4; border-bottom-left-radius: 6px; }
+  .bubble a { color: inherit; text-decoration: underline; }
+  .input-bar {
+    padding: 10px 14px 34px; background: #000; display: flex; gap: 10px; align-items: center;
+  }
+  .input-bar .field {
+    flex: 1; height: 36px; border-radius: 18px; border: 1px solid #3a3a3c;
+    color: #6e6e73; font-size: 15px; display: flex; align-items: center; padding: 0 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="kicker">Gigler &middot; AI gigs over SMS</div>
+    <h1 id="cap-title"></h1>
+    <p id="cap-sub"></p>
+  </div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="thread-header">
+        <div class="avatar">G</div>
+        <div class="name">Gigler</div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="input-bar"><div class="field">Text Message</div></div>
+    </div>
+  </div>
+<script src="messages.js"></script>
+<script>
+  // ?step=N shows the first N messages (default: all)
+  const params = new URLSearchParams(location.search);
+  const step = parseInt(params.get("step") || String(window.DEMO_MESSAGES.length), 10);
+  const container = document.getElementById("msgs");
+  window.DEMO_MESSAGES.slice(0, step).forEach(m => {
+    const div = document.createElement("div");
+    div.className = "bubble " + m.side;
+    div.innerHTML = m.text.replace(/(https?:\/\/\S+)/g, '<a>$1</a>').replace(/\n/g, "<br>");
+    container.appendChild(div);
+  });
+  document.getElementById("cap-title").textContent = window.DEMO_CAPTION.title;
+  document.getElementById("cap-sub").textContent = window.DEMO_CAPTION.sub;
+</script>
+</body>
+</html>
