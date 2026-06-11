@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getUrl } from "aws-amplify/storage";
 import { VerifyForm } from "./verify-form";
 import { BillsDashboard } from "./bills-dashboard";
 import { MediaGallery } from "./media-gallery";
@@ -34,6 +35,7 @@ interface DeliverableData {
     title: string;
     shortCode: string;
     createdAt: string;
+    s3Key?: string;
   };
   gig: { title: string; type: string } | null;
   metadata: Record<string, unknown>;
@@ -158,6 +160,13 @@ export default function ShortCodePage() {
 
   const mediaItems = data.media || [];
 
+  // File-backed deliverables (sites, menus, PDFs, code pages) live in S3 —
+  // open them via a guest-scoped signed URL once access is verified.
+  const FILE_BACKED_TYPES = new Set(["website", "menu", "pdf", "code_project", "collage"]);
+  if (FILE_BACKED_TYPES.has(delType) && data.deliverable.s3Key) {
+    return <FileDeliverableRedirect s3Key={data.deliverable.s3Key} title={data.deliverable.title} />;
+  }
+
   if (delType === "bills_dashboard") {
     const bills = (data.metadata.bills as Record<string, Array<Record<string, unknown>>>) || {};
     const monthlyTotals = (data.metadata.monthlyTotals as Record<string, number>) || {};
@@ -190,6 +199,40 @@ export default function ShortCodePage() {
           </p>
         </div>
         {mediaItems.length > 0 && <MediaGallery media={mediaItems} />}
+      </div>
+    </main>
+  );
+}
+
+function FileDeliverableRedirect({ s3Key, title }: { s3Key: string; title: string }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    getUrl({ path: s3Key, options: { validateObjectExistence: true, expiresIn: 3600 } })
+      .then((res) => {
+        if (mounted) window.location.replace(res.url.toString());
+      })
+      .catch((err) => {
+        console.error("[Deliverable] Failed to resolve file URL:", err);
+        if (mounted) setFailed(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [s3Key]);
+
+  return (
+    <main className="flex-1 pt-24">
+      <div className="mx-auto max-w-sm px-6 pb-24">
+        <div className="rounded-xl border border-brand-border p-8 text-center">
+          <h1 className="text-xl font-bold mb-2">{title}</h1>
+          <p className="text-brand-muted text-sm">
+            {failed
+              ? "We couldn't open this deliverable right now. Please try again in a moment."
+              : "Opening your deliverable..."}
+          </p>
+        </div>
       </div>
     </main>
   );

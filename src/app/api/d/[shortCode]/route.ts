@@ -44,6 +44,7 @@ export async function GET(
         title: deliverable.title,
         shortCode: deliverable.shortCode,
         createdAt: deliverable.createdAt,
+        s3Key: deliverable.s3Key,
       },
       gig: gig ? { title: gig.title, type: gig.type } : null,
       metadata,
