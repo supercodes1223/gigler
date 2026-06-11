@@ -207,29 +207,36 @@ export function PlexusMesh({ className }: PlexusMeshProps) {
           const a = ((s0 + s1) / 2 - tail) / Math.max(head - tail, 1e-6);
           const [x0, y0] = at(s0);
           const [x1, y1] = at(s1);
-          ctx.lineWidth = 2.6;
-          ctx.strokeStyle = `rgba(${INK}, ${0.38 * a})`;
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = `rgba(${INK}, ${0.32 * a})`;
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x1, y1);
           ctx.stroke();
-          ctx.lineWidth = 1.2;
-          ctx.strokeStyle = `rgba(255, 255, 255, ${0.95 * a})`;
+          // Bright white core with a soft glow.
+          ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
+          ctx.shadowBlur = 5;
+          ctx.lineWidth = 0.9;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${a})`;
           ctx.beginPath();
           ctx.moveTo(x0, y0);
           ctx.lineTo(x1, y1);
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
 
         const [hx, hy] = at(head);
-        ctx.fillStyle = `rgba(${INK}, 0.3)`;
+        ctx.fillStyle = `rgba(${INK}, 0.26)`;
         ctx.beginPath();
-        ctx.arc(hx, hy, 3.6, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 2.4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.shadowColor = "rgba(255, 255, 255, 0.95)";
+        ctx.shadowBlur = 7;
+        ctx.fillStyle = "rgba(255, 255, 255, 1)";
         ctx.beginPath();
-        ctx.arc(hx, hy, 2, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 1.3, 0, Math.PI * 2);
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
       ctx.lineWidth = 1;
     };
