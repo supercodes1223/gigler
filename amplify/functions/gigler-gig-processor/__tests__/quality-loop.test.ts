@@ -3,6 +3,7 @@ import {
   reviewDraft,
   runQualityLoop,
   appendQualityLog,
+  buildQualityMemory,
   isQualityLoopEnabled,
   QUALITY_LOG_MAX_ENTRIES,
   type QualityLoopDeps,
@@ -300,6 +301,138 @@ describe("appendQualityLog", () => {
     const existing = [makeEntry(0)];
     appendQualityLog(existing, makeEntry(1));
     expect(existing).toHaveLength(1);
+  });
+});
+
+describe("runQualityLoop — issues persistence", () => {
+  it("persists issues on the log entry when verdict is revise, capped at 3 entries of 120 chars", async () => {
+    const longIssue = "x".repeat(300);
+    const deps = makeDeps({
+      fetch: mockJudgeFetch({
+        score: 4,
+        verdict: "revise",
+        issues: [longIssue, "too long for SMS", "overconfident claims", "fourth issue", "fifth issue"],
+        revisedText: "Shorter reply.",
+        vetoedActionIndexes: [],
+      }),
+    });
+    const result = await runQualityLoop(makeParams(), deps);
+
+    expect(result.logEntry!.issues).toHaveLength(3);
+    expect(result.logEntry!.issues![0]).toHaveLength(120);
+    expect(result.logEntry!.issues![1]).toBe("too long for SMS");
+    expect(result.logEntry!.issues!).not.toContain("fourth issue");
+  });
+
+  it("does not persist issues when verdict is approve", async () => {
+    const deps = makeDeps({
+      fetch: mockJudgeFetch({
+        score: 8,
+        verdict: "approve",
+        issues: ["minor nitpick that did not warrant revision"],
+        vetoedActionIndexes: [],
+      }),
+    });
+    const result = await runQualityLoop(makeParams(), deps);
+
+    expect(result.logEntry!.verdict).toBe("approve");
+    expect(result.logEntry!.issues).toBeUndefined();
+  });
+});
+
+describe("buildQualityMemory", () => {
+  function entry(overrides: Partial<QualityLogEntry> = {}): QualityLogEntry {
+    return {
+      ts: "2026-06-10T00:00:00Z",
+      judgeScore: 8,
+      verdict: "approve",
+      revised: false,
+      vetoedActions: 0,
+      model: "m",
+      ...overrides,
+    };
+  }
+
+  it("returns null when metadata has no qualityLog", () => {
+    expect(buildQualityMemory({})).toBeNull();
+    expect(buildQualityMemory({ qualityLog: "not an array" })).toBeNull();
+    expect(buildQualityMemory({ qualityLog: [] })).toBeNull();
+  });
+
+  it("returns null when there are only unscored (error) entries", () => {
+    const metadata = { qualityLog: [entry({ judgeScore: null, verdict: "error" })] };
+    expect(buildQualityMemory(metadata)).toBeNull();
+  });
+
+  it("reports the average score and reply count", () => {
+    const metadata = { qualityLog: [entry({ judgeScore: 8 }), entry({ judgeScore: 9 }), entry({ judgeScore: 7 })] };
+    const memory = buildQualityMemory(metadata);
+
+    expect(memory).toContain("Recent quality signals for this gig");
+    expect(memory).toContain("avg judge score 8.0/10");
+    expect(memory).toContain("over last 3 replies");
+    expect(memory).not.toContain("needed revision");
+    expect(memory).not.toContain("revised for");
+  });
+
+  it("mentions revision count and issues from revised entries as guidance", () => {
+    const metadata = {
+      qualityLog: [
+        entry({ judgeScore: 9 }),
+        entry({ judgeScore: 4, verdict: "revise", revised: true, issues: ["too long for SMS", "overconfident claims"] }),
+        entry({ judgeScore: 5, verdict: "revise", revised: true, issues: ["missed the user's question"] }),
+      ],
+    };
+    const memory = buildQualityMemory(metadata);
+
+    expect(memory).toContain("avg judge score 6.0/10 over last 3 replies");
+    expect(memory).toContain("2 of 3 replies needed revision");
+    expect(memory).toContain("missed the user's question");
+    expect(memory).toContain("too long for SMS");
+    expect(memory).toContain("overconfident claims");
+    expect(memory).toContain("Avoid repeating these issues.");
+  });
+
+  it("tolerates malformed entries mixed into the log", () => {
+    const metadata = {
+      qualityLog: [
+        null,
+        "garbage",
+        42,
+        { unrelated: true },
+        entry({ judgeScore: "9" as unknown as number }),
+        entry({ judgeScore: 8 }),
+        entry({ judgeScore: 6, verdict: "revise", revised: true, issues: [null, "", "  real issue  "] as unknown as string[] }),
+      ],
+    };
+    const memory = buildQualityMemory(metadata);
+
+    expect(memory).toContain("avg judge score 7.0/10 over last 2 replies");
+    expect(memory).toContain("real issue");
+    expect(memory).not.toContain("garbage");
+  });
+
+  it("dedupes issues and caps them at 5, most recent first", () => {
+    const metadata = {
+      qualityLog: [
+        entry({ judgeScore: 5, verdict: "revise", revised: true, issues: ["issue 1", "issue 2", "issue 3"] }),
+        entry({ judgeScore: 5, verdict: "revise", revised: true, issues: ["issue 3", "issue 4", "issue 5"] }),
+        entry({ judgeScore: 5, verdict: "revise", revised: true, issues: ["issue 5", "issue 6", "issue 7"] }),
+      ],
+    };
+    const memory = buildQualityMemory(metadata)!;
+
+    // Newest entry's issues come first; older duplicates don't repeat.
+    expect(memory.indexOf("issue 5")).toBeLessThan(memory.indexOf("issue 3"));
+    expect(memory.match(/issue 5/g)).toHaveLength(1);
+    const mentioned = ["issue 1", "issue 2", "issue 3", "issue 4", "issue 5", "issue 6", "issue 7"]
+      .filter((i) => memory.includes(i));
+    expect(mentioned).toHaveLength(5);
+  });
+
+  it("uses singular phrasing for a single reply", () => {
+    const metadata = { qualityLog: [entry({ judgeScore: 9 })] };
+    expect(buildQualityMemory(metadata)).toContain("over last 1 reply.");
   });
 });
 

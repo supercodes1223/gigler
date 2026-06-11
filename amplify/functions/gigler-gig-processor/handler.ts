@@ -27,6 +27,7 @@ import { executeActions as executeActionsImpl, type ActionDeps } from "./execute
 import {
   runQualityLoop,
   appendQualityLog,
+  buildQualityMemory,
   isQualityLoopEnabled,
   type QualityLoopDeps,
   type QualityLoopResult,
@@ -2216,7 +2217,9 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
     userMessage = `${messageBody}\n[Also attached a photo/file — saved to media collection.]`;
   }
 
-  const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext);
+  const qualityMemory = buildQualityMemory(metadata);
+  const systemPrompt = buildGroupPrompt(gig, metadata, participants, senderName, author || "", setupContext)
+    + (qualityMemory ? `\n\n${qualityMemory}` : "");
   console.log(`[GigProcessor] Calling Gemini model: ${GEMINI_MODEL} (group conversation)`);
   const geminiInput = `[${senderName}]: ${userMessage}`;
   const geminiResponse = await callGemini(systemPrompt, geminiInput, history);
@@ -2395,7 +2398,9 @@ export const handler: Handler = async (event: Record<string, unknown>, context) 
 
   const history = await fetchConversationHistory(gigId, 30);
 
-  const systemPrompt = buildDirectPrompt(gig, metadata, senderName || "the user");
+  const directQualityMemory = buildQualityMemory(metadata);
+  const systemPrompt = buildDirectPrompt(gig, metadata, senderName || "the user")
+    + (directQualityMemory ? `\n\n${directQualityMemory}` : "");
 
   let enrichedMessage = message;
   let directVisionResult: ImageAnalysisResult | null = null;
