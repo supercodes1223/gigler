@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Eval results</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 800px at 30% 20%, #16331f 0%, #0a1410 45%, #060a08 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 52px;
+  }
+  .caption { text-align: center; color: #fff; max-width: 1300px; }
+  .caption .kicker {
+    font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #5ee49a; margin-bottom: 18px; font-weight: 600;
+  }
+  .caption h1 { font-size: 54px; font-weight: 700; letter-spacing: -0.02em; }
+  .caption p { margin-top: 16px; font-size: 25px; color: rgba(255,255,255,0.66); }
+  .stats { display: flex; gap: 28px; }
+  .stat {
+    width: 380px; padding: 38px 34px; border-radius: 20px; text-align: center;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  }
+  .stat.hero { border-color: rgba(94,228,154,0.55); background: rgba(94,228,154,0.07); box-shadow: 0 0 70px rgba(94,228,154,0.12); }
+  .stat .num { font-size: 64px; font-weight: 750; color: #fff; letter-spacing: -0.02em; }
+  .stat .num .accent { color: #5ee49a; }
+  .stat .label { margin-top: 12px; font-size: 21px; color: rgba(255,255,255,0.62); line-height: 1.35; }
+  .foot { font-size: 20px; color: rgba(255,255,255,0.42); }
+  .foot code { font-family: "SF Mono", ui-monospace, monospace; font-size: 18px; color: rgba(255,255,255,0.55); }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="kicker">Track 2 · Optimize — measure, refine instructions, re-measure</div>
+    <h1>20-case judge-on/off eval. Run live, twice.</h1>
+    <p>v1 exposed three judge blind spots &rarr; we encoded the checks into its system instructions &rarr; re-ran</p>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="num">2/5 <span class="accent">&rarr; 4/5</span></div>
+      <div class="label">adversarial defects caught<br>(v1 &rarr; v2 judge instructions)</div>
+    </div>
+    <div class="stat hero">
+      <div class="num">0 <span class="accent">&rarr; 9</span></div>
+      <div class="label">worst-case save: a hallucinated<br>"booking confirmed" never reached the user</div>
+    </div>
+    <div class="stat">
+      <div class="num">+<span class="accent">1.05</span></div>
+      <div class="label">avg blind-grader score delta,<br>judge-off vs judge-on (20 cases)</div>
+    </div>
+  </div>
+  <div class="foot">Harness + both runs committed: <code>amplify/functions/gigler-gig-processor/eval/</code> — including the case v2 still misses</div>
+</body>
+</html>
