@@ -10,6 +10,7 @@ export const giglerVoiceBridge = defineFunction({
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || "",
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+    VOICE_BRIDGE_URL: process.env.VOICE_BRIDGE_URL || "https://voice.gigler.ai",
   },
   resourceGroupName: "data",
 });

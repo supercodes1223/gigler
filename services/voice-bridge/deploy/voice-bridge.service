@@ -1,0 +1,20 @@
+[Unit]
+Description=Gigler Voice Bridge Server
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker stop voice-bridge
+ExecStartPre=-/usr/bin/docker rm voice-bridge
+ExecStart=/usr/bin/docker run \
+  --name voice-bridge \
+  --env-file /opt/voice-bridge/.env \
+  -p 127.0.0.1:8765:8765 \
+  voice-bridge:latest
+ExecStop=/usr/bin/docker stop voice-bridge
+
+[Install]
+WantedBy=multi-user.target

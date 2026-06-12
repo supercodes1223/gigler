@@ -1,0 +1,8 @@
+pipecat-ai[google]==0.0.107
+fastapi
+python-multipart
+uvicorn[standard]
+websockets
+boto3
+google-cloud-logging
+python-dotenv

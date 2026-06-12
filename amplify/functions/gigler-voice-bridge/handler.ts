@@ -28,6 +28,9 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+// Base URL of the Gemini Live voice bridge on GCE (e.g. https://voice.gigler.ai).
+// When set, real calls are placed; otherwise we fall back to SMS briefings.
+const VOICE_BRIDGE_URL = process.env.VOICE_BRIDGE_URL || "";
 
 interface TraceContext { traceId: string; requestId: string; source: string; }
 
@@ -164,8 +167,25 @@ export const handler: Handler = async (event: VoiceBridgeEvent, context) => {
       callContext = `Hi ${userName}! This is Gigler.`;
   }
 
-  // For now, send the briefing as SMS since Pipecat integration requires
-  // a separate WebSocket server deployment
+  // Place a real call through the Gemini Live voice bridge when configured.
+  // Health-check first: Twilio accepts the call-create request before it ever
+  // fetches our TwiML, so a dead bridge would otherwise mean a ringing call to
+  // nowhere AND no SMS fallback.
+  if (VOICE_BRIDGE_URL && (await isBridgeHealthy())) {
+    const params = new URLSearchParams({ callType: event.type, userId: event.userId });
+    if (event.gigId) params.set("gigId", event.gigId);
+    if (event.context) params.set("context", event.context.slice(0, 800));
+    const twimlUrl = `${VOICE_BRIDGE_URL.replace(/\/$/, "")}/voice/outbound?${params.toString()}`;
+
+    const callResult = await initiateCall(event.phone, twimlUrl);
+    if (callResult.success) {
+      await logVoiceAttempt(event, `Outbound voice call placed (${callResult.callSid})`);
+      log.info("Voice call placed via bridge", { callType: event.type, callSid: callResult.callSid });
+      return { statusCode: 200, body: `call:${callResult.callSid}` };
+    }
+    log.warn("Voice bridge call failed, falling back to SMS", { callType: event.type });
+  }
+
   const smsResult = await sendSms(event.phone, callContext);
   if (smsResult) {
     await logVoiceAttempt(event, callContext);
@@ -174,6 +194,17 @@ export const handler: Handler = async (event: VoiceBridgeEvent, context) => {
   log.info("Voice briefing sent via SMS", { callType: event.type, activeGigCount: gigs.length });
   return { statusCode: 200, body: callContext };
 };
+
+async function isBridgeHealthy(): Promise<boolean> {
+  try {
+    const res = await fetch(`${VOICE_BRIDGE_URL.replace(/\/$/, "")}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 async function sendSms(to: string, message: string): Promise<boolean> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !GIGLER_NUMBER) return false;
