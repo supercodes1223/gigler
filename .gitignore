@@ -54,3 +54,8 @@ amplify_outputs.*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python (voice bridge)
+__pycache__/
+*.pyc
+services/voice-bridge/.venv/
