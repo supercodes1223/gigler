@@ -59,3 +59,6 @@ next-env.d.ts
 __pycache__/
 *.pyc
 services/voice-bridge/.venv/
+
+# Cursor AI assistant config (internal dev tooling)
+.cursor/
