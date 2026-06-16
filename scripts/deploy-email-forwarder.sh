@@ -21,6 +21,15 @@ RUNTIME="nodejs22.x"
 HANDLER="index.handler"
 TIMEOUT=30
 MEMORY=256
+
+# Destination inbox for forwarded mail. Set this in your shell before deploying:
+#   export FORWARD_TO_EMAIL="your-inbox@example.com"
+FORWARD_TO_EMAIL="${FORWARD_TO_EMAIL:-}"
+if [ -z "$FORWARD_TO_EMAIL" ]; then
+  echo "ERROR: FORWARD_TO_EMAIL is not set. Export it before deploying, e.g.:" >&2
+  echo "  export FORWARD_TO_EMAIL=\"your-inbox@example.com\"" >&2
+  exit 1
+fi
 SRC_DIR="amplify/functions/gigler-email-forwarder"
 ZIP_FILE="$SRC_DIR/function.zip"
 
@@ -50,6 +59,7 @@ if aws lambda get-function --function-name "$FUNCTION_NAME" --region "$REGION" >
     --handler "$HANDLER" \
     --timeout "$TIMEOUT" \
     --memory-size "$MEMORY" \
+    --environment "Variables={FORWARD_TO_EMAIL=$FORWARD_TO_EMAIL}" \
     --region "$REGION" \
     --output json | jq '{FunctionName, Runtime, Handler, Timeout, MemorySize}'
 else
@@ -63,7 +73,8 @@ else
     --memory-size "$MEMORY" \
     --zip-file "fileb://$ZIP_FILE" \
     --region "$REGION" \
-    --description "Forwards inbound *@gigler.ai emails to forwarding-target@example.com (manual deploy, NOT in Amplify)" \
+    --environment "Variables={FORWARD_TO_EMAIL=$FORWARD_TO_EMAIL}" \
+    --description "Forwards inbound *@gigler.ai emails to FORWARD_TO_EMAIL (manual deploy, NOT in Amplify)" \
     --output json | jq '{FunctionName, FunctionArn, Runtime, State}'
 fi
 

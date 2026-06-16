@@ -1,7 +1,7 @@
 {
   "name": "gigler-email-forwarder",
   "version": "1.0.0",
-  "description": "SES inbound email forwarder for *@gigler.ai -> forwarding-target@example.com. Deployed manually to us-east-2 (NOT via Amplify).",
+  "description": "SES inbound email forwarder for *@gigler.ai -> FORWARD_TO_EMAIL. Deployed manually to us-east-2 (NOT via Amplify).",
   "main": "index.js",
   "private": true,
   "dependencies": {

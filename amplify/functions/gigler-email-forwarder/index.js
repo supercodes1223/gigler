@@ -2,6 +2,10 @@
 
 const LambdaForwarder = require("aws-lambda-ses-forwarder");
 
+// Forwarding target is supplied via the FORWARD_TO_EMAIL env var at deploy time
+// so the real destination inbox is never committed to the repo.
+const forwardTo = process.env.FORWARD_TO_EMAIL || "forwarding-target@example.com";
+
 const overrides = {
   config: {
     fromEmail: "notifications@gigler.ai",
@@ -10,7 +14,7 @@ const overrides = {
     emailKeyPrefix: "emails/",
     allowPlusSign: true,
     forwardMapping: {
-      "@gigler.ai": ["forwarding-target@example.com"],
+      "@gigler.ai": [forwardTo],
     },
   },
 };

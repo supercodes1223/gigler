@@ -1,6 +1,6 @@
 # gigler-email-forwarder
 
-A standalone AWS Lambda function that forwards all inbound email sent to `*@gigler.ai` to `forwarding-target@example.com`.
+A standalone AWS Lambda function that forwards all inbound email sent to `*@gigler.ai` to a destination inbox configured via the `FORWARD_TO_EMAIL` environment variable (set at deploy time, never committed).
 
 ## Why is this Lambda NOT in Amplify?
 
@@ -18,12 +18,12 @@ Sender (anyone@anywhere)
   -> S3 PutObject in gigler-inbound-emails/emails/
   -> Invokes this Lambda
   -> SES SendRawEmail from notifications@gigler.ai
-  -> forwarding-target@example.com (Gmail)
+  -> FORWARD_TO_EMAIL (destination inbox)
 ```
 
 ## Forwarding behavior
 
-- All addresses at `@gigler.ai` (admin@, support@, hello@, gig@, foo+bar@, anything) forward to `forwarding-target@example.com`.
+- All addresses at `@gigler.ai` (admin@, support@, hello@, gig@, foo+bar@, anything) forward to the address in `FORWARD_TO_EMAIL`.
 - The original `From` is preserved as a `Reply-To` header, so replying from Gmail goes back to the actual sender.
 - The `From` header is rewritten to `Original Name <notifications@gigler.ai>` (required because SES will only send from verified domains).
 - Subject is preserved as-is (no prefix).
@@ -53,23 +53,19 @@ Sender (anyone@anywhere)
 
 The script bundles `index.js` + `node_modules/` into a zip and uploads it via `aws lambda update-function-code` (or creates the function on first run).
 
+## Configuring the destination
+
+The catch-all destination is read from the `FORWARD_TO_EMAIL` environment variable at deploy time (see the deploy script), so the real inbox is never committed to the repo.
+
 ## Adding new destination addresses
 
-Edit `index.js` -> `forwardMapping`, then redeploy. For example, to also send a copy to `alerts@example.com`:
+To route specific addresses to specific people, edit `index.js` -> `forwardMapping`, then redeploy:
 
 ```js
 forwardMapping: {
-  "@gigler.ai": ["forwarding-target@example.com", "alerts@example.com"],
-}
-```
-
-To route specific addresses to specific people:
-
-```js
-forwardMapping: {
-  "admin@gigler.ai": ["forwarding-target@example.com"],
+  "admin@gigler.ai": ["ops@example.com"],
   "billing@gigler.ai": ["finance@example.com"],
-  "@gigler.ai": ["forwarding-target@example.com"],
+  "@gigler.ai": [forwardTo], // catch-all from FORWARD_TO_EMAIL
 }
 ```
 
