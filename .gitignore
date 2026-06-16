@@ -54,6 +54,10 @@ amplify_outputs.*
 # pitch deck / fundraising materials (private, not part of the app)
 /pitch-deck/
 
+# internal planning / fundraising docs (private)
+/FUNDING_PRIORITY_PLAN.md
+/PLAN.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
