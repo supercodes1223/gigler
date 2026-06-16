@@ -57,6 +57,10 @@ amplify_outputs.*
 # internal planning / fundraising docs (private)
 /FUNDING_PRIORITY_PLAN.md
 /PLAN.md
+/CLOUDFLARE_REPLATFORM_PLAN.md
+/CLOUDFLARE_MIGRATION_RESEARCH.md
+/docs/lambda-ai-gemini-voice-strategy.md
+/docs/google-ai-agents-challenge-guide.md
 
 # typescript
 *.tsbuildinfo
