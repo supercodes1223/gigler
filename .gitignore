@@ -51,6 +51,9 @@ amplify_outputs.*
 # reference files (not part of the app)
 /reference/
 
+# pitch deck / fundraising materials (private, not part of the app)
+/pitch-deck/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
