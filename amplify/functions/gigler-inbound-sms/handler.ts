@@ -36,6 +36,9 @@ import {
   isValidGeneratedTitle,
   parseGigSelection,
   repairTruncatedJson,
+  getGeneralThreadId,
+  GEMINI_EMPTY_FALLBACK,
+  resolveGeneralChatResponse,
   type AnnotatedGig,
   type GigType,
   type TwilioSmsWebhook,
@@ -58,8 +61,6 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 const GIG_PROCESSOR_FUNCTION_NAME = process.env.GIG_PROCESSOR_FUNCTION_NAME || "";
 const MEDIA_PROCESSOR_FUNCTION_NAME = process.env.MEDIA_PROCESSOR_FUNCTION_NAME || "";
-
-const GENERAL_THREAD_ID = "_general";
 
 // ── Structured Tracing ───────────────────────────────────────────────────────
 
@@ -655,9 +656,7 @@ async function callGemini(
     );
 
     const data = await response.json();
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Sorry, I couldn't process that. Try again?";
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || GEMINI_EMPTY_FALLBACK;
     return text;
   } catch (error) {
     console.error("[Gigler] Gemini error:", error);
@@ -1048,7 +1047,7 @@ async function handleBrandNewUser(
   fromState?: string
 ): Promise<string> {
   const user = await createUser(phone, fromCity, fromState);
-  await logMessage(GENERAL_THREAD_ID, user.id, "Gigler", "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?", "outbound", "system");
+  await logMessage(getGeneralThreadId(user.id), user.id, "Gigler", "Welcome to Gigler! Let's create your first Gig.\nWhat's your name?", "outbound", "system");
 
   void sendVcardToNewUser(phone).then((result) => {
     void updateUserState(user.id, { vcardStatus: result.success ? "sent" : "failed" });
@@ -1069,11 +1068,12 @@ async function handleOnboardingNameCollection(
   await updateUserName(user.id, name);
   await markOnboardingComplete(user.id);
 
-  await logMessage(GENERAL_THREAD_ID, user.id, name, messageBody, "inbound");
+  const generalThreadId = getGeneralThreadId(user.id);
+  await logMessage(generalThreadId, user.id, name, messageBody, "inbound");
 
   const response = `Hey ${name}! To start your first Gig, just tell me what you need.\n\nAnything goes:\n- "Plan a birthday party for next Saturday"\n- "Build me a website for my business"\n- "Remind me to call mom every Sunday at 10am"\n\nWhat can I help with?`;
 
-  await logMessage(GENERAL_THREAD_ID, "gigler", "Gigler", response, "outbound", "ai");
+  await logMessage(generalThreadId, "gigler", "Gigler", response, "outbound", "ai");
   return response;
 }
 
@@ -1379,12 +1379,14 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     }
 
     // Step 7: Default — general conversation with Gemini (no active gigs)
-    await logMessage(GENERAL_THREAD_ID, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
-    const history = await fetchConversationHistory(GENERAL_THREAD_ID, 20);
+    const generalThreadId = getGeneralThreadId(user.id);
+    await logMessage(generalThreadId, user.id, user.name || fromPhone, body, "inbound", mediaUrls.length > 0 ? "mms" : "sms", mediaUrls);
+    const history = await fetchConversationHistory(generalThreadId, 20);
     const systemPrompt = buildSystemPrompt(user, isKnownGuest);
-    const aiResponse = await callGemini(systemPrompt, body, history);
+    const geminiResponse = await callGemini(systemPrompt, body, history);
+    const aiResponse = resolveGeneralChatResponse(geminiResponse, user.name);
 
-    await logMessage(GENERAL_THREAD_ID, "gigler", "Gigler", aiResponse, "outbound", "ai");
+    await logMessage(generalThreadId, "gigler", "Gigler", aiResponse, "outbound", "ai");
     await sendSms(fromPhone, aiResponse);
 
     // Download MMS media even in general conversation
@@ -1392,7 +1394,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       ulog.info("Invoking media-processor for general MMS", { urlCount: mediaUrls.length });
       await invokeLambdaAsync(MEDIA_PROCESSOR_FUNCTION_NAME, {
         action: "download_mms",
-        gigId: GENERAL_THREAD_ID,
+        gigId: generalThreadId,
         userId: user.id,
         mediaUrls,
         phone: fromPhone,

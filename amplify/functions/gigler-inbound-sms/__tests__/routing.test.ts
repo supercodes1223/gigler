@@ -3,9 +3,11 @@ import {
   buildDisambiguationList,
   buildGigDescriptions,
   buildKnownParticipantWelcomeMessage,
+  buildGeneralChatFallback,
   classifyGigTypeFallback,
   deduplicateGigs,
   extractMediaUrls,
+  getGeneralThreadId,
   getSafeFallbackTitle,
   hasOtherRecipients,
   isExplicitCommandMessage,
@@ -13,6 +15,8 @@ import {
   isValidGeneratedTitle,
   parseGigSelection,
   repairTruncatedJson,
+  resolveGeneralChatResponse,
+  GEMINI_EMPTY_FALLBACK,
   type AnnotatedGig,
   type TwilioSmsWebhook,
 } from "../utils";
@@ -451,5 +455,33 @@ describe("json repair helper", () => {
 
   it("returns null when repair is impossible", () => {
     expect(repairTruncatedJson("not json at all")).toBeNull();
+  });
+});
+
+describe("general chat thread helpers", () => {
+  it("scopes general thread id per user", () => {
+    expect(getGeneralThreadId("usr_charles_001")).toBe("_general:usr_charles_001");
+    expect(getGeneralThreadId("usr_other_002")).toBe("_general:usr_other_002");
+  });
+
+  it("builds a friendly fallback for known users", () => {
+    expect(buildGeneralChatFallback("Charles")).toContain("Hey Charles!");
+    expect(buildGeneralChatFallback("Charles")).toContain("list my gigs");
+  });
+
+  it("builds a friendly fallback without a name", () => {
+    expect(buildGeneralChatFallback()).toBe(
+      "Hey there! What can I help with? Text me a task to start a new gig, or say 'list my gigs'."
+    );
+  });
+
+  it("replaces empty Gemini responses with the general chat fallback", () => {
+    expect(resolveGeneralChatResponse("", "Charles")).toContain("Hey Charles!");
+    expect(resolveGeneralChatResponse(GEMINI_EMPTY_FALLBACK, "Charles")).toContain("Hey Charles!");
+  });
+
+  it("preserves non-empty Gemini responses", () => {
+    const geminiReply = "Sure, I can help with that!";
+    expect(resolveGeneralChatResponse(geminiReply, "Charles")).toBe(geminiReply);
   });
 });

@@ -249,3 +249,23 @@ export function classifyGigTypeFallback(msg: string): GigType {
 export function isExplicitCommandMessage(message: string): boolean {
   return /^(list|my gigs|show gigs|create|new gig|done|finish|complete|pause|hold|archive|delete|remove|cancel)\b/i.test(message.trim());
 }
+
+/** Per-user general chat thread key (Message table gigId partition). */
+export function getGeneralThreadId(userId: string): string {
+  return `_general:${userId}`;
+}
+
+export const GEMINI_EMPTY_FALLBACK = "Sorry, I couldn't process that. Try again?";
+
+export function buildGeneralChatFallback(userName?: string): string {
+  const name = userName?.trim();
+  const greeting = name ? `Hey ${name}!` : "Hey there!";
+  return `${greeting} What can I help with? Text me a task to start a new gig, or say 'list my gigs'.`;
+}
+
+export function resolveGeneralChatResponse(geminiText: string, userName?: string): string {
+  if (!geminiText.trim() || geminiText === GEMINI_EMPTY_FALLBACK) {
+    return buildGeneralChatFallback(userName);
+  }
+  return geminiText;
+}
