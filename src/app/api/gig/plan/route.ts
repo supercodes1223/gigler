@@ -57,6 +57,13 @@ function parsePlanJson(text: string, prompt: string, source: PlanResult["source"
   return { appIds: [...new Set(appIds)].slice(0, 7), title, source };
 }
 
+interface GeminiResponse {
+  candidates?: Array<{
+    finishReason?: string;
+    content?: { parts?: Array<{ text?: string }> };
+  }>;
+}
+
 async function planWithGemini(prompt: string): Promise<PlanResult | null> {
   if (!GEMINI_API_KEY) return null;
   try {
@@ -68,7 +75,11 @@ async function planWithGemini(prompt: string): Promise<PlanResult | null> {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: PLANNER_RULES }] },
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 200, temperature: 0.2 },
+          generationConfig: {
+            maxOutputTokens: 1024,
+            temperature: 0.2,
+            thinkingConfig: { thinkingBudget: 256 },
+          },
         }),
       },
     );
@@ -76,9 +87,15 @@ async function planWithGemini(prompt: string): Promise<PlanResult | null> {
       console.error(`[GigPlan] Gemini planning failed (${resp.status}), using keyword fallback`);
       return null;
     }
-    const data = await resp.json();
-    const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return parsePlanJson(text, prompt, "gemini");
+    const data: GeminiResponse = await resp.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const plan = parsePlanJson(text, prompt, "gemini");
+    if (!plan || text.length === 0) {
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      const textSnippet = text.slice(0, 120);
+      console.warn("[GigPlan] Gemini returned unusable output", { finishReason, textSnippet });
+    }
+    return plan;
   } catch (err) {
     console.error("[GigPlan] Gemini planning error, using keyword fallback:", err);
     return null;
