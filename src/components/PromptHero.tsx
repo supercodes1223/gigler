@@ -271,13 +271,13 @@ export default function PromptHero() {
             started ? "text-2xl md:text-3xl" : "text-4xl md:text-6xl"
           }`}
         >
-          Let&apos;s get stuff done.
+          AI Gig Worker
         </h1>
         {!started && (
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-brand-muted">
-            Describe what you need. Gigler plans it, picks the right AI agents and
-            apps, and gets the gig done reaching you by text, phone and email when
-            it needs you.
+            Describe what you need. Gigler plans it, picks the right apps and
+            agents, and gets the gig done — reaching you by text, call, or email
+            only when it needs you.
           </p>
         )}
       </div>
