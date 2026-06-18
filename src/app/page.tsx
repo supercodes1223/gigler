@@ -53,9 +53,9 @@ export default function HomePage() {
         />
         <div className="relative w-full">
           <PromptHero />
-          <p className="mx-auto mt-10 max-w-md text-center text-sm text-brand-muted">
-            Gigler orchestrates frontier AI agents, models, and the apps you
-            already use.{" "}
+          <p className="mx-auto mt-10 max-w-lg text-center text-sm text-brand-muted">
+            No guesswork. Gigler picks the best AI models and agents to get your
+            gig done behind the scenes.{" "}
             <Link href="/about" className="text-foreground underline-offset-4 hover:underline">
               Learn how it works
             </Link>
