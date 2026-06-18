@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getApps, type AppDef } from "@/lib/apps";
+import { useGigStatus } from "@/components/GigStatusProvider";
 
 type Phase = "idle" | "planning" | "phone" | "otp" | "creating" | "done";
 
@@ -41,6 +42,7 @@ export default function PromptHero() {
   const [notConfigured, setNotConfigured] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const { setInProgress, registerReset } = useGigStatus();
 
   const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
   /** Minimum "thinking" beat so the planning state never just flashes. */
@@ -65,6 +67,18 @@ export default function PromptHero() {
   }, []);
 
   const started = phase !== "idle";
+
+  // A gig is "underway" once it has started and before it reaches "done".
+  // Share this with the rest of the app (e.g. SideRail) so navigating away
+  // can confirm first.
+  useEffect(() => {
+    setInProgress(started && phase !== "done");
+  }, [started, phase, setInProgress]);
+
+  // Let other UI (the SideRail brand logo) reset this hero to its empty state.
+  useEffect(() => {
+    registerReset(() => reset());
+  }, [registerReset]);
 
   // Smoothly auto-rotate the example suggestions while idle. Pauses on
   // hover/focus, when a gig has started, and when the user prefers reduced motion.
@@ -368,78 +382,35 @@ export default function PromptHero() {
           ) : (
             <>
               <div className="text-sm text-brand-muted">
-                Gigler is wiring up the tools{plan?.title ? ` for ${plan.title}` : ""}:
+                Gigler picked the right tools{plan?.title ? ` for ${plan.title}` : ""}:
               </div>
               {apps.length > 0 && (
-                <div className="relative mt-5">
-                  {/* Orchestration hub */}
-                  <div className="flex justify-center">
-                    <div className="orch-hub inline-flex items-center gap-2 rounded-full border border-brand-border bg-background-alt px-3.5 py-1.5">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-brand-accent to-purple-500 text-[0.6rem] font-extrabold text-white">
-                        G
-                      </span>
-                      <span className="text-xs font-semibold text-foreground">Gigler</span>
-                    </div>
-                  </div>
-
-                  {/* Animated connector wires drawing out to each tool */}
-                  <svg
-                    className="orch-wires hidden h-10 w-full sm:block"
-                    viewBox="0 0 1000 40"
-                    preserveAspectRatio="none"
-                    aria-hidden
-                  >
-                    {apps.map((app, i) => {
-                      const x = ((i + 0.5) / apps.length) * 1000;
-                      const d = `M500 0 C 500 28 ${x} 12 ${x} 40`;
-                      return (
-                        <g key={app.id}>
-                          {/* Base wire draws out from the hub in sequence. */}
-                          <path
-                            className="orch-wire"
-                            d={d}
-                            style={{ stroke: app.color, animationDelay: `${i * 80}ms` }}
-                          />
-                          {/* A glowing pulse then travels the wire — Gigler wiring it up. */}
-                          <path
-                            className="orch-pulse"
-                            d={d}
-                            pathLength={100}
-                            style={{ stroke: app.color, animationDelay: `${620 + i * 80}ms` }}
-                          />
-                        </g>
-                      );
-                    })}
-                  </svg>
-
-                  {/* Tool nodes settle into place */}
-                  <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-4 sm:mt-0">
-                    {apps.map((app, i) => (
-                      <div
-                        key={app.id}
-                        className="app-pop flex w-16 flex-col items-center gap-2"
-                        style={{ animationDelay: `${340 + i * 80}ms` }}
+                <div className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-4">
+                  {apps.map((app, i) => (
+                    <div
+                      key={app.id}
+                      className="tool-rise flex w-16 flex-col items-center gap-2"
+                      style={{ animationDelay: `${i * 90}ms` }}
+                    >
+                      <span
+                        className="flex h-12 w-12 items-center justify-center rounded-[14px] transition-transform duration-300 hover:scale-105"
+                        style={{ boxShadow: `0 0 0 1px ${app.color}33, 0 8px 22px -8px ${app.color}aa` }}
                       >
-                        <span
-                          className="flex h-12 w-12 items-center justify-center rounded-[14px] transition-transform duration-300 hover:scale-105"
-                          style={{ boxShadow: `0 0 0 1px ${app.color}33, 0 8px 22px -8px ${app.color}aa` }}
-                        >
-                          <Image
-                            src={app.logo}
-                            alt=""
-                            aria-hidden
-                            width={48}
-                            height={48}
-                            unoptimized
-                            className="h-12 w-12 rounded-[14px]"
-                          />
-                        </span>
-                        <span className="text-center text-xs font-medium leading-tight text-brand-muted">
-                          {app.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                        <Image
+                          src={app.logo}
+                          alt=""
+                          aria-hidden
+                          width={48}
+                          height={48}
+                          unoptimized
+                          className="h-12 w-12 rounded-[14px]"
+                        />
+                      </span>
+                      <span className="text-center text-xs font-medium leading-tight text-brand-muted">
+                        {app.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </>

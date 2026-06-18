@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GigStatusProvider } from "@/components/GigStatusProvider";
 import PromptHero from "@/components/PromptHero";
 import SideRail from "@/components/SideRail";
 import SiteFooter from "@/components/SiteFooter";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
+    <GigStatusProvider>
     <main className="flex-1 md:pl-14">
       <SideRail />
 
@@ -63,5 +65,6 @@ export default function HomePage() {
 
       <SiteFooter />
     </main>
+    </GigStatusProvider>
   );
 }

@@ -309,14 +309,18 @@ body {
   .prompt-glow::before, .prompt-glow::after { animation: none !important; }
 }
 
-/* ── App/agent reveal: smooth staggered pop-in ───────────────────────────── */
-@keyframes app-pop {
-  from { opacity: 0; transform: translateY(10px) scale(0.92); }
+/* ── Tool/agent reveal: smooth staggered slide-up + fade ─────────────────── */
+@keyframes tool-rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.app-pop {
-  animation: app-pop 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+.tool-rise {
+  animation: tool-rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-rise { animation: none !important; }
 }
 
 /* ── Rotating example suggestion (rolodex-style enter) ───────────────────── */
@@ -332,65 +336,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .suggestion-cycle { animation: none !important; }
-}
-
-/* ── Orchestration reveal: hub + wires tie the tools together ────────────── */
-.orch-hub {
-  position: relative;
-}
-
-.orch-hub::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 9999px;
-  box-shadow: 0 0 0 1px rgba(124, 138, 255, 0.25);
-  animation: orch-pulse 2.4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes orch-pulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50%      { opacity: 0.65; transform: scale(1.05); }
-}
-
-.orch-wire {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
-  opacity: 0.55;
-  animation: orch-draw 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
-}
-
-@keyframes orch-draw {
-  to { stroke-dashoffset: 0; }
-}
-
-/* A short, glowing comet that travels each wire from the hub to its tool,
-   looping a couple of times — visually "wiring up" the orchestration. */
-.orch-pulse {
-  fill: none;
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-dasharray: 7 93;
-  stroke-dashoffset: 100;
-  opacity: 0;
-  animation: orch-pulse-travel 1.7s cubic-bezier(0.4, 0, 0.2, 1) 2;
-}
-
-@keyframes orch-pulse-travel {
-  0%   { stroke-dashoffset: 100; opacity: 0; }
-  12%  { opacity: 0.95; }
-  88%  { opacity: 0.95; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orch-wire { animation: none !important; stroke-dashoffset: 0 !important; }
-  .orch-pulse { animation: none !important; opacity: 0 !important; }
-  .orch-hub::after { animation: none !important; }
 }
 
 /* ── Thinking-state shimmer (skeleton tiles) ─────────────────────────────── */

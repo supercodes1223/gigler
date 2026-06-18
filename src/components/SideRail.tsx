@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useGigStatus } from "@/components/GigStatusProvider";
 
 interface RailItem {
   href: string;
@@ -107,6 +108,8 @@ function Tooltip({ label }: { label: string }) {
 
 export default function SideRail() {
   const pathname = usePathname() || "/";
+  const router = useRouter();
+  const { inProgress, reset } = useGigStatus();
   // Active highlighting depends on the URL, which can differ between the static
   // prerender and the client. Defer it until after mount so the first client
   // paint matches the server exactly (no hydration mismatch).
@@ -115,12 +118,31 @@ export default function SideRail() {
 
   const isActive = (match?: (p: string) => boolean) => mounted && (match?.(pathname) ?? false);
 
+  // The brand mark returns home. If a gig is underway we confirm first so the
+  // user doesn't lose in-progress work; on the home route we reset the hero in
+  // place rather than triggering a full navigation.
+  const handleBrandClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (inProgress) {
+      const ok = window.confirm(
+        "A gig is already underway. Leave and start over? Your current progress will be lost.",
+      );
+      if (!ok) return;
+    }
+    if (pathname === "/") {
+      reset();
+    } else {
+      router.push("/");
+    }
+  };
+
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-14 flex-col items-center border-r border-brand-border bg-background-alt/80 py-3 backdrop-blur-md md:flex">
       {/* Brand */}
       <Link
         href="/"
         aria-label="Gigler home"
+        onClick={handleBrandClick}
         className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-accent to-purple-500 text-sm font-extrabold text-white shadow-lg shadow-black/30"
       >
         G
