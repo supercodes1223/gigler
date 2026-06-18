@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { getApps, type AppDef } from "@/lib/apps";
+import { getApp, getApps, type AppDef } from "@/lib/apps";
 import { useGigStatus } from "@/components/GigStatusProvider";
 
 type Phase = "idle" | "planning" | "ready" | "phone" | "otp" | "creating" | "done";
@@ -13,12 +13,18 @@ interface Plan {
   title: string;
 }
 
-const EXAMPLE_PROMPTS = [
-  "Build a landing page for my coffee shop",
-  "Plan a birthday dinner for 20 people",
-  "Reserve a table for 4 on Friday night",
-  "Track these utility bills and remind everyone",
-  "Organize our tournament photos by player",
+interface ExamplePrompt {
+  text: string;
+  /** ~3 curated tool ids whose small logos preview inside the pill. */
+  appIds: string[];
+}
+
+const EXAMPLE_PROMPTS: ExamplePrompt[] = [
+  { text: "Build a landing page for my coffee shop", appIds: ["cursor", "github", "aws"] },
+  { text: "Plan a birthday dinner for 20 people", appIds: ["opentable", "evite", "resy"] },
+  { text: "Reserve a table for 4 on Friday night", appIds: ["opentable", "resy", "yelp"] },
+  { text: "Track these utility bills and remind everyone", appIds: ["stripe", "gmail", "slack"] },
+  { text: "Organize our tournament photos by player", appIds: ["google", "claude", "gmail"] },
 ];
 
 export default function PromptHero() {
@@ -93,7 +99,7 @@ export default function PromptHero() {
     }
     const id = setInterval(() => {
       setSuggestionIndex((i) => (i + 1) % EXAMPLE_PROMPTS.length);
-    }, 2600);
+    }, 4600);
     return () => clearInterval(id);
   }, [started, rotationPaused]);
 
@@ -330,21 +336,44 @@ export default function PromptHero() {
         <div className="mt-6 flex flex-col items-center gap-3">
           <button
             type="button"
-            onClick={() => void handleSubmitPrompt(EXAMPLE_PROMPTS[suggestionIndex])}
+            onClick={() => void handleSubmitPrompt(EXAMPLE_PROMPTS[suggestionIndex].text)}
             onMouseEnter={() => setRotationPaused(true)}
             onMouseLeave={() => setRotationPaused(false)}
             onFocus={() => setRotationPaused(true)}
             onBlur={() => setRotationPaused(false)}
-            aria-label={`Try this example gig: ${EXAMPLE_PROMPTS[suggestionIndex]}`}
-            className="group flex max-w-full items-center gap-2.5 rounded-full border border-brand-border bg-brand-surface/50 py-2.5 pl-4 pr-3 text-sm transition hover:border-brand-accent/50 hover:bg-brand-surface"
+            aria-label={`Try this example gig: ${EXAMPLE_PROMPTS[suggestionIndex].text}`}
+            className="group flex max-w-full items-center gap-2.5 rounded-full border border-brand-border bg-brand-surface/50 py-2.5 pl-3 pr-3 text-sm transition hover:border-brand-accent/50 hover:bg-brand-surface"
           >
+            {/* Curated tool logos for this example — fixed width to avoid jank */}
+            <span
+              key={`logos-${suggestionIndex}`}
+              className="flex w-[3.4rem] shrink-0 items-center justify-center"
+              aria-hidden
+            >
+              {EXAMPLE_PROMPTS[suggestionIndex].appIds
+                .map((id) => getApp(id))
+                .filter((a): a is AppDef => Boolean(a))
+                .map((app, i) => (
+                  <Image
+                    key={app.id}
+                    src={app.logo}
+                    alt=""
+                    aria-hidden
+                    width={18}
+                    height={18}
+                    unoptimized
+                    className="pill-logo-in -ml-1.5 h-[18px] w-[18px] rounded-[5px] ring-1 ring-background/70 first:ml-0"
+                    style={{ animationDelay: `${i * 90}ms` }}
+                  />
+                ))}
+            </span>
             <span className="relative h-5 overflow-hidden text-left">
               <span
                 key={suggestionIndex}
                 aria-live="polite"
                 className="suggestion-cycle block whitespace-nowrap font-medium text-foreground"
               >
-                {EXAMPLE_PROMPTS[suggestionIndex]}
+                {EXAMPLE_PROMPTS[suggestionIndex].text}
               </span>
             </span>
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-foreground transition group-hover:bg-foreground/20">
@@ -356,7 +385,7 @@ export default function PromptHero() {
           <div className="flex items-center gap-1.5" aria-hidden>
             {EXAMPLE_PROMPTS.map((ex, i) => (
               <span
-                key={ex}
+                key={ex.text}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === suggestionIndex ? "w-5 bg-brand-accent" : "w-1.5 bg-brand-border"
                 }`}

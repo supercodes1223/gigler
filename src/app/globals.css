@@ -338,6 +338,20 @@ body {
   .suggestion-cycle { animation: none !important; }
 }
 
+/* ── Example-pill logos: subtle staggered fade + slide/scale on each rotate ─ */
+@keyframes pill-logo-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.7); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pill-logo-in {
+  animation: pill-logo-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-logo-in { animation: none !important; }
+}
+
 /* ── Thinking-state shimmer (skeleton tiles) ─────────────────────────────── */
 @keyframes shimmer-sweep {
   0%   { background-position: -200% 0; }
