@@ -232,6 +232,166 @@ export async function getGig(gigId: string): Promise<GigRecord | null> {
   return result.data?.getGig || null;
 }
 
+// ── Config ──────────────────────────────────────────────────────────────────
+
+/** True when the AppSync API key is present so server-side writes can succeed. */
+export function isAppsyncConfigured(): boolean {
+  return Boolean(APPSYNC_API_KEY && APPSYNC_URL);
+}
+
+// ── User upsert (web gig creation) ──────────────────────────────────────────
+
+export interface UserRecord {
+  id: string;
+  phone: string;
+  name: string | null;
+  plan: string | null;
+}
+
+export async function findUserByPhone(phone: string): Promise<UserRecord | null> {
+  const query = `
+    query GetUserByPhone($phone: String!) {
+      getUserByPhone(phone: $phone) {
+        items { id phone name plan }
+      }
+    }
+  `;
+  const result = await appsyncQuery<{
+    getUserByPhone: { items: UserRecord[] };
+  }>(query, { phone });
+  return result.data?.getUserByPhone?.items?.[0] || null;
+}
+
+export async function findUserByEmail(email: string): Promise<UserRecord | null> {
+  const query = `
+    query GetUserByEmail($email: String!) {
+      getUserByEmail(email: $email) {
+        items { id phone name plan }
+      }
+    }
+  `;
+  const result = await appsyncQuery<{
+    getUserByEmail: { items: UserRecord[] };
+  }>(query, { email });
+  return result.data?.getUserByEmail?.items?.[0] || null;
+}
+
+export async function createUserRecord(phone: string, name?: string): Promise<UserRecord> {
+  const id = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const mutation = `
+    mutation CreateUser($input: CreateUserInput!) {
+      createUser(input: $input) {
+        id phone name plan
+      }
+    }
+  `;
+  const result = await appsyncQuery<{ createUser: UserRecord }>(mutation, {
+    input: {
+      id,
+      phone,
+      ...(name ? { name } : {}),
+      plan: "free",
+      onboardingComplete: false,
+    },
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  return result.data?.createUser || { id, phone, name: name ?? null, plan: "free" };
+}
+
+// ── Gig + Message creation (web gig creation) ───────────────────────────────
+
+export interface CreateGigArgs {
+  ownerId: string;
+  title: string;
+  description: string;
+  type: string;
+  shortCode: string;
+  metadata: string;
+}
+
+export interface CreatedGig {
+  id: string;
+  shortCode: string;
+}
+
+export async function createGigRecord(args: CreateGigArgs): Promise<CreatedGig> {
+  const id = `gig_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const mutation = `
+    mutation CreateGig($input: CreateGigInput!) {
+      createGig(input: $input) { id shortCode }
+    }
+  `;
+  const result = await appsyncQuery<{ createGig: { id: string; shortCode: string } }>(mutation, {
+    input: {
+      id,
+      ownerId: args.ownerId,
+      title: args.title,
+      description: args.description,
+      type: args.type,
+      status: "active",
+      shortCode: args.shortCode,
+      metadata: args.metadata,
+    },
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  return { id: result.data?.createGig?.id || id, shortCode: args.shortCode };
+}
+
+export async function createGigParticipantRecord(
+  gigId: string,
+  phone: string,
+  userId: string,
+  name?: string,
+): Promise<void> {
+  const mutation = `
+    mutation CreateGigParticipant($input: CreateGigParticipantInput!) {
+      createGigParticipant(input: $input) { gigId phone }
+    }
+  `;
+  await appsyncQuery(mutation, {
+    input: {
+      gigId,
+      phone,
+      userId,
+      role: "owner",
+      ...(name ? { name } : {}),
+      isGuest: false,
+      joinedAt: new Date().toISOString(),
+    },
+  });
+}
+
+export async function createMessageRecord(
+  gigId: string,
+  senderId: string,
+  senderName: string,
+  body: string,
+): Promise<void> {
+  const mutation = `
+    mutation CreateMessage($input: CreateMessageInput!) {
+      createMessage(input: $input) { gigId timestamp }
+    }
+  `;
+  const result = await appsyncQuery(mutation, {
+    input: {
+      gigId,
+      timestamp: new Date().toISOString(),
+      senderId,
+      senderName,
+      body,
+      messageType: "sms",
+      direction: "inbound",
+    },
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+}
+
 // ── Media queries ──────────────────────────────────────────────────────────
 
 export interface MediaRecord {

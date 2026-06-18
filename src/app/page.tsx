@@ -1,311 +1,60 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import CapabilityGrid from "@/components/CapabilityGrid";
-import GiglerHeroDemo from "@/components/GiglerHeroDemo";
-import InviteRequestForm from "@/components/InviteRequestForm";
-import OrchestrationHeroDemo from "@/components/OrchestrationHeroDemo";
+import PromptHero from "@/components/PromptHero";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Gigler — AI Work Orchestration for Real Work",
+  title: "Gigler — Let's get stuff done",
+  description:
+    "Describe what you need. Gigler plans it, picks the right apps and agents, and gets the gig done — reaching you by text when it needs you.",
   alternates: { canonical: "/" },
 };
-
-const orchestrationLogos = [
-  { name: "ChatGPT", src: "/logos/chatgpt.svg" },
-  { name: "Claude Code", src: "/logos/claude.svg" },
-  { name: "Codex", src: "/logos/chatgpt.svg" },
-  { name: "Cursor", src: "/logos/cursor.svg" },
-  { name: "Gemini", src: "/logos/gemini.svg" },
-  { name: "Google Cloud", src: "/logos/google-cloud.svg" },
-  { name: "AWS", src: "/logos/aws.svg" },
-  { name: "OpenClaw", initials: "OC" },
-  { name: "Claude Cowork", src: "/logos/claude.svg" },
-  { name: "Hermes", initials: "H" },
-] as const;
-
-function OrchestrationLogoStrip({ className = "" }: { className?: string }) {
-  return (
-    <div className={className}>
-      <p className="mb-4 max-w-sm text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
-        AI Gig Orchestration
-      </p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-md">
-        {orchestrationLogos.map((logo) => (
-          <div
-            key={logo.name}
-            className="flex min-h-12 items-center gap-3 rounded-lg border border-brand-border bg-brand-surface/55 px-3 py-2"
-          >
-            {"src" in logo ? (
-              <Image
-                src={logo.src}
-                alt=""
-                width={22}
-                height={22}
-                className="h-5 w-5 shrink-0 brightness-0 invert opacity-70"
-              />
-            ) : (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-brand-border text-[9px] font-bold tracking-normal text-brand-muted">
-                {logo.initials}
-              </span>
-            )}
-            <span className="text-sm font-semibold leading-tight text-foreground">
-              {logo.name}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function HomePage() {
   return (
     <main className="flex-1">
       {/* Nav */}
-      <nav className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-brand-border">
+      <nav className="fixed top-0 z-50 w-full border-b border-brand-border bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
           </Link>
-          <details className="relative md:hidden">
-            <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border border-brand-border bg-brand-surface text-foreground transition hover:bg-brand-surface-hover">
-              <span className="sr-only">Open navigation menu</span>
-              <span className="flex flex-col gap-1">
-                <span className="block h-0.5 w-4 rounded-full bg-current" />
-                <span className="block h-0.5 w-4 rounded-full bg-current" />
-                <span className="block h-0.5 w-4 rounded-full bg-current" />
-              </span>
-            </summary>
-            <div className="absolute right-0 top-14 w-56 rounded-2xl border border-brand-border bg-background-alt/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
-              <Link
-                href="/about"
-                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
-              >
-                About
-              </Link>
-              <Link
-                href="/pricing"
-                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/careers"
-                className="block rounded-xl px-4 py-3 text-sm font-medium text-brand-muted transition hover:bg-brand-surface hover:text-foreground"
-              >
-                Careers
-              </Link>
-              <Link
-                href="/#request-invite"
-                className="mt-1 block rounded-xl bg-foreground px-4 py-3 text-sm font-semibold text-background transition hover:bg-white"
-              >
-                Request Invite
-              </Link>
-            </div>
-          </details>
-          <div className="hidden md:flex items-center gap-8 text-sm">
-            <Link href="/about" className="text-brand-muted hover:text-foreground transition">
-              About
+          <div className="flex items-center gap-6 text-sm">
+            <Link href="/about" className="text-brand-muted transition hover:text-foreground">
+              Learn more
             </Link>
-            <Link href="/pricing" className="text-brand-muted hover:text-foreground transition">
+            <Link
+              href="/pricing"
+              className="hidden text-brand-muted transition hover:text-foreground sm:inline"
+            >
               Pricing
             </Link>
-            <Link href="/careers" className="text-brand-muted hover:text-foreground transition">
-              Careers
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-brand-border px-4 py-2 font-medium text-foreground transition hover:bg-brand-surface"
+            >
+              Log in
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="px-6 pb-16 pt-24 lg:pb-20">
-        <div className="mx-auto grid w-full max-w-6xl items-start gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-16">
-          <div className="relative z-20">
-            <h1 className="mb-6 text-[2.55rem] font-bold leading-tight tracking-tight min-[390px]:text-5xl md:text-7xl">
-              <span className="inline-flex items-baseline gigler-glow" style={{ gap: "0" }}>
-                <span>Gig</span>
-                <span className="rolodex-container">
-                  <span className="rolodex-word" style={{ color: "#4285F4" }}>economy</span>
-                  <span className="rolodex-word" style={{ color: "#34A853" }}>coding</span>
-                  <span className="rolodex-word" style={{ color: "#F25022" }}>organizing</span>
-                  <span className="rolodex-word" style={{ color: "#4285F4" }}>planning</span>
-                  <span className="rolodex-word" style={{ color: "#EA4335" }}>collaborating</span>
-                  <span className="rolodex-word" style={{ color: "#34A853" }}>orchestrating</span>
-                  <span className="rolodex-word">ler</span>
-                </span>
-              </span>
-            </h1>
-            <p className="mb-8 max-w-lg text-lg leading-relaxed text-brand-muted md:text-xl">
-              <strong className="text-foreground">Send a request. Gigler gets to work.</strong>
-              <br />
-              Gigler plans, tracks, and delivers real work, reaching you by
-              text, email, or voice when it needs you.
-            </p>
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <Link
-                href="/#request-invite"
-                className="rounded-full bg-foreground px-8 py-3 text-center text-base font-semibold text-background transition hover:bg-white"
-              >
-                Request Invite
-              </Link>
-              <Link
-                href="/#how-it-works"
-                className="rounded-full border border-brand-border px-8 py-3 text-center text-base font-semibold text-foreground transition hover:bg-brand-surface"
-              >
-                Learn More
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative z-10 -mt-20 sm:-mt-12 lg:-mt-40">
-            <OrchestrationHeroDemo className="max-w-[330px] sm:max-w-[430px] lg:max-w-xl" />
-          </div>
-        </div>
-      </section>
-
-      {/* Process demo */}
-      <section id="how-it-works" className="scroll-mt-24 px-6 pb-24 pt-6">
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div className="lg:sticky lg:top-28">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
-              How it works
-            </p>
-            <h2 className="mb-5 text-3xl font-bold leading-tight md:text-4xl">
-              Every request becomes a Gig.
-            </h2>
-            <p className="max-w-xl text-lg leading-relaxed text-brand-muted">
-              Text, email, or voice. Gigler plans the work, picks the right
-              agents and tools, tracks progress, and delivers the result.
-            </p>
-          </div>
-          <div className="ai-glow relative">
-            <GiglerHeroDemo />
-          </div>
-        </div>
-      </section>
-
-      {/* Orchestration positioning */}
-      <section id="orchestration" className="scroll-mt-24 px-6 pb-24">
-        <div className="mx-auto max-w-6xl rounded-lg border border-brand-border bg-background-alt/70 p-6 md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-            <div>
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
-                Orchestration
-              </p>
-              <h2 className="max-w-xl text-3xl font-bold leading-tight md:text-4xl">
-                Stop choosing tools. Start finishing actual work.
-              </h2>
-              <OrchestrationLogoStrip className="mt-10 hidden lg:block" />
-            </div>
-            <div className="space-y-5 text-lg leading-relaxed text-brand-muted">
-              <p>
-                AI tools are getting more capable every week. But each one
-                lives in its own interface, context, memory, and workflow.
-                Gigler brings together best-in-class agents, AI tools, and
-                frontier models without locking you into any single system, so
-                you do not have to choose the right tool, manage each step, and
-                keep the work on track yourself.
-              </p>
-              <p>
-                Users ask for the outcome, and Orca, our own model designed and
-                trained to route gigs across frontier AI agents, models, tools,
-                and leading platforms, breaks the gig into steps, chooses the
-                right mix, and coordinates the work across systems. One step
-                might go to a frontier coding agent, another to a cloud or
-                browser tool, and another to an AI agent with specialized
-                capabilities, all coordinated toward the completed gig.
-              </p>
-              <p>
-                Gigler looks at the work as a Gig, not a pile of tokens. The
-                focus is the outcome you want completed, not the model menu you
-                had to navigate to get there. As gigs are completed, Orca keeps
-                getting smarter at routing work across models, agents, and
-                platforms.
-              </p>
-            </div>
-          </div>
-          <OrchestrationLogoStrip className="mt-10 lg:hidden" />
-        </div>
-      </section>
-
-      {/* Everyday examples */}
-      <section className="px-6 pb-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 max-w-3xl">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-muted">
-              Everyday gigs
-            </p>
-            <h2 className="mb-5 text-3xl font-bold leading-tight md:text-4xl">
-              Gigler in your life.
-            </h2>
-            <p className="text-lg leading-relaxed text-brand-muted">
-              Bring Gigler into a text thread, email chain, or voice call. It
-              keeps the group moving, asks for decisions when needed, and turns
-              the outcome into a shareable gig.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Trip group chat
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                Add Gigler to the thread. It suggests places to see, tracks
-                what everyone picked, and sends the day&apos;s plan back to the
-                group.
-              </p>
-            </div>
-            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Shared photos
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                Drop photos and clips into the chat. Gigler sorts them by
-                person, moment, or event, then delivers an album link like
-                gigler.ai/trip123.
-              </p>
-            </div>
-            <div className="rounded-lg border border-brand-border bg-background-alt/60 p-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">
-                Human checkpoints
-              </p>
-              <p className="text-sm leading-relaxed text-brand-muted">
-                If a decision matters, Gigler can text, email, or call with the
-                update, then continue the gig once you choose the next step.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Showcase — deliverable types */}
-      <section className="py-24 px-6 bg-brand-surface">
-        <div className="mx-auto max-w-5xl text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            AI gig worker.
-          </h2>
-          <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-            Gigler untethers people from screens and dashboards by orchestrating
-            the work behind every request, then delivering the results.
+      {/* Hero — prompt-first */}
+      <section className="dot-grid relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/4 mx-auto h-72 max-w-3xl rounded-full bg-brand-accent/10 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative w-full">
+          <PromptHero />
+          <p className="mx-auto mt-10 max-w-md text-center text-sm text-brand-muted">
+            Gigler orchestrates frontier AI agents, models, and the apps you
+            already use.{" "}
+            <Link href="/about" className="text-foreground underline-offset-4 hover:underline">
+              Learn how it works
+            </Link>
+            .
           </p>
-        </div>
-
-        <CapabilityGrid />
-      </section>
-
-      {/* CTA */}
-      <section className="py-24 px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Request access to Gigler
-          </h2>
-          <p className="text-lg text-brand-muted mb-10">
-            Gigler is currently in closed beta. Enter your email and we&apos;ll review your
-            invite request.
-          </p>
-          <InviteRequestForm />
         </div>
       </section>
 
