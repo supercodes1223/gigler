@@ -35,6 +35,8 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
 const GIGLER_NUMBER = process.env.GIGLER_NUMBER || "";
 const GIG_PROCESSOR_FUNCTION_NAME = process.env.GIG_PROCESSOR_FUNCTION_NAME || "";
+const GIG_PROCESSOR_FUNCTION_URL = process.env.GIG_PROCESSOR_FUNCTION_URL || "";
+const WEB_GIG_SHARED_SECRET = process.env.WEB_GIG_SHARED_SECRET || "";
 
 /** Namespace used to store web sign-up OTPs in the DeliverableAccess table. */
 const OTP_SHORTCODE = "__web_gig_signup__";
@@ -114,26 +116,67 @@ function generateShortCode(): string {
   return out;
 }
 
+export function isProcessorTriggerConfigured(): boolean {
+  return Boolean(GIG_PROCESSOR_FUNCTION_URL || GIG_PROCESSOR_FUNCTION_NAME);
+}
+
 /**
- * Best-effort async invoke of the gig processor Lambda. Amplify Hosting SSR
- * usually has no IAM credentials, so this is wrapped to never throw — the Gig
- * is already persisted via AppSync regardless.
+ * Kick the existing gig-processor so the user gets their first text and the
+ * gig actually starts being fulfilled. Two strategies, in priority order:
+ *
+ *  1. HTTP POST to the processor's public Lambda Function URL
+ *     (`GIG_PROCESSOR_FUNCTION_URL`). This needs NO IAM — ideal for Amplify
+ *     Hosting SSR, which has no Lambda-invoke credentials. The processor runs
+ *     to completion independently of this connection, so we only wait briefly.
+ *  2. Direct async Lambda invoke (`GIG_PROCESSOR_FUNCTION_NAME`) — only works
+ *     if the SSR compute role has `lambda:InvokeFunction`.
+ *
+ * Never throws — the Gig is already persisted via AppSync regardless. Returns
+ * whether a trigger was successfully dispatched.
  */
-async function invokeProcessor(payload: Record<string, unknown>): Promise<void> {
-  if (!GIG_PROCESSOR_FUNCTION_NAME) return;
-  try {
-    const { LambdaClient, InvokeCommand } = await import("@aws-sdk/client-lambda");
-    const client = new LambdaClient({});
-    await client.send(
-      new InvokeCommand({
-        FunctionName: GIG_PROCESSOR_FUNCTION_NAME,
-        InvocationType: "Event",
-        Payload: new TextEncoder().encode(JSON.stringify(payload)),
-      }),
-    );
-  } catch (err) {
-    console.warn("[WebGig] Processor invoke skipped/failed (non-blocking):", err);
+async function invokeProcessor(payload: Record<string, unknown>): Promise<boolean> {
+  if (GIG_PROCESSOR_FUNCTION_URL) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    try {
+      const resp = await fetch(GIG_PROCESSOR_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(WEB_GIG_SHARED_SECRET ? { "x-gigler-web-secret": WEB_GIG_SHARED_SECRET } : {}),
+        },
+        body: JSON.stringify({ ...payload, webGig: true }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      return resp.ok;
+    } catch (err) {
+      clearTimeout(timeout);
+      // The processor keeps running after we stop waiting; treat a timeout as
+      // a successful dispatch. Other errors mean the request never landed.
+      if (err instanceof Error && err.name === "AbortError") return true;
+      console.warn("[WebGig] Processor URL POST failed:", err);
+    }
   }
+
+  if (GIG_PROCESSOR_FUNCTION_NAME) {
+    try {
+      const { LambdaClient, InvokeCommand } = await import("@aws-sdk/client-lambda");
+      const client = new LambdaClient({});
+      await client.send(
+        new InvokeCommand({
+          FunctionName: GIG_PROCESSOR_FUNCTION_NAME,
+          InvocationType: "Event",
+          Payload: new TextEncoder().encode(JSON.stringify(payload)),
+        }),
+      );
+      return true;
+    } catch (err) {
+      console.warn("[WebGig] Processor invoke skipped/failed (non-blocking):", err);
+    }
+  }
+
+  return false;
 }
 
 export interface CreateGigInput {
@@ -147,6 +190,8 @@ export interface CreateGigInput {
 export interface CreateGigResult {
   gigId: string;
   shortCode: string;
+  /** True when the fulfillment engine was triggered (user will get a text). */
+  processorTriggered: boolean;
 }
 
 export async function createWebGig(input: CreateGigInput): Promise<CreateGigResult> {
@@ -179,8 +224,8 @@ export async function createWebGig(input: CreateGigInput): Promise<CreateGigResu
   await createGigParticipantRecord(gig.id, phone, user.id, user.name || input.name);
   await createMessageRecord(gig.id, user.id, user.name || phone, input.prompt);
 
-  // Best-effort: let the existing fulfillment engine pick it up.
-  await invokeProcessor({
+  // Trigger the existing fulfillment engine so the user gets their first text.
+  const processorTriggered = await invokeProcessor({
     gigId: gig.id,
     userId: user.id,
     message: input.prompt,
@@ -191,5 +236,5 @@ export async function createWebGig(input: CreateGigInput): Promise<CreateGigResu
     _trace: { source: "web-gig-create" },
   });
 
-  return { gigId: gig.id, shortCode: gig.shortCode };
+  return { gigId: gig.id, shortCode: gig.shortCode, processorTriggered };
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PromptHero from "@/components/PromptHero";
+import SideRail from "@/components/SideRail";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
@@ -12,9 +13,11 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <main className="flex-1">
+    <main className="flex-1 md:pl-14">
+      <SideRail />
+
       {/* Nav */}
-      <nav className="fixed top-0 z-50 w-full border-b border-brand-border bg-background/80 backdrop-blur-md">
+      <nav className="fixed top-0 z-40 w-full border-b border-brand-border bg-background/80 backdrop-blur-md md:pl-14">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-2xl font-bold text-foreground">
             Gigler
@@ -40,9 +43,9 @@ export default function HomePage() {
       </nav>
 
       {/* Hero — prompt-first */}
-      <section className="dot-grid relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
+      <section className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-16">
         <div
-          className="pointer-events-none absolute inset-x-0 top-1/4 mx-auto h-72 max-w-3xl rounded-full bg-brand-accent/10 blur-3xl"
+          className="pointer-events-none absolute inset-x-0 top-1/3 mx-auto h-64 max-w-xl rounded-full bg-brand-accent/[0.06] blur-3xl"
           aria-hidden
         />
         <div className="relative w-full">

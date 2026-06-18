@@ -27,13 +27,22 @@ export default function PromptHero() {
   const [apps, setApps] = useState<AppDef[]>([]);
   const [error, setError] = useState("");
 
+  const [appsReady, setAppsReady] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
-  const [result, setResult] = useState<{ shortCode: string; gigId: string } | null>(null);
+  const [result, setResult] = useState<{
+    shortCode: string;
+    gigId: string;
+    processorTriggered: boolean;
+  } | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  /** Minimum "thinking" beat so the planning state never just flashes. */
+  const MIN_THINKING_MS = 850;
 
   useEffect(() => {
     let cancelled = false;
@@ -60,8 +69,11 @@ export default function PromptHero() {
     if (!trimmed || phase === "planning" || phase === "creating") return;
     setPrompt(trimmed);
     setError("");
+    setAppsReady(false);
     setPhase("planning");
 
+    const startedAt = Date.now();
+    let planResult: Plan = { appIds: ["gemini"], title: trimmed };
     try {
       const res = await fetch("/api/gig/plan", {
         method: "POST",
@@ -69,16 +81,21 @@ export default function PromptHero() {
         body: JSON.stringify({ prompt: trimmed }),
       });
       const data = (await res.json()) as Plan & { error?: string };
-      const planResult: Plan = {
+      planResult = {
         appIds: Array.isArray(data.appIds) && data.appIds.length ? data.appIds : ["gemini"],
         title: data.title || trimmed,
       };
-      setPlan(planResult);
-      setApps(getApps(planResult.appIds));
     } catch {
-      setPlan({ appIds: ["gemini"], title: trimmed });
-      setApps(getApps(["gemini"]));
+      planResult = { appIds: ["gemini"], title: trimmed };
     }
+
+    // Keep a brief, classy "thinking" beat even when the API is instant.
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_THINKING_MS) await sleep(MIN_THINKING_MS - elapsed);
+
+    setPlan(planResult);
+    setApps(getApps(planResult.appIds));
+    setAppsReady(true);
 
     // Logged in? Create directly. Otherwise, collect a phone number.
     if (loggedInEmail) {
@@ -147,6 +164,7 @@ export default function PromptHero() {
         needsCode?: boolean;
         shortCode?: string;
         gigId?: string;
+        processorTriggered?: boolean;
       };
 
       if (res.status === 503 && data.configured === false) {
@@ -164,7 +182,11 @@ export default function PromptHero() {
         setPhase(extra.code !== undefined ? "otp" : "phone");
         return;
       }
-      setResult({ shortCode: data.shortCode || "", gigId: data.gigId || "" });
+      setResult({
+        shortCode: data.shortCode || "",
+        gigId: data.gigId || "",
+        processorTriggered: data.processorTriggered ?? false,
+      });
       setPhase("done");
     } catch {
       setError("Could not create your gig. Please try again.");
@@ -177,6 +199,7 @@ export default function PromptHero() {
     setPrompt("");
     setPlan(null);
     setApps([]);
+    setAppsReady(false);
     setError("");
     setPhone("");
     setCode("");
@@ -192,6 +215,12 @@ export default function PromptHero() {
           started ? "mb-6 opacity-90" : "mb-8"
         }`}
       >
+        {!started && (
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-surface/50 px-3.5 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-brand-muted backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
+            AI Gig Worker
+          </span>
+        )}
         <h1
           className={`gigler-glow font-bold tracking-tight transition-all duration-500 ${
             started ? "text-2xl md:text-3xl" : "text-4xl md:text-6xl"
@@ -214,9 +243,9 @@ export default function PromptHero() {
             e.preventDefault();
             void handleSubmitPrompt(prompt);
           }}
-          className="gradient-frame hero-fade-in rounded-3xl"
+          className="prompt-glow hero-fade-in rounded-3xl"
         >
-          <div className="rounded-3xl border border-brand-border bg-background-alt/90 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div className="rounded-3xl border border-brand-border bg-background-alt p-3 shadow-2xl shadow-black/40">
             <textarea
               ref={textareaRef}
               value={prompt}
@@ -249,11 +278,10 @@ export default function PromptHero() {
           </div>
         </form>
       ) : (
-        <div className="hero-fade-in rounded-2xl border border-brand-border bg-background-alt/70 px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-muted">
-            Your gig
+        <div className="hero-fade-in rounded-2xl border border-brand-border bg-background-alt/60 px-5 py-4">
+          <p className="text-base font-medium leading-relaxed text-foreground">
+            {prompt}
           </p>
-          <p className="mt-1 text-base font-medium text-foreground">{prompt}</p>
         </div>
       )}
 
@@ -276,49 +304,61 @@ export default function PromptHero() {
       {/* Plan / logo reveal */}
       {started && (
         <div className="mt-6">
-          <div className="flex items-center gap-2 text-sm text-brand-muted">
-            {phase === "planning" ? (
-              <span className="flex items-center gap-2">
+          {!appsReady ? (
+            <>
+              <div className="flex items-center gap-2.5 text-sm text-brand-muted">
                 <span className="flex gap-1">
                   <span className="typing-dot inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
                   <span className="typing-dot inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
                   <span className="typing-dot inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
                 </span>
-                Orca is routing your gig…
-              </span>
-            ) : (
-              <span>
-                Gigler will use{plan?.title ? ` — ${plan.title}` : ""}:
-              </span>
-            )}
-          </div>
-
-          {apps.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-              {apps.map((app, i) => (
-                <div
-                  key={app.id}
-                  className="sms-message flex flex-col items-center gap-2 rounded-xl border border-brand-border bg-brand-surface/55 px-2 py-3"
-                  style={{ animationDelay: `${i * 90}ms` }}
-                >
-                  <span
-                    className="flex h-11 w-11 items-center justify-center rounded-xl"
-                    style={{ boxShadow: `0 0 0 1px ${app.color}55, 0 0 18px ${app.color}22` }}
+                <span>Gigler is figuring out which apps &amp; agents to use…</span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center gap-2 rounded-xl border border-brand-border bg-brand-surface/30 px-2 py-3"
                   >
-                    <Image
-                      src={app.logo}
-                      alt={app.name}
-                      width={28}
-                      height={28}
-                      className={app.monochrome ? "h-7 w-7 brightness-0 invert" : "h-9 w-9"}
-                    />
-                  </span>
-                  <span className="text-center text-xs font-medium leading-tight text-foreground">
-                    {app.name}
-                  </span>
+                    <span className="shimmer-tile h-11 w-11 rounded-xl" />
+                    <span className="shimmer-tile h-2.5 w-12 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm text-brand-muted">
+                Gigler will use{plan?.title ? ` — ${plan.title}` : ""}:
+              </div>
+              {apps.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                  {apps.map((app, i) => (
+                    <div
+                      key={app.id}
+                      className="app-pop flex flex-col items-center gap-2 rounded-xl border border-brand-border bg-brand-surface/55 px-2 py-3"
+                      style={{ animationDelay: `${i * 80}ms` }}
+                    >
+                      <span
+                        className="flex h-11 w-11 items-center justify-center rounded-xl"
+                        style={{ boxShadow: `0 0 0 1px ${app.color}44, 0 0 16px ${app.color}1f` }}
+                      >
+                        <Image
+                          src={app.logo}
+                          alt={app.name}
+                          width={28}
+                          height={28}
+                          className={app.monochrome ? "h-7 w-7 brightness-0 invert" : "h-9 w-9"}
+                        />
+                      </span>
+                      <span className="text-center text-xs font-medium leading-tight text-foreground">
+                        {app.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -421,8 +461,9 @@ export default function PromptHero() {
             <>
               <h2 className="text-2xl font-bold text-foreground">Your Gig is live.</h2>
               <p className="mt-2 text-sm leading-relaxed text-brand-muted">
-                Gigler is on it. We&apos;ll text you to keep things moving and to
-                check in when a decision is needed.
+                {result?.processorTriggered
+                  ? "Gigler is on it. We'll text you to keep things moving and to check in when a decision is needed."
+                  : "Your gig is saved. Text Gigler to kick it off and we'll take it from there."}
               </p>
               {result?.shortCode && (
                 <p className="mt-4 inline-block rounded-xl border border-brand-border bg-background px-4 py-2 text-sm text-foreground">

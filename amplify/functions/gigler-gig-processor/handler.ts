@@ -2315,16 +2315,80 @@ async function handleConversationsWebhook(event: Record<string, unknown>): Promi
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
+/**
+ * Detect a "web gig" event arriving over the public Function URL (POSTed by the
+ * Next.js /api/gig/create route). These are JSON bodies marked `webGig: true`,
+ * as opposed to Twilio's form-encoded Conversations webhook. This lets gigs
+ * created on the website be fulfilled without giving the web tier IAM creds.
+ *
+ * Returns a typed direct event when matched, or null to fall through to the
+ * normal Conversations-webhook handling (which safely ignores non-webhooks).
+ */
+function parseWebGigHttpEvent(event: Record<string, unknown>): GigProcessorEvent | null {
+  const rawBody = (event.body as string) || "";
+  if (!rawBody) return null;
+
+  let bodyStr = rawBody;
+  if ((event as { isBase64Encoded?: boolean }).isBase64Encoded) {
+    try {
+      bodyStr = Buffer.from(rawBody, "base64").toString("utf8");
+    } catch {
+      return null;
+    }
+  }
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(bodyStr) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  if (parsed.webGig !== true) return null;
+
+  // Optional shared-secret gate (recommended for the public Function URL).
+  const expectedSecret = process.env.WEB_GIG_SHARED_SECRET || "";
+  if (expectedSecret) {
+    const headers = (event.headers as Record<string, string>) || {};
+    const provided = headers["x-gigler-web-secret"] || headers["X-Gigler-Web-Secret"] || "";
+    if (provided !== expectedSecret) {
+      console.warn("[GigProcessor] Rejected web-gig event: invalid shared secret");
+      return null;
+    }
+  }
+
+  if (typeof parsed.gigId !== "string" || typeof parsed.message !== "string") return null;
+
+  return {
+    gigId: parsed.gigId,
+    userId: typeof parsed.userId === "string" ? parsed.userId : "",
+    message: parsed.message,
+    phone: typeof parsed.phone === "string" ? parsed.phone : "",
+    senderName: typeof parsed.senderName === "string" ? parsed.senderName : undefined,
+    mediaUrls: Array.isArray(parsed.mediaUrls)
+      ? parsed.mediaUrls.filter((u): u is string => typeof u === "string")
+      : [],
+    skipReply: parsed.skipReply === true,
+    _trace: { traceId: generateTraceId(), requestId: "web-gig", source: "web-gig-create" },
+  };
+}
+
 export const handler: Handler = async (event: Record<string, unknown>, context) => {
+  let directEvent: Record<string, unknown> = event;
+
   if (event.requestContext && event.headers) {
-    return handleConversationsWebhook(event);
+    const webGigEvent = parseWebGigHttpEvent(event);
+    if (!webGigEvent) {
+      return handleConversationsWebhook(event);
+    }
+    directEvent = webGigEvent as unknown as Record<string, unknown>;
   }
 
-  if (event.action === "setup_conversation") {
-    return handleSetupConversation(event);
+  if (directEvent.action === "setup_conversation") {
+    return handleSetupConversation(directEvent);
   }
 
-  const gigEvent = event as unknown as GigProcessorEvent;
+  const gigEvent = directEvent as unknown as GigProcessorEvent;
   const trace = gigEvent._trace || { traceId: generateTraceId(), requestId: context.awsRequestId, source: "unknown" };
   const log = createLogger({
     ...trace, source: "gigler-gig-processor",

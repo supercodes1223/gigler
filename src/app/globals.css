@@ -255,6 +255,91 @@ body {
   opacity: 0.45;
 }
 
+/* ── Prompt box: understated animated glow on the OUTER border only ──────── */
+.prompt-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Thin animated ring that sits just outside the (opaque) input edge. */
+.prompt-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #4285F4,
+    #9b59b6,
+    #EA4335,
+    #FBBC05,
+    #34A853,
+    #4285F4
+  );
+  animation: glow-rotate 7s linear infinite;
+  opacity: 0.38;
+}
+
+/* Very soft outer halo — never reaches inside the input. */
+.prompt-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -2;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #4285F4,
+    #9b59b6,
+    #EA4335,
+    #FBBC05,
+    #34A853,
+    #4285F4
+  );
+  filter: blur(9px);
+  opacity: 0.12;
+  animation: glow-rotate 7s linear infinite;
+}
+
+.prompt-glow:focus-within::before { opacity: 0.5; }
+.prompt-glow:focus-within::after { opacity: 0.16; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-glow::before, .prompt-glow::after { animation: none !important; }
+}
+
+/* ── App/agent reveal: smooth staggered pop-in ───────────────────────────── */
+@keyframes app-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.app-pop {
+  animation: app-pop 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* ── Thinking-state shimmer (skeleton tiles) ─────────────────────────────── */
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-tile {
+  background: linear-gradient(
+    90deg,
+    rgba(245, 240, 232, 0.035) 25%,
+    rgba(245, 240, 232, 0.10) 37%,
+    rgba(245, 240, 232, 0.035) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-tile { animation: none !important; }
+}
+
 /* ── Subtle dot-grid background for the orchestration canvas ─────────────── */
 .dot-grid {
   background-image: radial-gradient(circle, rgba(245, 240, 232, 0.08) 1px, transparent 1px);

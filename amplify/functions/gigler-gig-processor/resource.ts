@@ -17,6 +17,7 @@ export const giglerGigProcessor = defineFunction({
     GIGLER_NUMBER: process.env.GIGLER_NUMBER || "",
     GITHUB_TOKEN: process.env.GITHUB_TOKEN || "",
     GITHUB_ORG: process.env.GITHUB_ORG || "",
+    WEB_GIG_SHARED_SECRET: process.env.WEB_GIG_SHARED_SECRET || "",
   },
   resourceGroupName: "data",
 });
