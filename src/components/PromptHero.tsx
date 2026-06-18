@@ -28,6 +28,8 @@ export default function PromptHero() {
   const [error, setError] = useState("");
 
   const [appsReady, setAppsReady] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [rotationPaused, setRotationPaused] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -63,6 +65,22 @@ export default function PromptHero() {
   }, []);
 
   const started = phase !== "idle";
+
+  // Smoothly auto-rotate the example suggestions while idle. Pauses on
+  // hover/focus, when a gig has started, and when the user prefers reduced motion.
+  useEffect(() => {
+    if (started || rotationPaused) return;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    const id = setInterval(() => {
+      setSuggestionIndex((i) => (i + 1) % EXAMPLE_PROMPTS.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, [started, rotationPaused]);
 
   async function handleSubmitPrompt(text: string) {
     const trimmed = text.trim();
@@ -215,12 +233,6 @@ export default function PromptHero() {
           started ? "mb-6 opacity-90" : "mb-8"
         }`}
       >
-        {!started && (
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-surface/50 px-3.5 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-brand-muted backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
-            AI Gig Worker
-          </span>
-        )}
         <h1
           className={`gigler-glow font-bold tracking-tight transition-all duration-500 ${
             started ? "text-2xl md:text-3xl" : "text-4xl md:text-6xl"
@@ -230,8 +242,9 @@ export default function PromptHero() {
         </h1>
         {!started && (
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-brand-muted">
-            Describe what you need. Gigler plans it, picks the right apps and
-            agents, and gets the gig done — reaching you by text when it needs you.
+            Describe what you need. Gigler plans it, picks the right AI agents and
+            apps, and gets the gig done reaching you by text, phone and email when
+            it needs you.
           </p>
         )}
       </div>
@@ -285,19 +298,47 @@ export default function PromptHero() {
         </div>
       )}
 
-      {/* Example chips */}
+      {/* Rotating example suggestion */}
       {!started && (
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          {EXAMPLE_PROMPTS.map((ex) => (
-            <button
-              key={ex}
-              type="button"
-              onClick={() => void handleSubmitPrompt(ex)}
-              className="rounded-full border border-brand-border bg-brand-surface/60 px-4 py-2 text-sm text-brand-muted transition hover:border-brand-accent/50 hover:text-foreground"
-            >
-              {ex}
-            </button>
-          ))}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleSubmitPrompt(EXAMPLE_PROMPTS[suggestionIndex])}
+            onMouseEnter={() => setRotationPaused(true)}
+            onMouseLeave={() => setRotationPaused(false)}
+            onFocus={() => setRotationPaused(true)}
+            onBlur={() => setRotationPaused(false)}
+            aria-label={`Try this example gig: ${EXAMPLE_PROMPTS[suggestionIndex]}`}
+            className="group flex max-w-full items-center gap-2.5 rounded-full border border-brand-border bg-brand-surface/50 py-2.5 pl-4 pr-3 text-sm transition hover:border-brand-accent/50 hover:bg-brand-surface"
+          >
+            <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-brand-muted">
+              Try
+            </span>
+            <span className="relative h-5 overflow-hidden text-left">
+              <span
+                key={suggestionIndex}
+                aria-live="polite"
+                className="suggestion-cycle block whitespace-nowrap font-medium text-foreground"
+              >
+                {EXAMPLE_PROMPTS[suggestionIndex]}
+              </span>
+            </span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-foreground transition group-hover:bg-foreground/20">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </span>
+          </button>
+          <div className="flex items-center gap-1.5" aria-hidden>
+            {EXAMPLE_PROMPTS.map((ex, i) => (
+              <span
+                key={ex}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === suggestionIndex ? "w-5 bg-brand-accent" : "w-1.5 bg-brand-border"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -332,26 +373,26 @@ export default function PromptHero() {
                 Gigler will use{plan?.title ? ` — ${plan.title}` : ""}:
               </div>
               {apps.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                <div className="mt-4 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-4 md:grid-cols-6">
                   {apps.map((app, i) => (
                     <div
                       key={app.id}
-                      className="app-pop flex flex-col items-center gap-2 rounded-xl border border-brand-border bg-brand-surface/55 px-2 py-3"
-                      style={{ animationDelay: `${i * 80}ms` }}
+                      className="app-pop flex flex-col items-center gap-2"
+                      style={{ animationDelay: `${i * 70}ms` }}
                     >
                       <span
-                        className="flex h-11 w-11 items-center justify-center rounded-xl"
-                        style={{ boxShadow: `0 0 0 1px ${app.color}44, 0 0 16px ${app.color}1f` }}
+                        className="flex h-12 w-12 items-center justify-center rounded-[14px] transition-transform duration-300 hover:scale-105"
+                        style={{ boxShadow: `0 0 0 1px ${app.color}33, 0 8px 22px -8px ${app.color}aa` }}
                       >
                         <Image
                           src={app.logo}
                           alt={app.name}
-                          width={28}
-                          height={28}
-                          className={app.monochrome ? "h-7 w-7 brightness-0 invert" : "h-9 w-9"}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-[14px]"
                         />
                       </span>
-                      <span className="text-center text-xs font-medium leading-tight text-foreground">
+                      <span className="text-center text-xs font-medium leading-tight text-brand-muted">
                         {app.name}
                       </span>
                     </div>

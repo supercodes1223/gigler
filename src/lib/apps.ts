@@ -17,10 +17,8 @@ export interface AppDef {
   /** Stable id — also the basename of the logo file in /public/logos. */
   id: string;
   name: string;
-  /** Logo asset path. Monochrome logos are tinted white on a dark tile. */
+  /** Logo asset path. Every logo is a self-contained, full-color rounded tile. */
   logo: string;
-  /** True when the asset is a single-color silhouette (rendered white). */
-  monochrome: boolean;
   /** Brand color used for the accent ring / glow on the reveal tile. */
   color: string;
   /** Short category label shown under grouped reveals. */
@@ -30,9 +28,9 @@ export interface AppDef {
 }
 
 /**
- * The full catalog. `engine`/`cloud` entries reuse the existing monochrome
- * brand SVGs; everything else uses lightweight colored app-icon SVGs added
- * under /public/logos.
+ * The full catalog. Every entry maps to a full-color, self-contained app-icon
+ * SVG (rounded brand tile) under /public/logos so the reveal renders in real
+ * brand colors on the dark hero.
  */
 export const APPS: AppDef[] = [
   // ── AI engines & agents (the orchestration layer) ───────────────────────
@@ -40,7 +38,6 @@ export const APPS: AppDef[] = [
     id: "gemini",
     name: "Gemini",
     logo: "/logos/gemini.svg",
-    monochrome: true,
     color: "#4285F4",
     category: "engine",
     keywords: ["research", "write", "summary", "plan", "analyze", "draft", "idea"],
@@ -49,35 +46,63 @@ export const APPS: AppDef[] = [
     id: "chatgpt",
     name: "ChatGPT",
     logo: "/logos/chatgpt.svg",
-    monochrome: true,
-    color: "#10a37f",
+    color: "#10A37F",
     category: "engine",
-    keywords: ["write", "copy", "content", "email", "draft", "brainstorm"],
+    keywords: ["write", "copy", "content", "draft", "brainstorm"],
+  },
+  {
+    id: "codex",
+    name: "Codex",
+    logo: "/logos/codex.svg",
+    color: "#10A37F",
+    category: "dev",
+    keywords: ["code", "build", "app", "website", "api", "function", "script"],
   },
   {
     id: "claude",
     name: "Claude",
     logo: "/logos/claude.svg",
-    monochrome: true,
-    color: "#d97757",
+    color: "#D97757",
     category: "engine",
-    keywords: ["code", "build", "app", "debug", "review", "refactor", "analyze"],
+    keywords: ["code", "build", "app", "debug", "review", "refactor", "analyze", "reason"],
   },
   {
     id: "cursor",
     name: "Cursor",
     logo: "/logos/cursor.svg",
-    monochrome: true,
-    color: "#6e6e6e",
+    color: "#CBD2DA",
     category: "dev",
     keywords: ["code", "build", "app", "website", "api", "deploy", "feature", "bug"],
+  },
+  {
+    id: "kimi",
+    name: "Kimi",
+    logo: "/logos/kimi.svg",
+    color: "#8B7BD8",
+    category: "engine",
+    keywords: ["long", "document", "context", "summarize", "kimi", "research"],
+  },
+  {
+    id: "hermes",
+    name: "Hermes",
+    logo: "/logos/hermes.svg",
+    color: "#6F66C9",
+    category: "engine",
+    keywords: ["agent", "reason", "open", "hermes", "tool"],
+  },
+  {
+    id: "openclaw",
+    name: "OpenClaw",
+    logo: "/logos/openclaw.svg",
+    color: "#FF6B35",
+    category: "dev",
+    keywords: ["scrape", "browse", "extract", "crawl", "openclaw", "web"],
   },
   {
     id: "github",
     name: "GitHub",
     logo: "/logos/github.svg",
-    monochrome: false,
-    color: "#8b8b8b",
+    color: "#C9D1D9",
     category: "dev",
     keywords: ["code", "repo", "deploy", "pull request", "git", "ship", "app", "website"],
   },
@@ -86,7 +111,6 @@ export const APPS: AppDef[] = [
     id: "aws",
     name: "AWS",
     logo: "/logos/aws.svg",
-    monochrome: true,
     color: "#FF9900",
     category: "cloud",
     keywords: ["deploy", "host", "cloud", "server", "backend", "infrastructure", "app", "website"],
@@ -95,7 +119,6 @@ export const APPS: AppDef[] = [
     id: "google-cloud",
     name: "Google Cloud",
     logo: "/logos/google-cloud.svg",
-    monochrome: true,
     color: "#4285F4",
     category: "cloud",
     keywords: ["deploy", "host", "cloud", "run", "backend"],
@@ -105,7 +128,6 @@ export const APPS: AppDef[] = [
     id: "opentable",
     name: "OpenTable",
     logo: "/logos/opentable.svg",
-    monochrome: false,
     color: "#DA3743",
     category: "reservations",
     keywords: ["reservation", "reserve", "table", "dinner", "restaurant", "book", "brunch", "lunch"],
@@ -114,8 +136,7 @@ export const APPS: AppDef[] = [
     id: "resy",
     name: "Resy",
     logo: "/logos/resy.svg",
-    monochrome: false,
-    color: "#C5283D",
+    color: "#FF2D55",
     category: "reservations",
     keywords: ["reservation", "reserve", "table", "dinner", "restaurant", "book"],
   },
@@ -123,7 +144,6 @@ export const APPS: AppDef[] = [
     id: "yelp",
     name: "Yelp",
     logo: "/logos/yelp.svg",
-    monochrome: false,
     color: "#FF1A1A",
     category: "reservations",
     keywords: ["restaurant", "review", "find", "best", "near me", "place", "spot"],
@@ -133,7 +153,6 @@ export const APPS: AppDef[] = [
     id: "evite",
     name: "Evite",
     logo: "/logos/evite.svg",
-    monochrome: false,
     color: "#00A0DF",
     category: "events",
     keywords: ["invite", "party", "event", "birthday", "rsvp", "celebration", "guest"],
@@ -143,7 +162,6 @@ export const APPS: AppDef[] = [
     id: "doordash",
     name: "DoorDash",
     logo: "/logos/doordash.svg",
-    monochrome: false,
     color: "#FF3008",
     category: "delivery",
     keywords: ["food", "delivery", "order", "takeout", "deliver", "catering"],
@@ -152,8 +170,7 @@ export const APPS: AppDef[] = [
     id: "instacart",
     name: "Instacart",
     logo: "/logos/instacart.svg",
-    monochrome: false,
-    color: "#43B02A",
+    color: "#0AAD0A",
     category: "delivery",
     keywords: ["grocery", "groceries", "instacart", "ingredients", "meal", "shopping"],
   },
@@ -161,8 +178,7 @@ export const APPS: AppDef[] = [
     id: "uber",
     name: "Uber",
     logo: "/logos/uber.svg",
-    monochrome: false,
-    color: "#10847e",
+    color: "#10847E",
     category: "delivery",
     keywords: ["ride", "uber", "transport", "pickup", "airport", "car"],
   },
@@ -171,16 +187,14 @@ export const APPS: AppDef[] = [
     id: "google",
     name: "Google",
     logo: "/logos/google.svg",
-    monochrome: false,
     color: "#4285F4",
     category: "productivity",
-    keywords: ["search", "find", "calendar", "schedule", "maps", "directions", "research"],
+    keywords: ["search", "find", "calendar", "schedule", "maps", "directions", "research", "photos", "organize"],
   },
   {
     id: "gmail",
     name: "Gmail",
     logo: "/logos/gmail.svg",
-    monochrome: false,
     color: "#EA4335",
     category: "productivity",
     keywords: ["email", "send", "inbox", "reply", "mail", "follow up"],
@@ -189,19 +203,17 @@ export const APPS: AppDef[] = [
     id: "slack",
     name: "Slack",
     logo: "/logos/slack.svg",
-    monochrome: false,
-    color: "#611f69",
+    color: "#E01E5A",
     category: "productivity",
-    keywords: ["team", "slack", "message", "notify", "channel", "update everyone"],
+    keywords: ["team", "slack", "message", "notify", "channel", "everyone"],
   },
   {
     id: "stripe",
     name: "Stripe",
     logo: "/logos/stripe.svg",
-    monochrome: false,
     color: "#635BFF",
     category: "productivity",
-    keywords: ["payment", "invoice", "charge", "billing", "checkout", "stripe", "pay"],
+    keywords: ["payment", "invoice", "charge", "billing", "bill", "bills", "checkout", "stripe", "pay"],
   },
 ];
 
@@ -251,32 +263,46 @@ export function classifyGigType(prompt: string): GigType {
 }
 
 /**
+ * Curated tool sets per gig type — guarantees an on-topic, good-looking reveal
+ * for each kind of gig (these lead, then keyword hits fill any remaining slots).
+ */
+const TYPE_TOOLSETS: Partial<Record<GigType, string[]>> = {
+  coding: ["cursor", "codex", "claude", "github", "aws"],
+  reservations: ["opentable", "resy", "yelp"],
+  planning: ["opentable", "resy", "evite", "yelp"],
+  creative: ["claude", "google", "gmail", "slack"],
+  household: ["gmail", "slack", "stripe", "google"],
+  scheduling: ["google", "gmail", "slack"],
+  lifestyle: ["instacart", "doordash", "uber"],
+  education: ["claude", "kimi", "google"],
+  professional: ["claude", "stripe", "gmail"],
+  business_formation: ["stripe", "gmail", "claude"],
+};
+
+/**
  * Lightweight keyword matcher: maps a prompt to a curated set of app ids.
- * Always returns at least the orchestration engines so the reveal feels real.
+ * Always leads with Gemini (Orca routing) so the reveal feels like real
+ * orchestration, then the gig-type tool set, then any extra keyword hits.
  */
 export function matchAppsByKeywords(prompt: string): string[] {
   const lower = prompt.toLowerCase();
-  const scored = APPS.map((app) => {
-    const hits = app.keywords.reduce((n, kw) => (lower.includes(kw) ? n + 1 : n), 0);
-    return { id: app.id, category: app.category, hits };
-  });
 
-  const matched = scored.filter((s) => s.hits > 0).sort((a, b) => b.hits - a.hits);
+  // Gemini (Orca routing) always leads the orchestration.
+  const ids = new Set<string>(["gemini"]);
 
-  const ids = new Set<string>();
-  // Gemini (Orca routing) is always part of orchestration.
-  ids.add("gemini");
+  // Curated, on-topic tools for this gig type lead the reveal.
+  const type = classifyGigType(prompt);
+  for (const id of TYPE_TOOLSETS[type] ?? []) ids.add(id);
+
+  // Fill remaining slots with direct keyword hits (highest first).
+  const matched = APPS.map((app) => ({
+    id: app.id,
+    hits: app.keywords.reduce((n, kw) => (lower.includes(kw) ? n + 1 : n), 0),
+  }))
+    .filter((s) => s.hits > 0)
+    .sort((a, b) => b.hits - a.hits);
 
   for (const m of matched) ids.add(m.id);
-
-  // If the prompt looks like coding, make sure the dev tools show up.
-  const type = classifyGigType(prompt);
-  if (type === "coding") {
-    ["claude", "cursor", "github", "aws"].forEach((id) => ids.add(id));
-  }
-  if (type === "planning" || type === "reservations") {
-    ids.add("opentable");
-  }
 
   // Cap so the reveal stays tasteful.
   return Array.from(ids).slice(0, 7);

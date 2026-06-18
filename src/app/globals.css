@@ -319,6 +319,21 @@ body {
   animation: app-pop 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
+/* ── Rotating example suggestion (rolodex-style enter) ───────────────────── */
+@keyframes suggestion-cycle {
+  0%   { opacity: 0; transform: translateY(90%); }
+  18%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.suggestion-cycle {
+  animation: suggestion-cycle 2.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .suggestion-cycle { animation: none !important; }
+}
+
 /* ── Thinking-state shimmer (skeleton tiles) ─────────────────────────────── */
 @keyframes shimmer-sweep {
   0%   { background-position: -200% 0; }
