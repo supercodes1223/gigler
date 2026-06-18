@@ -494,7 +494,7 @@ export default function PromptHero() {
               <form onSubmit={handleSendOtp}>
                 <h2 className="text-lg font-bold text-foreground">Start your Gig</h2>
                 <p className="mt-1 text-sm leading-relaxed text-brand-muted">
-                  We&apos;ll text you so Gigler can continue this Gig over the phone if needed.
+                  Gigler will text or call you only if it needs something to finish your Gig.
                 </p>
                 <input
                   type="tel"
