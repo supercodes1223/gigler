@@ -16,7 +16,7 @@ export default function SiteFooter() {
           <div className="text-sm font-semibold text-foreground">
             NVIDIA Inception program member
           </div>
-          <div className="text-sm text-brand-muted">
+          <div className="text-sm text-brand-muted" suppressHydrationWarning>
             &copy; {new Date().getFullYear()} Gigler. All rights reserved.
           </div>
         </div>

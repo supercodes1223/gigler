@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 interface RailItem {
   href: string;
@@ -107,6 +107,13 @@ function Tooltip({ label }: { label: string }) {
 
 export default function SideRail() {
   const pathname = usePathname() || "/";
+  // Active highlighting depends on the URL, which can differ between the static
+  // prerender and the client. Defer it until after mount so the first client
+  // paint matches the server exactly (no hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isActive = (match?: (p: string) => boolean) => mounted && (match?.(pathname) ?? false);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-14 flex-col items-center border-r border-brand-border bg-background-alt/80 py-3 backdrop-blur-md md:flex">
@@ -123,7 +130,7 @@ export default function SideRail() {
 
       {/* New gig */}
       <div className="mt-3">
-        <Link href={NEW_GIG.href} aria-label={NEW_GIG.label} className={railItemClass(NEW_GIG.match?.(pathname) ?? false)}>
+        <Link href={NEW_GIG.href} aria-label={NEW_GIG.label} className={railItemClass(isActive(NEW_GIG.match))}>
           {NEW_GIG.icon}
           <Tooltip label={NEW_GIG.label} />
         </Link>
@@ -132,7 +139,7 @@ export default function SideRail() {
       {/* Primary nav */}
       <nav className="mt-2 flex flex-col items-center gap-1">
         {ITEMS.map((item) => {
-          const active = item.match?.(pathname) ?? false;
+          const active = isActive(item.match);
           return (
             <Link key={item.label} href={item.href} aria-label={item.label} className={railItemClass(active)}>
               {item.icon}

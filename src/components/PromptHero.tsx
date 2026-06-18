@@ -234,6 +234,7 @@ export default function PromptHero() {
         }`}
       >
         <h1
+          suppressHydrationWarning
           className={`gigler-glow font-bold tracking-tight transition-all duration-500 ${
             started ? "text-2xl md:text-3xl" : "text-4xl md:text-6xl"
           }`}
@@ -370,33 +371,78 @@ export default function PromptHero() {
           ) : (
             <>
               <div className="text-sm text-brand-muted">
-                Gigler will use{plan?.title ? ` — ${plan.title}` : ""}:
+                Gigler is wiring up the tools{plan?.title ? ` for ${plan.title}` : ""}:
               </div>
               {apps.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-4 md:grid-cols-6">
-                  {apps.map((app, i) => (
-                    <div
-                      key={app.id}
-                      className="app-pop flex flex-col items-center gap-2"
-                      style={{ animationDelay: `${i * 70}ms` }}
-                    >
-                      <span
-                        className="flex h-12 w-12 items-center justify-center rounded-[14px] transition-transform duration-300 hover:scale-105"
-                        style={{ boxShadow: `0 0 0 1px ${app.color}33, 0 8px 22px -8px ${app.color}aa` }}
-                      >
-                        <Image
-                          src={app.logo}
-                          alt={app.name}
-                          width={48}
-                          height={48}
-                          className="h-12 w-12 rounded-[14px]"
-                        />
+                <div className="relative mt-5">
+                  {/* Orchestration hub */}
+                  <div className="flex justify-center">
+                    <div className="orch-hub inline-flex items-center gap-2 rounded-full border border-brand-border bg-background-alt px-3.5 py-1.5">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-brand-accent to-purple-500 text-[0.6rem] font-extrabold text-white">
+                        G
                       </span>
-                      <span className="text-center text-xs font-medium leading-tight text-brand-muted">
-                        {app.name}
-                      </span>
+                      <span className="text-xs font-semibold text-foreground">Gigler</span>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Animated connector wires drawing out to each tool */}
+                  <svg
+                    className="orch-wires hidden h-10 w-full sm:block"
+                    viewBox="0 0 1000 40"
+                    preserveAspectRatio="none"
+                    aria-hidden
+                  >
+                    {apps.map((app, i) => {
+                      const x = ((i + 0.5) / apps.length) * 1000;
+                      const d = `M500 0 C 500 28 ${x} 12 ${x} 40`;
+                      return (
+                        <g key={app.id}>
+                          {/* Base wire draws out from the hub in sequence. */}
+                          <path
+                            className="orch-wire"
+                            d={d}
+                            style={{ stroke: app.color, animationDelay: `${i * 80}ms` }}
+                          />
+                          {/* A glowing pulse then travels the wire — Gigler wiring it up. */}
+                          <path
+                            className="orch-pulse"
+                            d={d}
+                            pathLength={100}
+                            style={{ stroke: app.color, animationDelay: `${620 + i * 80}ms` }}
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+
+                  {/* Tool nodes settle into place */}
+                  <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-4 sm:mt-0">
+                    {apps.map((app, i) => (
+                      <div
+                        key={app.id}
+                        className="app-pop flex w-16 flex-col items-center gap-2"
+                        style={{ animationDelay: `${340 + i * 80}ms` }}
+                      >
+                        <span
+                          className="flex h-12 w-12 items-center justify-center rounded-[14px] transition-transform duration-300 hover:scale-105"
+                          style={{ boxShadow: `0 0 0 1px ${app.color}33, 0 8px 22px -8px ${app.color}aa` }}
+                        >
+                          <Image
+                            src={app.logo}
+                            alt=""
+                            aria-hidden
+                            width={48}
+                            height={48}
+                            unoptimized
+                            className="h-12 w-12 rounded-[14px]"
+                          />
+                        </span>
+                        <span className="text-center text-xs font-medium leading-tight text-brand-muted">
+                          {app.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>
