@@ -312,9 +312,6 @@ export default function PromptHero() {
             aria-label={`Try this example gig: ${EXAMPLE_PROMPTS[suggestionIndex]}`}
             className="group flex max-w-full items-center gap-2.5 rounded-full border border-brand-border bg-brand-surface/50 py-2.5 pl-4 pr-3 text-sm transition hover:border-brand-accent/50 hover:bg-brand-surface"
           >
-            <span className="shrink-0 text-xs font-medium uppercase tracking-wider text-brand-muted">
-              Try
-            </span>
             <span className="relative h-5 overflow-hidden text-left">
               <span
                 key={suggestionIndex}
