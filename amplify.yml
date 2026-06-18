@@ -17,7 +17,7 @@ frontend:
         - cp amplify_outputs.json src/amplify_outputs.json 2>/dev/null || true
         # Amplify Hosting console env vars are build-time only; Next.js SSR needs
         # them at runtime, so persist the server-side ones into .env.production.
-        - env | grep -E '^(APPSYNC_URL|APPSYNC_API_KEY|TWILIO_ACCOUNT_SID|TWILIO_AUTH_TOKEN|TWILIO_MESSAGING_SERVICE_SID|COOKIE_SECRET|NEXT_PUBLIC_SITE_URL)=' >> .env.production || true
+        - env | grep -E '^(APPSYNC_URL|APPSYNC_API_KEY|TWILIO_ACCOUNT_SID|TWILIO_AUTH_TOKEN|TWILIO_MESSAGING_SERVICE_SID|COOKIE_SECRET|NEXT_PUBLIC_SITE_URL|GEMINI_API_KEY|GEMINI_MODEL|GIGLER_NUMBER)=' >> .env.production || true
         - npm run build
   artifacts:
     baseDirectory: .next
