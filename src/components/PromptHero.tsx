@@ -439,7 +439,7 @@ export default function PromptHero() {
                     </svg>
                   </button>
                   <p className="text-xs text-brand-muted">
-                    Gigler gets to work and texts you only if it needs something.
+                    Gigler gets to work and texts, calls or emails you only if it needs something.
                   </p>
                 </div>
               )}

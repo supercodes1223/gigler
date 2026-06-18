@@ -3,13 +3,11 @@ import { ALL_APP_IDS, APPS, matchAppsByKeywords } from "@/lib/apps";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_PLAN_MODEL || "gpt-4o-mini";
 
 interface PlanResult {
   appIds: string[];
   title: string;
-  source: "openai" | "gemini" | "keywords";
+  source: "gemini" | "keywords";
 }
 
 function fallbackTitle(prompt: string): string {
@@ -59,39 +57,6 @@ function parsePlanJson(text: string, prompt: string, source: PlanResult["source"
   return { appIds: [...new Set(appIds)].slice(0, 7), title, source };
 }
 
-async function planWithOpenAI(prompt: string): Promise<PlanResult | null> {
-  if (!OPENAI_API_KEY) return null;
-  try {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        temperature: 0.3,
-        max_tokens: 200,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: PLANNER_RULES },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-    if (!resp.ok) {
-      console.error(`[GigPlan] OpenAI planning failed (${resp.status}), trying next path`);
-      return null;
-    }
-    const data = await resp.json();
-    const text: string = data?.choices?.[0]?.message?.content || "";
-    return parsePlanJson(text, prompt, "openai");
-  } catch (err) {
-    console.error("[GigPlan] OpenAI planning error, trying next path:", err);
-    return null;
-  }
-}
-
 async function planWithGemini(prompt: string): Promise<PlanResult | null> {
   if (!GEMINI_API_KEY) return null;
   try {
@@ -133,10 +98,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A prompt is required" }, { status: 400 });
   }
 
-  // Order of preference: Gemini → OpenAI → keyword fallback.
+  // Gemini chooses the tools; keyword matching is the offline fallback.
   const plan: PlanResult =
-    (await planWithGemini(prompt)) ??
-    (await planWithOpenAI(prompt)) ?? {
+    (await planWithGemini(prompt)) ?? {
       appIds: matchAppsByKeywords(prompt),
       title: fallbackTitle(prompt),
       source: "keywords",
