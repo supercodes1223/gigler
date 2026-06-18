@@ -99,7 +99,7 @@ export default function PromptHero() {
     }
     const id = setInterval(() => {
       setSuggestionIndex((i) => (i + 1) % EXAMPLE_PROMPTS.length);
-    }, 4600);
+    }, 3400);
     return () => clearInterval(id);
   }, [started, rotationPaused]);
 
@@ -344,27 +344,33 @@ export default function PromptHero() {
             aria-label={`Try this example gig: ${EXAMPLE_PROMPTS[suggestionIndex].text}`}
             className="group flex max-w-full items-center gap-2.5 rounded-full border border-brand-border bg-brand-surface/50 py-2.5 pl-3 pr-3 text-sm transition hover:border-brand-accent/50 hover:bg-brand-surface"
           >
-            {/* Curated tool logos for this example — fixed width to avoid jank */}
+            {/* Curated tool logos for this example — fixed width to avoid jank.
+                Each logo sits in a light chip (bg + border) so colored logos
+                stay legible on the dark pill, and stacks in with a glow pulse. */}
             <span
               key={`logos-${suggestionIndex}`}
-              className="flex w-[3.4rem] shrink-0 items-center justify-center"
+              className="flex w-[3.5rem] shrink-0 items-center justify-center"
               aria-hidden
             >
               {EXAMPLE_PROMPTS[suggestionIndex].appIds
                 .map((id) => getApp(id))
                 .filter((a): a is AppDef => Boolean(a))
                 .map((app, i) => (
-                  <Image
+                  <span
                     key={app.id}
-                    src={app.logo}
-                    alt=""
-                    aria-hidden
-                    width={18}
-                    height={18}
-                    unoptimized
-                    className="pill-logo-in -ml-1.5 h-[18px] w-[18px] rounded-[5px] ring-1 ring-background/70 first:ml-0"
-                    style={{ animationDelay: `${i * 90}ms` }}
-                  />
+                    className="pill-logo-in -ml-2 flex h-6 w-6 items-center justify-center rounded-[7px] border border-white/15 bg-white/10 backdrop-blur-sm first:ml-0"
+                    style={{ animationDelay: `${i * 110}ms` }}
+                  >
+                    <Image
+                      src={app.logo}
+                      alt=""
+                      aria-hidden
+                      width={20}
+                      height={20}
+                      unoptimized
+                      className="h-5 w-5 rounded-[5px]"
+                    />
+                  </span>
                 ))}
             </span>
             <span className="relative h-5 overflow-hidden text-left">

@@ -338,18 +338,44 @@ body {
   .suggestion-cycle { animation: none !important; }
 }
 
-/* ── Example-pill logos: subtle staggered fade + slide/scale on each rotate ─ */
+/* ── Example-pill logos: staggered stack-in with a blue accent glow pulse ──
+   The glow color matches the prompt-box / "Gigler" hero glow (brand accent
+   #4285F4 → rgba(66,133,244)) so the highlight feels cohesive. Each chip
+   fades + slides + scales into the overlapping stack, then a brief glow
+   pulse highlights it before settling to a soft resting drop shadow. */
 @keyframes pill-logo-in {
-  from { opacity: 0; transform: translateY(4px) scale(0.7); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.6);
+    box-shadow: 0 0 0 0 rgba(66, 133, 244, 0);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1.1);
+    box-shadow:
+      0 0 10px 1px rgba(66, 133, 244, 0.55),
+      0 0 20px 3px rgba(66, 133, 244, 0.3);
+  }
+  75% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 7px 0 rgba(66, 133, 244, 0.25);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
 }
 
 .pill-logo-in {
-  animation: pill-logo-in 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: pill-logo-in 0.72s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pill-logo-in { animation: none !important; }
+  .pill-logo-in {
+    animation: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
 }
 
 /* ── Thinking-state shimmer (skeleton tiles) ─────────────────────────────── */
