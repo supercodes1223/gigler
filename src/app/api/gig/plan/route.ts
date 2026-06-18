@@ -133,10 +133,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A prompt is required" }, { status: 400 });
   }
 
-  // Order of preference: OpenAI (works without the broken Gemini key) → Gemini → keywords.
+  // Order of preference: Gemini → OpenAI → keyword fallback.
   const plan: PlanResult =
-    (await planWithOpenAI(prompt)) ??
-    (await planWithGemini(prompt)) ?? {
+    (await planWithGemini(prompt)) ??
+    (await planWithOpenAI(prompt)) ?? {
       appIds: matchAppsByKeywords(prompt),
       title: fallbackTitle(prompt),
       source: "keywords",
