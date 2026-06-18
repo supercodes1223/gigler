@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { Folder, Info, ListChecks, Plus, Settings, User } from "lucide-react";
 import { useReturnHome } from "@/components/GigStatusProvider";
 
 interface RailItem {
@@ -13,25 +14,17 @@ interface RailItem {
   match?: (pathname: string) => boolean;
 }
 
-const iconProps = {
-  width: 20,
-  height: 20,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.8,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-};
+const ICON_SIZE = 20;
+const ICON_STROKE = 1.8;
+
+function railIcon(Icon: ComponentType<{ size?: number; strokeWidth?: number; "aria-hidden"?: boolean }>): ReactNode {
+  return <Icon size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden />;
+}
 
 const NEW_GIG: RailItem = {
   href: "/",
   label: "New gig",
-  icon: (
-    <svg {...iconProps}>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  ),
+  icon: railIcon(Plus),
   match: (p) => p === "/",
 };
 
@@ -39,52 +32,24 @@ const ITEMS: RailItem[] = [
   {
     href: "/dashboard",
     label: "Gigs",
-    icon: (
-      <svg {...iconProps}>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
+    icon: railIcon(ListChecks),
     match: (p) => p === "/dashboard" || (p.startsWith("/dashboard/") && !p.startsWith("/dashboard/settings")),
   },
   {
     href: "/dashboard",
     label: "Folders",
-    icon: (
-      <svg {...iconProps}>
-        <path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
+    icon: railIcon(Folder),
   },
   {
     href: "/about",
     label: "About",
-    icon: (
-      <svg {...iconProps}>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 11v5M12 8h.01" />
-      </svg>
-    ),
+    icon: railIcon(Info),
     match: (p) => p === "/about",
-  },
-  {
-    href: "/pricing",
-    label: "Plans",
-    icon: (
-      <svg {...iconProps}>
-        <path d="M12 2l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 20l-5 2.7 1.2-5.6L4 13.3l5.6-.6z" />
-      </svg>
-    ),
-    match: (p) => p === "/pricing",
   },
   {
     href: "/dashboard/settings",
     label: "Settings",
-    icon: (
-      <svg {...iconProps}>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-      </svg>
-    ),
+    icon: railIcon(Settings),
     match: (p) => p.startsWith("/dashboard/settings"),
   },
 ];
@@ -160,10 +125,7 @@ export default function SideRail() {
         aria-label="Account"
         className="group relative mt-auto flex h-10 w-10 items-center justify-center rounded-full border border-brand-border text-brand-muted transition hover:text-foreground"
       >
-        <svg {...iconProps}>
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21a8 8 0 0 1 16 0" />
-        </svg>
+        <User size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden />
         <Tooltip label="Account" />
       </Link>
     </aside>
