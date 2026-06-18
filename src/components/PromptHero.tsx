@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { getApps, type AppDef } from "@/lib/apps";
 import { useGigStatus } from "@/components/GigStatusProvider";
 
-type Phase = "idle" | "planning" | "phone" | "otp" | "creating" | "done";
+type Phase = "idle" | "planning" | "ready" | "phone" | "otp" | "creating" | "done";
 
 interface Plan {
   appIds: string[];
@@ -40,6 +40,7 @@ export default function PromptHero() {
     processorTriggered: boolean;
   } | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { setInProgress, registerReset } = useGigStatus();
@@ -129,11 +130,12 @@ export default function PromptHero() {
     setApps(getApps(planResult.appIds));
     setAppsReady(true);
 
-    // Logged in? Create directly. Otherwise, collect a phone number.
+    // Logged in? Create directly. Otherwise, show the tools + a Start CTA that
+    // opens the phone modal.
     if (loggedInEmail) {
       await createGig({ email: loggedInEmail });
     } else {
-      setPhase("phone");
+      setPhase("ready");
     }
   }
 
@@ -144,7 +146,7 @@ export default function PromptHero() {
       setError("Enter a valid phone number");
       return;
     }
-    setPhase("creating");
+    setBusy(true);
     try {
       const res = await fetch("/api/gig/otp", {
         method: "POST",
@@ -154,13 +156,13 @@ export default function PromptHero() {
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
         setError(data.error || "Could not send code");
-        setPhase("phone");
         return;
       }
       setPhase("otp");
     } catch {
       setError("Could not send code. Please try again.");
-      setPhase("phone");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -226,6 +228,15 @@ export default function PromptHero() {
     }
   }
 
+  function handleStart() {
+    setError("");
+    if (loggedInEmail) {
+      void createGig({ email: loggedInEmail });
+    } else {
+      setPhase("phone");
+    }
+  }
+
   function reset() {
     setPhase("idle");
     setPrompt("");
@@ -237,6 +248,7 @@ export default function PromptHero() {
     setCode("");
     setResult(null);
     setNotConfigured(false);
+    setBusy(false);
   }
 
   return (
@@ -413,76 +425,112 @@ export default function PromptHero() {
                   ))}
                 </div>
               )}
+
+              {phase === "ready" && (
+                <div className="mt-7 flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleStart}
+                    className="inline-flex items-center gap-2 rounded-full bg-foreground px-7 py-3 text-base font-semibold text-background shadow-lg shadow-black/20 transition hover:bg-white"
+                  >
+                    Start now
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                  <p className="text-xs text-brand-muted">
+                    Gigler gets to work and texts you only if it needs something.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
       )}
 
-      {/* Phone step */}
-      {phase === "phone" && (
-        <form onSubmit={handleSendOtp} className="hero-fade-in mt-8 rounded-2xl border border-brand-border bg-background-alt/70 p-6">
-          <h2 className="text-lg font-bold text-foreground">One quick step</h2>
-          <p className="mt-1 text-sm leading-relaxed text-brand-muted">
-            We&apos;ll text you to continue this Gig over the phone if needed.
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-              className="flex-1 rounded-full border border-brand-border bg-brand-surface px-5 py-3 text-base text-foreground outline-none transition placeholder:text-brand-muted focus:border-brand-accent"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background transition hover:bg-white"
-            >
-              Text me a code
-            </button>
-          </div>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-          <p className="mt-3 text-xs text-brand-muted">
-            By continuing you agree to receive an SMS verification code. Standard rates may apply.
-          </p>
-        </form>
-      )}
-
-      {/* OTP step */}
-      {phase === "otp" && (
-        <form onSubmit={handleVerifyAndCreate} className="hero-fade-in mt-8 rounded-2xl border border-brand-border bg-background-alt/70 p-6">
-          <h2 className="text-lg font-bold text-foreground">Enter your code</h2>
-          <p className="mt-1 text-sm leading-relaxed text-brand-muted">
-            We texted a 6-digit code to {phone}.
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="123456"
-              className="flex-1 rounded-full border border-brand-border bg-brand-surface px-5 py-3 text-center text-lg tracking-[0.4em] text-foreground outline-none transition placeholder:tracking-normal placeholder:text-brand-muted focus:border-brand-accent"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background transition hover:bg-white"
-            >
-              Start my Gig
-            </button>
-          </div>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-          <button
-            type="button"
-            onClick={() => setPhase("phone")}
-            className="mt-3 text-xs text-brand-muted underline-offset-2 hover:text-foreground hover:underline"
+      {/* Phone / OTP modal */}
+      {(phase === "phone" || phase === "otp") && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !busy && setPhase("ready")}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="hero-fade-in relative w-full max-w-md rounded-2xl border border-brand-border bg-background-alt p-6 shadow-2xl shadow-black/50"
           >
-            Use a different number
-          </button>
-        </form>
+            {phase === "phone" ? (
+              <form onSubmit={handleSendOtp}>
+                <h2 className="text-lg font-bold text-foreground">Start your Gig</h2>
+                <p className="mt-1 text-sm leading-relaxed text-brand-muted">
+                  We&apos;ll text you so Gigler can continue this Gig over the phone if needed.
+                </p>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  autoFocus
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="mt-4 w-full rounded-full border border-brand-border bg-brand-surface px-5 py-3 text-base text-foreground outline-none transition placeholder:text-brand-muted focus:border-brand-accent"
+                />
+                {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? "Sending…" : "Text me a code"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhase("ready")}
+                  className="mt-3 block w-full text-center text-xs text-brand-muted underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Cancel
+                </button>
+                <p className="mt-3 text-center text-xs text-brand-muted">
+                  By continuing you agree to receive an SMS verification code. Standard rates may apply.
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyAndCreate}>
+                <h2 className="text-lg font-bold text-foreground">Enter your code</h2>
+                <p className="mt-1 text-sm leading-relaxed text-brand-muted">
+                  We texted a 6-digit code to {phone}.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="mt-4 w-full rounded-full border border-brand-border bg-brand-surface px-5 py-3 text-center text-lg tracking-[0.4em] text-foreground outline-none transition placeholder:tracking-normal placeholder:text-brand-muted focus:border-brand-accent"
+                />
+                {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+                <button
+                  type="submit"
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-base font-semibold text-background transition hover:bg-white"
+                >
+                  Start my Gig
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPhase("phone")}
+                  className="mt-3 block w-full text-center text-xs text-brand-muted underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Use a different number
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Creating spinner */}
