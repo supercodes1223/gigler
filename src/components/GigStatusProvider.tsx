@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -7,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 
@@ -55,5 +57,32 @@ export function useGigStatus(): GigStatusContextValue {
     setInProgress: () => {},
     registerReset: () => {},
     reset: () => {},
+  };
+}
+
+/**
+ * Shared handler for any "Gigler home" affordance (the left-rail brand mark and
+ * the top-nav wordmark). On the home route it resets the hero in place; from
+ * other routes it navigates home. If a gig is underway it confirms first so the
+ * user doesn't lose in-progress work.
+ */
+export function useReturnHome(): (e?: MouseEvent<HTMLAnchorElement>) => void {
+  const { inProgress, reset } = useGigStatus();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  return (e?: MouseEvent<HTMLAnchorElement>) => {
+    e?.preventDefault();
+    if (inProgress) {
+      const ok = window.confirm(
+        "A gig is already underway. Leave and start over? Your current progress will be lost.",
+      );
+      if (!ok) return;
+    }
+    if ((pathname ?? "/") === "/") {
+      reset();
+    } else {
+      router.push("/");
+    }
   };
 }

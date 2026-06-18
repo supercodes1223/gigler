@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BrandLink from "@/components/BrandLink";
 import { GigStatusProvider } from "@/components/GigStatusProvider";
 import PromptHero from "@/components/PromptHero";
 import SideRail from "@/components/SideRail";
@@ -21,9 +22,9 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="fixed top-0 z-40 w-full border-b border-brand-border bg-background/80 backdrop-blur-md md:pl-14">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-bold text-foreground">
+          <BrandLink className="text-2xl font-bold text-foreground">
             Gigler
-          </Link>
+          </BrandLink>
           <div className="flex items-center gap-6 text-sm">
             <Link href="/about" className="text-brand-muted transition hover:text-foreground">
               Learn more
